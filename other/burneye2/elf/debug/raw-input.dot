@@ -1,0 +1,11 @@
+digraph main {
+	node [
+		style = filled
+		shape = "record"
+		fillcolor = "lightskyblue"
+	];
+
+	"entry point" [
+		label = "{ { ÿ0x01000000\lÿ0x01000010\lÿ0x01000020\lÿ0x01000030\lÿ0x01000040\lÿ0x01000050\lÿ0x01000060\l|ÿ55 89 e5 83 ec 18 83 c4 f4 8b 45 0c 83 c0 04 8b\l 10 52 e8 fc ff ff ff 83 c4 10 89 45 fc c7 45 f8\l 01 00 00 00 8b 55 fc 89 d0 d1 e8 39 45 f8 72 02\l eb 2e 8b 45 fc 8d 4d f8 31 d2 f7 31 85 d2 75 14\l 83 c4 f8 8b 45 f8 50 68 00 00 00 00 e8 fc ff ff\l ff 83 c4 10 ff 45 f8 eb cb 8d b4 26 00 00 00 00\l 31 c0 eb 00 c9 c3\l } }"
+	];
+}

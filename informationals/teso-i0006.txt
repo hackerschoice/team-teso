@@ -1,0 +1,84 @@
+0006 2000/01/23  Nameserver traffic amplify (x 10-30) and NS route discovery
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: NS traffic amplify (x 10-30) and NS route discovery
+Date .................: 2000/01/23 11:15
+Author ...............: scut
+Publicity level ......: unknown
+Affected .............: Nameservers
+Type of entity .......: Protocol
+Type of discovery ....: interesting information, denial of service attack
+Severity/Importance ..: medium
+Found by .............: scut
+
+Information ===================================================================
+
+When a nameserver receives a query, most nameservers usually just start
+forwarding the query to some other nameserver. There can be quite a long path
+of forwarding queries. However if the query is not resolvable because there
+is no nameserver listening on the remote host every forwarding nameserver will
+start to resolve it on their own, by querying the authoritative nameserver
+themselves. In the default configuration each nameserver will send the query
+three times, after 0, 12 and 24 seconds, ymmv.
+
+This can be used to discover the path of nameservers. To do this an attacker
+would query the first nameserver for a domain he can see the packets on, at
+best the domain points to the query host itself. Then he would record all
+nameservers that send out a packet to himself. After having done this he would
+try with another nameserver of the ones he got queries from. In the best case
+he will receive a queries from all hosts but one missing. The missing one is
+the first host in the route. After having reduced the list by one he will
+start over with the reduced list until there is only one nameserver remaining,
+which is the last in the querying chain.
+
+Through seeking especially long paths, where a lot of nameservers are queried,
+this can be abused then as a traffic amplify bandwidth attack, as shown below.
+Since the important entries such as the NS entry is in the cache of each
+nameserver after the first query, the attack is very fast pacing after the
+first query, since no additional packets to the attacker are send and the
+attacker can spoof the UDP query packets. If the attacker is clever he would
+use a very short lifetime for his NS entry, while using a long lifetime for
+the victim subdomain. After the first query succeeded he will just shut his
+nameserver down and send out spoofed query packets at a very fast rate.
+
+In this case a query was issued to ns1 asking about a host within a domain that
+host "victim" has an NS entry for. But there is no nameserver running on victim,
+therefore all queries remain unanswered, and after a short time all nameservers
+that indirectly received the query are starting to query on their own. The host
+"victim" is in this case the victim host which gets the whole traffic load. To
+use this to attack someone you just have to create an NS entry for the victim
+host, for example you own the NS for the domain "foobar.org", then you have to
+create a NS entry "bla.foobar.org" that points to the victim host. After that,
+you query as much nameservers as possible for "<random>.bla.foobar.org".
+
+08:07:24.943598 ns2.domain > victim.domain: 15121 (35)
+08:07:32.747253 ns3.domain > victim.domain: 8536 (35)
+08:07:32.832604 ns2.domain > victim.domain: 15121 (35)
+08:07:39.819289 ns3.domain > victim.domain: 8536 (35)
+08:07:40.670228 ns1.1025 > victim.domain: 56483 (35)
+08:07:44.405556 ns4.domain > victim.domain: 5306 (35) (DF)
+08:07:48.928981 ns2.domain > victim.domain: 15121 (35)
+08:07:52.669825 ns1.1025 > victim.domain: 56483 (35)
+08:07:56.107063 ns3.domain > victim.domain: 8536 (35)
+08:07:56.471586 ns4.domain > victim.domain: 5306 (35) (DF)
+08:08:04.938187 ns6.domain > victim.domain: 26706 (35)
+08:08:12.372097 ns5.2187 > victim.domain: 2352 (35)
+08:08:13.826464 ns6.domain > victim.domain: 26706 (35)
+08:08:16.669021 ns1.1025 > victim.domain: 56483 (35)
+08:08:20.603050 ns4.domain > victim.domain: 5306 (35) (DF)
+08:08:24.365990 ns5.2187 > victim.domain: 2352 (35)
+08:08:30.873233 ns6.domain > victim.domain: 26706 (35)
+  08:08:32.658479 ns1.domain > victim.1025: 298 ServFail 0/0/0 (35)
+08:08:48.369725 ns5.2187 > victim.domain: 2352 (35)
+
+As you can see there are five nameservers who indirectly got the query. "ns1"
+is the nameserver that got the original query which was 35 bytes in length. Now
+all nameservers started to send out queries, three per nameserver. Since six
+nameservers have done this, the amplify ratio is about 18 (35 * 6 * 3 = 630)
+in this case.
+
+===============================================================================
+

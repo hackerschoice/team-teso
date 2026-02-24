@@ -1,0 +1,103 @@
+
+
+0.4.9, 2003/04/05
+
+	Add infrastructure for further obfuscation. Major cleanups and some
+	small fixes. Should be able to handle medium sized objects nicely now.
+
+	- add register usage profiling (-u option) for future use with junk
+	  instruction generation
+	- add instruction usage profiling (-i option) for future use (to
+	  blend better with original opcodes)
+	- add ABI convention abstraction, to keep the disassembler clean. for
+	  now, only a "i386-linux-systemv" handler exists which checks for
+	  register preserving at function calls and linux system call register
+	  usage
+	- make the register picking for junk instructions based on the
+	  register profile the object file has
+	- avoid source and target registers being the same
+	- fix dataflow analysis for unusual function termination (such as
+	  calling exit() or another function that does never return) where no
+	  "ret" instruction is generated
+	- fix System V ABI requirement for register usage (ret instruction
+	  implies USE of eax, ebx, esi, edi, esp and ebp now, "int 0x80" USE
+	  the same)
+
+
+0.4.8, 2003/04/03
+
+	Add junk instruction insertion. Fix bugs in symbol table update,
+	disassembler and data-/control flow heuristics.
+
+	- add simple junk instruction insertion and intra basic block
+	  manipulation infrastructure (relocation shifting, code insertion)
+	- fix System V calling convention (ABI) assumptions about register
+	  usage (eax for return value). For now, a kludge suffices (ret
+	  implies use of eax), but in the long run an ABI abstraction layer
+	  will be used, to cope better with the ABI in general
+	  (http://www.caldera.com/developers/devspecs/abi386-4.pdf, pp37)
+	- fix section header index update of all symbol table entries
+	  (previously, only the section symbol were updated)
+	- fix a prefix size ignorant bug in the IA32 disassembler
+	- extend the switchtable heuristics to also cover special cases of GCC
+	  generated SIB addressed moves
+	- fix bugs in dataflow analysis, where addressing registers of complex
+	  source/target operands were ignored as USE
+	- fix around a dozen instruction descriptions of the disassembler
+	- cleanup options by splitting into: general, graphing, obfuscation
+
+
+0.4.5, 2003/03/31
+
+	Add the linearization of switch tables and provide finer grained loop
+	detection configurability.
+
+	- add switch table fixing to the linearization engine, so full blown
+	  objects should be handled properly. If they are not properly
+	  linearized, please check with "-v 3", that the switch table is
+	  correctly found and the number of cases is correctly identified.
+	- add Dragon book way of loop unification for cases with multiple
+	  backedges and just one head block. This can be activated using -N,
+	  while the old way remains with the -n option.
+
+
+0.4.4, 2003/03/29
+
+	Improve graph layout for loop marked graphs.
+
+	- add vertical_order attributes to nodes within loop detected
+	  subgraphs, to preserve a "natural order" (head node is at top of the
+	  loop, and with high likelyhood the backedge source node is at the
+	  bottom)
+	- replace boxed subgraphs with clustered ones, allowing edges to point
+	  inside and outside of subgraphs freely (note that this feature is
+	  unsupported in aiSee and hence a bit wacky).
+
+
+0.4.3, 2003/03/28
+
+	Add more graph options and loop detection. Support of aiSee.
+
+	- add loop detection through dominators and backedges (see manpage for
+	  example)
+	- add boxed subgraph representation of natural loops in the control
+	  flow graph (supply -n option if -c or -l is used)
+	- add dominator tree output
+	- small bug fixes
+
+
+0.4.1, 2003/03/26
+
+	It should be able to cope with larger objects now, although switch
+	handling is still missing.
+
+	- fix call linearization handling
+	- fix different relocation behaviour of later GCC versions, where
+	  local functions of an object were called either through the help of
+	  a relocation, or using a fixed displacement without relocation
+
+
+0.4.0, 2003/03/25
+
+	- initial release
+

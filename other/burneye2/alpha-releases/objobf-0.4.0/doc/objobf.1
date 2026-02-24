@@ -1,0 +1,109 @@
+.TH objobf 1 "25 Mar 2003" "TEAM TESO"
+.nh
+.SH NAME
+objobf \- burneye2 x86/Linux ELF relocateable object obfuscator
+.SH SYNOPSIS
+.B objobf [-o file] [-e] [-l func] [-c func] [-C func] [-v num] inputfile
+
+.SH DESCRIPTION
+This page documents the
+.B burneye2
+object file obfuscator utility,
+.I objobf.
+It reads one ELF relocateable object file and
+produces a functional equivalent output file, which is an obfuscated version
+of the input file. To do this,
+.I objobf
+breaks up all functions in the file to the basic block level. This
+representation is used to mutate the code while keeping it semantically
+equivalent. This involves dataflow analysis and basic block transformations.
+Afterwards, the basic block representation as control flow graph is linearized
+into a new object file, which is created from scratch.
+
+.SH BETA SOFTWARE
+Please note that the software is in an early state of development, and does
+not contain some of the features mentioned. Right now it only has the ability
+to reschedule the order of basic blocks among multiple functions
+("entangling") and does not provide substantial protection against any kind of
+analysis. It is meant as demonstration of the object input/output engine right
+now.
+
+.SH OPTIONS
+.TP
+.I "-o file"
+Write the output to
+.I file
+rather than the default output file "output.o"
+.TP
+.I -e
+Entangle basic blocks of all functions in the object. That is, the basic block
+order is randomized globally while the control flow is properly maintained.
+However, there are no opaque predicates between basic blocks right now, and
+the entanglement is easily seperateable (but it does fsck with IDA very well
+already ;)
+.TP
+.I "-l func"
+Dump a register usage analysis for function
+.I func.
+More specifically, a live register dataflow analysis for the function is done
+and written as VCG graph to the file "output.vcg". If the
+.I VCG
+program is installed as
+.I xvcg,
+an output file "output.ps" is created and displayed using
+.I gv.
+.TP
+.I "-c func"
+A simple control flow graph (CFG) of the function
+.I func
+is written as VCG file to "output.vcg". As with the
+.I -l
+option,
+.I xvcg
+is ran and the output is displayed with
+.I gv.
+.TP
+.I "-v num"
+Set the verbosity level for both the frontend (analyzation phase) and the
+backend (obfuscation and linearization). Values between zero (0) and three (3)
+are allowed, where 0 means low and 3 high verbosity. Default is zero (low).
+.TP
+.I "-r file"
+Read the random data required from
+.I file.
+This allows for easier reproduction of bugs, as otherwise the random data is
+always pulled dynamically from /dev/urandom.
+
+.SH EXAMPLES
+
+The included simple example shows how to use the obfuscator:
+.PP
+.in +4
+.nf
+gcc -c -o quicksort.o quicksort.c
+objobf -v 3 -e -o quicksort_obf.o quicksort.o
+gcc -o main main.c quicksort_obf.o
+.fi
+.in -4
+.SH KNOWN BUGS
+.I Switch tables.
+Currently, switch tables cannot be linearized correctly. While there are
+extensive heuristics to parse them in the analyzation phase, there is no code
+yet to write a new relocation block for switch statements. Hence, do not use
+switch's in code to be obfuscated. Will be fixed shortly.
+
+.I Multiple code sections.
+Only support for one code section (usually .text) in the object is supported.
+
+.I GCC optimization problems.
+When using optimization levels of three or higher (-O3 or -O6) with GCC, the
+object parsing turns buggy. Please use no optimization or level two
+optimizations (-O2).
+
+.SH BUG REPORTS
+
+If you find a bug (and that is for sure), please try to reproduce it with an
+object as small as possible, as the analysis will be easier then. Please mail
+me at
+.I scut@team-teso.net
+

@@ -1,0 +1,56 @@
+graph: { title: "control flow graph of 'usage'"
+	layoutalgorithm: minbackward
+	display_edge_labels: yes
+	manhatten_edges: yes
+	layout_nearfactor: 0
+	xspace: 25
+
+	node.color: white
+	node.textcolor: black
+	edge.color: black
+	edge.arrowsize: 15
+	edge.thickness: 4
+
+node: { title: "0x00000000"
+	label: "\fu   address\fn  \fuinstruction                                        \fn
+0x00000000  push       ebp                                     
+0x00000001  mov        ebp, esp                                
+0x00000003  sub        esp, (8)0x00000008                      
+0x00000006  sub        esp, (8)0x00000004                      
+0x00000009  push       dword [ebp + (8)0x00000008]             
+0x0000000c  push       (32)0x0806c4c0                          
+0x00000011  push       dword [0x080683b8]                      
+0x00000017  call       dword (32)0xfffffffc                    
+" }
+node: { title: "0x0000001c"
+	label: "\fu   address\fn  \fuinstruction                                        \fn
+0x0000001c  add        esp, (8)0x00000010                      
+0x0000001f  sub        esp, (8)0x00000008                      
+0x00000022  push       (32)0x0806c540                          
+0x00000027  push       dword [0x080683b8]                      
+0x0000002d  call       dword (32)0xfffffffc                    
+" }
+node: { title: "0x00000032"
+	label: "\fu   address\fn  \fuinstruction                                        \fn
+0x00000032  add        esp, (8)0x00000010                      
+0x00000035  sub        esp, (8)0x00000008                      
+0x00000038  push       (32)0x0806c73b                          
+0x0000003d  push       dword [0x080683b8]                      
+0x00000043  call       dword (32)0xfffffffc                    
+" }
+node: { title: "0x00000048"
+	label: "\fu   address\fn  \fuinstruction                                        \fn
+0x00000048  add        esp, (8)0x00000010                      
+0x0000004b  sub        esp, (8)0x0000000c                      
+0x0000004e  push       (8)0x00000001                           
+0x00000050  call       dword (32)0xfffffffc                    
+" }
+node: { title: "0x00000055"
+	label: "\fu   address\fn  \fuinstruction                                        \fn
+" }
+
+edge: { sourcename: "0x00000000" targetname: "0x0000001c"}
+edge: { sourcename: "0x0000001c" targetname: "0x00000032"}
+edge: { sourcename: "0x00000032" targetname: "0x00000048"}
+edge: { sourcename: "0x00000048" targetname: "0x00000055"}
+}

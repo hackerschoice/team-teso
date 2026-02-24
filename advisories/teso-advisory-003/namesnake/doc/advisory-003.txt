@@ -1,0 +1,258 @@
+
+------
+
+TESO Security Advisory
+02/11/2000
+
+Nameserver traffic amplify (DNS Smurf) and NS Route discovery (DNS Traceroute)
+
+
+Summary
+===================
+
+    Nameservers which accept and forward external DNS queries may be abused
+    as traffic amplifiers, exposing a possible threat to network integrity
+    by bandwidth saturation (DNS Smurf).
+
+    A "deaf" pseudo nameserver may be used to discover the query chain a
+    DNS query takes through various nameservers, allowing to make a trace-
+    route like route discovery (DNS Traceroute).
+
+
+Systems Affected
+===================
+
+    All type of nameservers which accept external queries. Especially those,
+    which forward the queries to other nameservers or those which have
+    excessive retry attempt values. The common value is to try three times,
+    but we have observed misconfigured servers which tried more then 20 times
+    sending out a query packet.
+
+    Note that this attack is completely different from the DNS Smurf attack
+    discovered by s0ftpr0ject [4], however, it exploits weaknesses in default
+    BIND [6] configurations too.
+
+
+Tests
+===================
+
+    The following data is an except from initial tests we have conducted
+    against some vulnerable nameserver.
+
+    08:07:24.943598 ns2.domain > victim.domain: 15121 (35)
+    08:07:32.747253 ns3.domain > victim.domain: 8536 (35)
+    08:07:32.832604 ns2.domain > victim.domain: 15121 (35)
+    08:07:39.819289 ns3.domain > victim.domain: 8536 (35)
+    08:07:40.670228 ns1.1025 > victim.domain: 56483 (35)
+    08:07:44.405556 ns4.domain > victim.domain: 5306 (35) (DF)
+    08:07:48.928981 ns2.domain > victim.domain: 15121 (35)
+    08:07:52.669825 ns1.1025 > victim.domain: 56483 (35)
+    08:07:56.107063 ns3.domain > victim.domain: 8536 (35)
+    08:07:56.471586 ns4.domain > victim.domain: 5306 (35) (DF)
+    08:08:04.938187 ns6.domain > victim.domain: 26706 (35)
+    08:08:12.372097 ns5.2187 > victim.domain: 2352 (35)
+    08:08:13.826464 ns6.domain > victim.domain: 26706 (35)
+    08:08:16.669021 ns1.1025 > victim.domain: 56483 (35)
+    08:08:20.603050 ns4.domain > victim.domain: 5306 (35) (DF)
+    08:08:24.365990 ns5.2187 > victim.domain: 2352 (35)
+    08:08:30.873233 ns6.domain > victim.domain: 26706 (35)
+      08:08:32.658479 ns1.domain > querier.1025: 298 ServFail 0/0/0 (35)
+    08:08:48.369725 ns5.2187 > victim.domain: 2352 (35)
+
+    The initial DNS query packet had a size of 35 bytes, although packets
+    up to a size of 500 bytes are possible.
+    As you can see there are five nameservers who indirectly got the query,
+    which was send by "querier" (query packet not displayed). The first name-
+    server that got queried was "ns1".
+
+    The query is forwarded to five other nameservers, so all together there are
+    six nameservers which try to resolve the query domain. If the query domain
+    is a normal existent domain name, the authoritative nameserver will answer
+    promptly and the answer is returned to the original query host.
+
+    This is the normal case. However, if there is an authoritative nameserver
+    which does not respond to the queries send to it, all nameservers will
+    retry to resolve the domain by sending out the query packet, assuming the
+    UDP packet they have previously sent got lost.
+    Because all six nameservers do this, this results in a traffic amplify
+    with factor 18 (18 packets send for each attacker packet).
+
+    Through testing a few hundred nameservers on this vulnerability we quickly
+    found nameservers which will amplify with ratios well beyond 30, sometimes
+    even exceeding 50.
+
+
+Impact
+===================
+
+    By abusing multiple nameserver-chains as traffic amplifiers an attacker can
+    easily saturate any network link. The traffic to the victim IP is caused by
+    the query packets which are sent by each nameserver in the nameserver-chain
+    to the fake authoritative nameserver in the victim network.
+
+    For the last few years denial of service (DoS) attacks that are based on
+    bandwidth saturation have always been a problem. A few years ago, when the
+    Smurf ICMP denial of service attack got publicly known nearly everyone was
+    able to saturate any link by abusing other networks as a traffic amplifier.
+    Since then numerous amplify attacks have been discovered, such as [3] and
+    [4], the original posting of the Smurf attack is [5].
+
+    Any method that allows an attacker to amplify his traffic can be abused for
+    a denial of service attack.
+
+
+Explanation
+===================
+
+    When a nameserver receives a query, most nameservers usually just start
+    forwarding the query to some other nameserver. There can be quite a long
+    path of forwarding queries. However if the query is not resolvable
+    because there is no nameserver listening on the remote host, every
+    forwarding nameserver will start to resolve it on their own, by querying
+    the authoritative nameserver themselves. In the default configuration each
+    nameserver will send the query three times, after 0, 12 and 24 seconds,
+    ymmv.
+
+    This can be used to discover the path of nameservers. To do this an
+    attacker would query the first nameserver for a domain he can see the
+    packets on, at best the domain points to the query host itself. Then he
+    would record all nameservers that send out a packet to himself. After
+    having done this he would try with another nameserver of the ones he got
+    queries from. In the best case he will receive queries from all hosts
+    but one missing. The missing one is the first host in the route. After
+    having reduced the list by one he will start over with the reduced list
+    until there is only one nameserver remaining, which is the last in the
+    querying chain.
+
+    Through seeking especially long paths, where a lot of nameservers are
+    queried, this can be abused as a traffic amplify bandwidth attack, as shown
+    above.
+
+    Since the important entries such as the NS entry is in the cache of each
+    nameserver after the first query, the attack is very fast pacing after the
+    first query, since no additional packets are sent to the attacker and the
+    attacker may spoof the UDP query packets. If the attacker is clever he
+    would use a very short lifetime for his NS entry, while using a long
+    lifetime for the victim subdomain. After the first query succeeded he will
+    just shut his nameserver down and send out spoofed query packets at a very
+    fast rate.
+
+
+Solution
+===================
+
+    "Defense is the best Offense" - said by a wise person. By protecting your
+    own nameservers against being abused by attackers you secure other sites at
+    the same time. If you run BIND [6] nameservers in your network please care
+    to read basic BIND configuration tutorials and especially documents on how
+    to secure your BIND configuration [7].
+
+    Also notice that you may fall victim to the same attack, if only one
+    nameserver in your network is vulnerable -- That means if only one
+    server is accepting queries for external domains from strangers, this
+    nameserver inside your network will send out trusted queries to other
+    nameservers in your network, and hence can be abused too.
+
+    By taking more generic measures against being the originator network of
+    denial of service attacks, such as improving your overall network security,
+    you contribute to the security of all other networks in the Internet too.
+    I urge you to subscribe to a security related mailing list, such as
+    Bugtraq [8] or, if you cannot afford the time necessary to read such a
+    list, at least subscribe to the CERT list [9].
+
+    In general there is no foolproof method to avoid getting a victim of a DNS
+    Smurf. But what can you do if you get attacked ?
+
+    To think of the correct response we have to think of why this attack works.
+    It works because other nameservers try to query a non-existent nameserver
+    in your network and don't get any response, hence retrying again. To just
+    filter DNS traffic to this IP is only of little use as a short-time
+    measure. Instead setting up a bogus DNS server on the victim IP address,
+    which replies with bogus answers to any query it receives will reduce the
+    impact of the attack.
+
+    However the real cause for the attack is still the number of misconfigured
+    DNS servers out there, which accept queries for external domains from
+    strangers. Another reason is the unreliable transport protocol which makes
+    it impossible for the nameserver to notice the unreachability of the remote
+    victim nameserver.
+
+
+Acknowledgments
+================
+
+    The bug discovery and the demonstration programs is due to TESO [1].
+
+    This advisory has been written by scut and hendy.
+    The tests and further analysis were done by scut.
+    The demonstration exploit has been written by scut.
+
+
+Contact Information
+===================
+
+    The TESO crew can be reached by mailing to teso@shellcode.org.
+    Our web page is at http://teso.scene.at/
+
+
+References
+===================
+
+    [1] TESO
+        http://teso.scene.at/
+
+    [2] Packetfactory
+        http://www.packetfactory.net/
+
+    [3] The "MAC DoS Attack", a x37 traffic amplify attack
+        posted on Bugtraq Mailing List 12/28/1999, discovered by John Copeland
+
+    [4] DNS Smurf (through query/answer ratio)
+        s0ftpr0ject Security Advisory SPJ-002-000, July 19, 1999
+        posted on Bugtraq Mailing List 07/30/1999, discovered by scacco
+
+    [5] ICMP ECHO Requests to Broadcast addresses (ICMP Smurf attack)
+        posted on Bugtraq Mailing List 07/19/1997, posting by Edward Henigin
+
+    [6] BIND nameserver software - Internet Software Consortium
+        http://www.isc.org/
+
+    [7] Securing Domain Name Service
+        Article on securityportal.com security related website
+        http://securityportal.com/cover/coverstory19990621.html
+
+    [8] Bugtraq Mailing List
+        http://www.securityfocus.com/about/feedback/subscribe-bugtraq.html
+
+    [9] CERT Mailing List
+        http://www.cert.org/contact_cert/certmaillist.html
+
+
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be
+    inaccurate or wrong. The supplied exploit is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    link [1].
+
+
+Exploit
+===================
+
+    We've created a working demonstration program to exploit the vulnerability.
+    The program needs Libnet, a low level network library installed, which can
+    be obtained through [2].
+
+    The exploit is available from
+
+       http://teso.scene.at/
+
+------
+
+

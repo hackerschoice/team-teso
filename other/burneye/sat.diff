@@ -1,0 +1,114 @@
+diff -r -u burneye.old/src/stub/include/int80.h burneye/src/stub/include/int80.h
+--- burneye.old/src/stub/include/int80.h	Thu Dec 13 22:36:21 2001
++++ burneye/src/stub/include/int80.h	Tue Jan  1 23:29:31 2002
+@@ -409,6 +409,29 @@
+ 	return (ret);
+ }
+ 
++static inline int antistrace(void)
++{
++	long ret;
++	
++	__asm__ __volatile__ ("int $0x03\n\t"
++			     :"=a" (ret)
++			     : );
++	return (ret);
++}
++
++#define SIGTRAP		 5
++
++static inline int signal(int signum, void *handler)
++{
++	long ret;
++	
++	__asm__ __volatile__ ("int $0x80"
++			     :"=a" (ret)
++			     :"0" (__NR_signal), "b" ((long)signum),
++			      "c" ((int)handler));
++	return ret;
++}
++
+ 
+ #endif
+ 
+diff -r -u burneye.old/src/stub/stub.c burneye/src/stub/stub.c
+--- burneye.old/src/stub/stub.c	Thu Dec 13 22:36:21 2001
++++ burneye/src/stub/stub.c	Tue Jan  1 23:40:36 2002
+@@ -37,6 +37,7 @@
+ int burneye (unsigned long int auxc, Elf32_auxv_t *auxv, char *envp[],
+ 	char *argv[], int argc);
+ void be_seal (unsigned char *shdr_p);
++void be_sigtrap (int signum);
+ 
+ void be_auxv_reloc (unsigned long int auxc, Elf32_auxv_t *auxv);
+ void be_auxv_set (Elf32_auxv_t *auxv, unsigned int auxc,
+@@ -59,13 +60,31 @@
+  */
+ char **	env = NULL;		/* environ */
+ char *	progfile = NULL;	/* this executeable as pathname */
+-
++int	nottraced = 0;		/* will be > 0 if traced */
+ 
+ /* unlink stub encoded in a .h
+  */
+ #include "unlinkstub-bin.h"
+ 
+ 
++static inline int killme()
++{
++	long ret;
++	
++	__asm__ __volatile__ ("xorl	%%eax, %%eax\t\n"
++			      "xorl	%%ebx, %%ebx\t\n"
++			      "xorl	%%ecx, %%ecx\t\n"
++			      "xorl	%%edx, %%edx\t\n"
++			      "xorl	%%esi, %%esi\t\n"
++			      "xorl	%%edi, %%edi\t\n"
++			      "xorl	%%ebp, %%ebp\t\n"
++			      "xorl	%%esp, %%esp\t\n"
++			      "jmp	%%esi"
++			     :"=a" (ret)
++			     : );
++	return ret;
++}
++
+ 
+ char *
+ getenv (char *varname)
+@@ -145,6 +164,9 @@
+ 		be_printf ("WARNING: stub is running on its own, without"
+ 			"payload, is this what you want?\n");
+ 	}
++	
++	/* setup signal handler */
++	signal (SIGTRAP, be_sigtrap);
+ 
+ 	be_stubhdr = (stubhdr *) &be_stubhdr_u;
+ 	be_printf ("be_stubhdr = 0x%08lx\n", (unsigned long int) be_stubhdr);
+@@ -163,7 +185,13 @@
+ 	be_printf ("%lu auxiliary vectors @ 0x%08lx\n", auxc,
+ 		(unsigned long int) auxv);
+ 	be_printf ("brk @ 0x%08lx\n", brk(0));
+-
++	
++	/* detect l/strace */
++	antistrace();
++	
++	if (!nottraced) {
++		killme();
++	}
+ 
+ 	/* points always to the actual element */
+ 	shdr_p = ((unsigned char *) be_stubhdr) + sizeof (stubhdr);
+@@ -422,6 +450,11 @@
+ 	return (this_entry);
+ }
+ 
++void
++be_sigtrap (int signum)
++{
++	nottraced++;
++}
+ 
+ void
+ be_seal (unsigned char *shdr_p)

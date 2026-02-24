@@ -1,0 +1,15 @@
+
+
+gcc -c -o object1.o object1.c
+gcc -c -o object2.o object2.c
+
+ld -r -o object-final.o object1.o object2.o
+
+
+# normal with relocation
+gcc -Wl,-q -o object-exec object1.o object2.o
+
+
+
+gcc -print-libgcc-file-name
+

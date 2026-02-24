@@ -1,0 +1,11 @@
+would this shellcodes work in sparc NetBSD  or SunOS?
+would require "ta 0" instead of "ta8"?
+
+
+todo:
+connect
+bind
+chmod
+read
+spset
+

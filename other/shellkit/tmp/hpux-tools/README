@@ -1,0 +1,10 @@
+This archive contains following files:
+Makefile - make file to build the stuff
+sample-one - example of exploit and vulnerable program
+shell-one.s - shellcode (v1)
+shell-tree.s - shellcode (v2)
+shell-two.s  - shellcode (v3)
+
+
+--
+fygrave@tigerteam.net

@@ -1,0 +1,140 @@
+
+2003/04/07, critical, Assertion failed
+=============================================================================
+
+fixed: temporarily dismissed, as the input code is very very weird on its own.
+	basically, what is happening is a code fragment like this:
+
+	0x00000192 5f                 pop     edi
+	0x00000193 c9                 leave
+	0x00000194 e9fcffffff         jmp     0x195
+                     ^ s     ^ e
+	0x00000199 83ec0c             sub     esp, 0xc
+	0x0000019c 6a02               push    0x2
+	0x0000019e e8fcffffff         call    0x19f
+
+	for the instruction at 0x194 there is no relocation entry, hence the
+	jump is correctly parsed to land in 0x195, which results in a new
+	basic block being created. of course there is no valid control
+	instruction and upon block extension the displ_relofs != 0 assertion
+	fails as this is no valid instruction. review this bug later, if more
+	of such code is experienced.
+
+reproduce:
+	./objobf -e bug-1.o
+
+expected behaviour:
+	output.o being written
+
+observed behaviour:
+	objobf: objwriter.c:1452: bblock_fixup_end_single: Assertion `displ_relofs != 0' failed.
+
+
+2003/03/31, critical, Assertion failed
+=============================================================================
+
+fixed: 2003/04/01
+	there were *common sections, which have to be resolved using
+	"ld -q -r -o object-temp.o object.o" pass. added a manpage note about
+	this. also fixed switchtable detection bugs which were found while
+	tracking this.
+
+reproduce:
+	testcases/3-real$ ../../objobf -v 3 -e 7350wurm.o  
+
+expected behaviour:
+	obfuscation
+
+observed behaviour:
+	codepair: .text / .rel.text with .symtab
+	adding 20 items to 0 items long list
+	objobf: func_handling.c:526: relocate_data: Assertion `rel->sym->sec != ((void
+		*)0)' failed.
+	Aborted
+
+
+2003/03/29, critical, Invalid instruction encountered
+=============================================================================
+
+fixed: 2003/04/01
+	ia32_decode_opcode assigned the source/target operand size as size of
+	the displacement, while the displacement should be guided by the
+	address size (which can be changed with the 0x67 prefix). hence, we
+	use the wide_addr_cur size to figure the displacment length. this
+	resulted in an instruction being recognized as being too short.
+
+reproduce:
+	./objobf -v 3 objwriter-bug1.o
+
+expected behaviour:
+	proper processing of function "obj_write".
+
+observed behaviour:
+                (0x08067be6) 0x0000098e: or     dword [edi], eax
+                (0x08067be8) 0x00000990: or     al, ch
+                (0x08067bea) 0x00000992: cld
+error, no opc structure found :(
+WARNING: (ia32_func_breakup_2) failed to decode instruction at 0x00000993, in function "obj_write"
+
+
+
+2003/03/29, must-fix, switch statement linearization
+=============================================================================
+
+fixed: 2003/03/31
+	quite straight forward linearization by direct memory write into
+	.rodata section.
+
+reproduce:
+	./objobf switch.o
+
+expected behaviour:
+	proper linearization to output.o
+
+observed behaviour:
+	objobf: objwriter.c:1079: bblock_fixup_end: Assertion `0' failed.
+
+
+
+2003/03/29, must-fix, invalid (bogus) loops detected
+=============================================================================
+
+fixed: 2003/03/30, unfixable
+	the problem is not fixable without extensive loop analysis, which is
+	not to be implemented. see section 10.4, pp. 605 of the dragon book.
+
+	2003/03/31, addendum: provide both algorithms and make the user select
+	the proper one (-n or -N option)
+
+reproduce:
+	./objobf -n -c ia32_func_breakup ia32/ia32-function.o &&
+		aisee.bin -color -psoutput output.ps output.vcg &&
+		gv output.ps
+
+expected behaviour:
+	two distinct loops being detected
+
+observed behaviour:
+	one distinct and three nested loops detected
+
+
+
+2003/03/29, must-fix, loop-marked CFG's hard to read
+=============================================================================
+
+fixed: 2003/03/29
+	using clustered subgraphs instead of boxed ones and by adding
+	increasing vertical_order attributes to nodes in subgraphs based on
+	the level and whether it is the head node of a loop.
+
+reproduce:
+	./objobf -n -c quicksort testcases/quicksort.o
+
+expected behaviour:
+	control flow edges from outside into a loop or from inside to outside
+	the loop are clearly displayed as such.
+
+observed behaviour:
+	edges are lead to boxed subgraphs, not to the edges contained in them
+
+

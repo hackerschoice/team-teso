@@ -1,0 +1,10 @@
+Done -
+  Pid hiding/unhiding
+  Ping
+  Root
+  Execve redirection
+  File lookup hiding
+Todo -
+  Module hiding
+  File directory hiding
+  Pid hiding in procfs

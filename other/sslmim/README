@@ -1,0 +1,155 @@
+SSL MiM proxy
+-------------
+
+legal stuff:
+
+By running this program you maybe break law in your country.
+This program is ment to understand how crypto (and SSL in special)
+works and how it can be disabled. You should never mount the attack
+on other persons connections.
+
+This program uses library (OpenSSL) Copyright by Eric Young. 
+
+
+How to install
+-------------
+
+mimd/filterd runs only on linux 2.2 to 2.4 (and probably FreeBSD)
+by now.
+This is due to the way of getting the real destination of
+a redirected connection.
+Make sure you installed openssl and its accessible by gcc
+(libs and includes). Then just type 'make' and watch
+whats coming. Play with -I switches until it works. :)
+
+Edit Makefile and say which OS you are going to run mimd on.
+Add LINUX22 for Linux w/ kernel 2.2, LINUX24 and FREEBSD
+for kernel 2.4 and FreeBSD respectively. 
+
+How to run
+----------
+
+This program allows you to mount the so called "Man in the Middle"
+attack against SSL connections. By doing that, "mimd" acts
+as fake-server for the attacked connection. It silently
+records the data sent and forwards it to its real destination
+(probably some https-server). To get in between the two parties,
+you need to set up a port forwarding rule on a machine that
+sits either directly between the two parties (so calld gateway)
+or that is 'made' the gateway by poisoning the arp-cache
+of the client. The rules look like
+
+(Linux, kernel 2.2)
+
+ipchains -A input -s 192.168.0.2 -d 0/0 -j REDIRECT 10000 -p tcp 
+
+as shell command for linux. This will redirect all traffic from 192.168.0.2
+to our so called "filterd" program which sits on port 10000 and looks
+for SSL handshakes (that is when someone tries to start a SSL session).
+So, fire up filterd by
+
+filterd -p 10000
+
+It is now ready to watch whats coming. Add a new rule like
+
+(Linux, kernel 2.2)
+
+ipchains -A input -s 0/0 8888:10000 -d 0/0 994 -j REDIRECT 10001 -p tcp 
+
+which will redirect all traffic sourced from port 8888 up to 10000 and 
+destinated to port 994 (we expect a stunnel server on port 994 for
+example) to local
+port 10001. That are the connections which "filterd" recognized as SSL
+sessions. On port 10001 now we make the real "mimd" listen:
+
+mimd -p 10001 -C certfile -K keyfile
+
+which does the MiM attack itself. For that matter you need to create
+your own private key which is used during attack:
+
+CA.pl -newcert
+
+Which will put the (private) key and the certificate (containing public
+key) into file newreq.pem. So, in most cases certfile equals keyfile.
+CA.pl is shipped with OpenSSL package. Anyway, you need SSL thats clear.
+Make sure you enabled firewalling, forwarding
+and all the neat things in your kernel.
+In the current working directory of "mimd" you will find files
+"mim.*.*.*" which contain the decrypted data (client and server side).
+
+Recognized connections and errors are sys-logged.
+
+Since filterd only understands SSLv3 handshakes you may want
+to run mimd against your own https sessions directly to get SSLv2 too.
+Just set up the firewall-rules propperly and it works very well
+without filterd. I think its clear how to do ...
+
+You may want to see what your netescape is sending along the SSL stream
+to the https-server. 'mimd' is the perfect tool to monitor that
+session, (and its still encrypted by mimd!) and to look
+for suspicious data.
+
+For localhost-testing, you'd need to add rules like this:
+
+ipchains -A input -p tcp -d 0/0 443 -s 0/0 1000:3000 -j REDIRECT 10000
+
+for 2.2 kernels and
+
+iptables -t nat -A OUTPUT -p tcp --sport 1000:3000 --dport 443 -j REDIRECT --to-port 10000
+
+for 2.4 kernels
+
+and start mimd for port 10000. Because of localhost,
+you only redirect ports 1000 to 3000 (which you suspect to come
+from netescape) to mimd. Mimd itself binds to port 8888 and up
+and thus it doesn't loop!
+
+You can use the tool 'cf' to fetch the certificate of a SSL capable server.
+To analyze it, type smt. like 
+
+cf 127.0.0.1 443|openssl x509 -text
+
+which gives you complete certificate text.
+
+
+FreeBSD 4.0 rule looks like
+
+ipfw 200 add fwd 127.0.0.1,10000 tcp from any to any 443
+
+to redirect https traffic to local port 10000.
+(Thanks to smiler.)
+
+DCA
+---
+
+Dynamic Certificate Assembly allows to place
+'apropriate' subject/issuer and serialnumber into X509-certificate
+upon HTTPS-request.
+At best create a certificate/key as described above
+and just fill in Country (C-field). For the rest
+give it a "." which leaves it empty. 'mimd' will
+put in the right data on the fly when invoked with -D switch.
+When using -D without -I, mimd will use subject name etc.
+and put it into corresponding issuer fields. This is good
+to remove issuers where netescape has apropriate public key.
+You can force using real issuer with -I switch. Mimd will then append
+a " " to the OU field, thus making it differ from real
+issuers and most clients won't use the saved key for
+verifying and accept the cert. This way you can tamper with
+connections which are 'protected' by commercial signers.
+
+AGAIN, I ASSUME YOU DO THAT IN YOUR OWN TEST-LABS TO STRENGTH
+SECURITY OR YOU USE THIS DURING PENETRATION TESTINGS.
+IT IS NOT ALLOWED TO MOUNT THIS ATTACK TO OTHER USERS
+CONNECTIONS IF THEY DO NOT AGREE.
+
+
+
+
+CREDITS
+-------
+
+Smiler for BSD firewalling stuff
+anonymous@segfault.net for secnet testlab.
+
+

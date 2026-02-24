@@ -1,0 +1,382 @@
+0037 2001/05/06  System V malloc implementation details for exploitation
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: System V malloc implementation details for exploitation
+Date .................: 2001/05/06 18:00
+Author ...............: scut
+Publicity level ......: unknown
+Affected .............: System V based malloc implementations (Solaris, IRIX)
+Type of entity .......: implementation details
+Type of discovery ....: useful information
+Severity/Importance ..: medium
+Found by .............: scut
+
+===============================================================================
+
+On the Unix system, and later in the C standard library there are functions to
+handle variable amounts of memory in a dynamic way. This allows programs to
+dynamically request memory blocks from the system. The operating system only
+provides a very rough system call 'sbrk' to change the size of a big memory
+chunk, which is known as the heap.
+
+On top if this system call the malloc interface is build, which builds a layer
+between the application and the system call. It can dynamically split the large
+single block into smaller chunks, free those chunks later on the applications
+request and avoid fragmentation while doing so. You can compare the malloc
+interface as being similar to a file system on a single large, but dynamically
+sized raw device.
+
+There are a few design goals which have to be met by the malloc interface:
+
+	- stability
+	- performance
+	- avoid fragmentation of heap space
+	- low overhead
+
+There are only a few common malloc implementations. The most common one is the
+System V one, implemented by AT&T. Another common one is the GNU C Library
+implementation. On the Microsoft Windows operating system, a similar interface
+is used (RtlHeap*).
+
+
+Here is a table of algorithms and which operating systems use them:
+
+Algorithm               | Operating System
+------------------------+-------------------------------------------------------
+BSD kingsley		| 4.4BSD, AIX (compatibility), Ultrix
+BSD phk			| BSDI, FreeBSD, OpenBSD
+GNU Lib C (Doug Lea)	| Hurd, Linux
+System V AT&T		| Solaris, IRIX
+Yorktown		| AIX (default)
+Rtl*			| Microsoft Windows *
+------------------------+-------------------------------------------------------
+
+If you have information to any of the missing operating systems (HP-UX, NetBSD,
+BSDI) please tell me (at best with a copy of malloc.c and related files, if
+possible).
+
+Its interesting to note that most of the malloc implementations are very easy
+to port and are architecture independent. Most of them only interface with the
+'sbrk' system call, but allow a change of behaviour through a #define. All of
+the implementations I have come across are written in ANSI C and do only very
+minimal to no sanity checking. Most of them have a special compilation define
+that includes asserts and extra checks. Those are turned off by default in the
+final build, for performance reasons. Some of the implementations also offer
+extra reliability checks that will detect buffer overflows. Those are made to
+detect overflows while developing, not to stop exploitation in release
+versions.
+
+
+Storing management info in-band
+
+Most malloc implementations share the behaviour of storing their own management
+information, such as lists of used or free blocks, sizes of memory blocks and
+other useful data within the heap space itself. Since the whole idea of
+malloc/free is based on the dynamic requirements the application has, the
+management info itself occupies a variable amount of data too. Because of this
+the implementation can seldomly just reserve a certain amount of memory for its
+own purposes, but stores the management information "in-band", right after and
+before the blocks of memory that are used by the application.
+
+The central attack of exploiting malloc allocated buffer overflows is to modify
+this management information in a way that will later allow arbitrary memory
+overwrites. This way pointers can be overwritten within the writeable process
+memory, hence allowing modification of return addresses, linkage tables or
+application level data.
+
+To mount such an attack, we have to take a deep look within the internal
+workings of the implementation we want to exploit. This article discusses the
+commonly used System V implementation used in Solaris and IRIX (possibly
+others).
+
+This implementation is based on self-adjusting binary trees. The theoretical
+background of this implementation has been described 1985 by DD Sleator and RE
+Tarjan in "Self-Adjusting Binary Trees". If anyone gets a copy of those
+article, please forward it to me.
+
+The basic idea of this implementation is to keep lists of equal sized malloc
+chunks within a binary tree. So if you allocate two chunks of the same size,
+they will be within the same node, within the same list of this node. Also, the
+tree is ordered by the size of its elements.
+
+
+The TREE structure
+
+Within the mallint.h file the definition of the TREE structure can be found,
+along with easy-to-use macros to access elements of it.
+
+To allow each tree element to be used for different purposes, to save overhead,
+and to force an alignment, each TREE structure element is defined as union:
+
+
+/* the proto-word; size must be ALIGN bytes */
+typedef union _w_ {
+	size_t		w_i;		/* an unsigned int */
+	struct _t_	*w_p;		/* a pointer */
+	char		w_a[ALIGN];	/* to force size */
+} WORD;
+
+
+Central TREE structure definition:
+
+/* structure of a node in the free tree */
+typedef struct _t_ {
+	WORD	t_s;	/* size of this element */
+	WORD	t_p;	/* parent node */
+	WORD	t_l;	/* left child */
+	WORD	t_r;	/* right child */
+	WORD	t_n;	/* next in link list */
+	WORD	t_d;	/* dummy to reserve space for self-pointer */
+} TREE;
+
+
+The 't_s' element of the chunk header contains the rounded up value of the size
+the user requested when he called malloc. Since the size is always rounded up
+to a word boundary, at least the lower two bits of the 't_s' elements are
+unused - they would be zero all the time.
+Instead of being zero, they are ignored for all size-related operations and
+take a special meaning as flag elements (from the malloc.c source):
+
+   BIT0: 1 for busy (block is in use), 0 for free.
+
+   BIT1: if the block is busy, this bit is 1 if the preceding block in
+         contiguous memory is free. Otherwise, it is always 0.
+
+
+TREE Access macros:
+
+/* usable # of bytes in the block */
+#define	SIZE(b)		(((b)->t_s).w_i)
+
+/* free tree pointers */
+#define	PARENT(b)	(((b)->t_p).w_p)
+#define	LEFT(b)		(((b)->t_l).w_p)
+#define	RIGHT(b)	(((b)->t_r).w_p)
+
+/* forward link in lists of small blocks */
+#define	AFTER(b)	(((b)->t_p).w_p)
+
+/* forward and backward links for lists in the tree */
+#define	LINKFOR(b)	(((b)->t_n).w_p)
+#define	LINKBAK(b)	(((b)->t_p).w_p)
+
+
+For all allocation operations a certain alignment and minimum size is enforced,
+which is defined here:
+
+#define	WORDSIZE	(sizeof (WORD))
+#define	MINSIZE		(sizeof (TREE) - sizeof (WORD))
+#define	ROUND(s)	if (s % WORDSIZE) s += (WORDSIZE - (s % WORDSIZE))
+
+
+The tree structure is the central element of each allocated chunk. Normally
+only the 't_s' and 't_p' elements are used, and user data is stored from 't_l'
+on. Once the node is freed, this changes and the data is reused to manage the
+free elements efficiently. The chunk represents an element within the splay
+tree. As more chunks get freed the malloc implementation tries to merge the
+directly bordering free chunks. At most FREESIZE (32 by default) chunks can be
+in this dangling free state at the same time. They are all stored within the
+'flist' array. If a call to free is made while the list is already full the old
+element at this place falls out and is forwarded to realfree. The place is then
+occupied by the newly freed element.
+
+This is done to speed up and avoid defragmentation in cases where a lot of
+calls to free are made in a row. The real merging process is done by realfree.
+It inserts the chunk into the central tree, which starts at the 'Root' pointer.
+The tree is ordered by the size of their elements and balances itself. It is a
+so called "splay tree", in which the elements cycle in a special way to speed
+up searches (see google.com "splay tree" for further information). This is not
+so much important here, but keep in mind that there are two stages of free
+chunks, one being within the flist array, and one within the free-elements tree
+starting at 'Root'.
+
+There are some special management routines for allocating small chunks of
+memory, which happen to have a size below 40 bytes. Those are not considered
+here, but the basic idea is to have extra lists of them, not keeping them
+within a tree but in lists, one for each WORD matching size below 40.
+
+There is more than one way to exploit a malloc based buffer overflow, however
+here is one method which works against IRIX and Solaris.
+
+As a chunk is realfree'd, it is checked whether the directly bordering chunks
+behind and in front of it are already within the real free'd tree. If it is the
+case, the only thing that has to be done is to logically merge the two chunks
+and reorder its position within the tree, since the size changed.
+
+This merging process involves pointer modification within the tree, which
+consists out of nodes. This nodes are represented by the chunk header itself,
+the pointers to other tree elements are stored there. If we can overwrite them,
+we can possibly modify the operation when merging the chunks.
+
+Here is how its done (source shortened/cutted to only display the interesting
+path), in malloc.c:
+
+static void
+realfree(void *old)
+{
+	TREE	*tp, *sp, *np;
+	size_t	ts, size;
+
+	/* pointer to the block */
+	tp = BLOCK(old);
+	ts = SIZE(tp);
+	if (!ISBIT0(ts))
+		return;
+	CLRBITS01(SIZE(tp));
+
+	/* see if coalescing with next block is warranted */
+	np = NEXT(tp);
+	if (!ISBIT0(SIZE(np))) {
+		if (np != Bottom)
+			t_delete(np);
+		SIZE(tp) += SIZE(np) + WORDSIZE;
+	}
+
+We remember NEXT points to the chunk directly following the current one. So we
+have this memory layout:
+
+          tp               old              np
+          |                |                |
+          [chunk A header] [chunk A data] | [chunk B or free ....]
+                                          |
+                                          chunk boundary
+
+In the usual situtation the application has allocated some space and got a
+pointer (old) from malloc. It then messes up and allows a buffer overflow of
+the chunk data. We cross the chunk boundary by overflowing and hit the data
+behind, which is either free space or another used chunk.
+
+	np = NEXT(tp);
+
+Since we can only overflow data behind 'old', we cannot modify the header of
+our own chunk. Therefore we cannot influence the 'np' pointer in any way. It
+always points to the chunk boundary.
+
+Now a check is made to test if it is possible to merge forward, that is our
+chunk and the chunk behind it. Remember that we can control the chunk behind
+ourself.
+
+	if (!ISBIT0(SIZE(np))) {
+		if (np != Bottom)
+			t_delete(np);
+		SIZE(tp) += SIZE(np) + WORDSIZE;
+	}
+ 
+BIT0 is zero if the chunk is free and within the free elements tree. So if it
+is free and not the last chunk, the special 'Bottom' chunk, it is deleted from
+the tree. Then the sizes of both chunks are added and later in the code of the
+realfree function the whole resized chunk is reinserted into the tree.
+
+One important part is that the overflowed chunk must not be the last chunk
+within the malloc space, condition:
+
+        1. Overflowed chunk must not be the last chunk
+
+Here is how the 't_delete' function works:
+
+static void
+t_delete(TREE *op)
+{
+	TREE	*tp, *sp, *gp;
+
+	/* if this is a non-tree node */
+	if (ISNOTREE(op)) {
+		tp = LINKBAK(op);
+		if ((sp = LINKFOR(op)) != NULL)
+			LINKBAK(sp) = tp;
+		LINKFOR(tp) = sp;
+		return;
+	}
+
+There are other cases, but this one is the easiest to exploit, and as I am
+already tired about this, I will just explain this one here, the others are
+very similar (look at malloc.c).
+
+ISNOTREE compares the 't_l' element of the TREE structure with -1. -1 is the
+special marker for non-tree nodes which are used as doubly linked list, but
+that does not matter.
+
+Anyway, that is the first condition we have to obey:
+
+        2. fake->t_l = -1;
+
+Now the unlinking between FOR (t_n) and BAK (t_p) is done, which can be
+rewritten as:
+
+	t1 = fake->t_p
+	t2 = fake->t_n
+	t2->t_p = t1
+	t1->t_n = t2
+
+Which is (written in pseudo-raw-assignments which happen at the same time):
+
+	[t_n + (1 * sizeof (WORD))] = t_p
+	[t_p + (4 * sizeof (WORD))] = t_n
+
+This way we can write to arbitrary addresses, but only with other valid
+addresses at the same time. We choose to use this:
+
+	t_p = retloc - 4 * sizeof (WORD)
+	t_n = retaddr
+
+This way retloc will be overwritten with retaddr and *(retaddr + 8) will be
+overwritten with retloc. If there is code at retaddr, there should be a small
+jump over the bytes 8-11 to not execute this address as code.
+
+Finally our overwrite buffer looks like this:
+
+  | <t_s> <t_p> <t_l> <j: t_r> <t_n> <j: t_d>
+  |
+  chunk boundary
+
+Where: t_s = some small size with lower two bits zeroed out
+       t_p = retloc - 4 * sizeof (WORD)
+       t_l = -1
+       t_r = junk
+       t_n = retaddr
+       t_d = junk
+
+Note that although all the data is stored as 32 bit pointers each structure
+element occupies eight bytes, because of the WORD union, which forces at least
+ALIGN bytes for each element. ALIGN is defined to eight by default.
+
+So a real overflow buffer behind the chunk boundary might look like:
+
+ff ff ff f0 41 41 41 41  ef ff fc e0 41 41 41 41  | ....AAAA....AAAA
+ff ff ff ff 41 41 41 41  41 41 41 41 41 41 41 41  | ....AAAAAAAAAAAA
+ef ff fc a8 41 41 41 41  41 41 41 41 41 41 41 41  | ....AAAAAAAAAAAA
+
+All 'A' characters can be set arbitrarily. The 't_s' element has been replaced
+with a small negative number to avoid NUL bytes. If you use NUL bytes the
+number has to be small also, else the realfree function crashes later.
+
+The buffer above will overwrite:
+
+	[0xeffffce0 + 32] = 0xeffffca8
+	[0xeffffca8 +  8] = 0xeffffce0
+
+See the example code (mxp.c) for a more in-depth explanation.
+
+To summarize down the guts if you happen to exploit a malloc based buffer
+overflow on IRIX or Solaris:
+
+       1. Create a fake chunk behind the one you overflow
+       2. The fake chunk is merged with the one you overflow as it is passed to
+          realfree
+       3. To make it pass to realfree it has to call malloc() again or there
+          have to be a lot of successive free() calls
+       4. The overflowed chunk must not be the last chunk (the one before
+          Bottom)
+       5. Prepend the shellcode/nop-space with jump-aheads to not execute the
+          unavoidable unlink-overwrite address as code
+       6. Using the t_splay routines attacks like this are possible too, so if
+	  you can not use the attack described here (say you cannot write 0xff
+          bytes), use the source luke.
+
+Enjoy. :)
+
+===============================================================================
+
+

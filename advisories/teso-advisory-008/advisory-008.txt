@@ -1,0 +1,155 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+- ------
+
+TESO Security / C-Skills development Security Advisory
+2000/03/13
+
+kisdn local root compromise
+
+
+Summary
+===================
+
+    A bug within the kisdn application for Linux has been discovered.
+    A local attacker may gain root privileges by exploiting a symlink
+    vulnerability in the kisdn, which is part of the KDE suite.
+    
+
+Systems Affected
+===================
+
+    Any system which has kisdn 0.7.3-2 installed setuid-root.
+
+    Among the vulnerable distributions (if the package is installed) are the
+    following systems:
+
+      Halloween Linux Version 4 
+      
+
+Tests
+===================
+
+    [stealth@liane stealth]$ id
+    uid=500(stealth) gid=500(stealth) groups=500(stealth)
+    [stealth@liane stealth]$ export DISPLAY=":0"
+    [stealth@liane stealth]$ cd kisdn-hack
+    [stealth@liane kisdn-hack]$ ./killer
+    Warning. You will loose kisdnrc file and /etc/ld.so.preload!
+    <enter>
+
+    Linking /home/stealth/.kde/share/config/kisdnrc...
+    Creating hijack-lib ...
+    Compiling hijack-lib ...
+    Compile shell...
+    You don't need to click. Just wait a few seconds.
+    kISDN: Release 0.7.3
+    Welcome. But as always: BEHAVE!
+    sh-2.03# id
+    uid=0(root) gid=500(stealth) groups=500(stealth)
+    sh-2.03#
+
+
+Impact
+===================
+
+    An attacker may gain local root-access to a system where vulnerable kisdn
+    package is installed. 
+    Due to the GUI-nature of the program it might be difficult for an attacker
+    to gain a root-shell on a remote-system. However he could modify the
+    DISPLAY environment variable to redirect the output to one of his machines.
+    	 	
+    
+
+Explanation
+===================
+
+    The checkKisdnrc() function which should check for proper permissions
+    and possible sysmlink's fails due to a not evaluated variable 'valid'
+    at the end of the function. Rather the function assumes that all is OK
+    when just a local config-file exists which must be created as root.
+    An attacker however can assume that this file has been created by root
+    via the 'kcmkisdn' utility (which sets up the necessary drivers etc)
+    since otherwise nobody can use the kisdn-program.
+    Even if root has not configured kisdn via this utility, due to a race
+    in checkKisdnrc() an attacker can quickly create a symlink after
+    a successful return of the function.	    
+    Even more the kisdn program has some potential security-risks by calling
+    the 'modprobe' utility via the system(3) call. This might enable
+    an attacker to give additional input to the shell that is invoked by
+    system(3).
+	
+
+Solution
+===================
+
+    The author and the distributor have been informed before.
+    A patch is not yet available.
+	
+    Temporary Solution:
+    Remove kisdn's s-bit.
+    
+
+Acknowledgments
+================
+
+    The bug-discovery and the demonstration programs are due to S. Krahmer [1].
+
+    This advisory has been written by S. Krahmer and hendy.
+
+
+Contact Information
+===================
+
+    The TESO crew can be reached by mailing to teso@coredump.cx.
+    Our web page is at http://teso.scene.at/
+    
+    C-Skills developers may be reached through [1].
+
+
+References
+===================
+
+    [1] S. Krahmer, C-Skills
+        http://www.cs.uni-potsdam.de/homepages/students/linuxer/
+
+    [2] TESO
+	http://teso.scene.at or https://teso.scene.at/
+	
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be
+    inaccurate or wrong. The supplied exploit is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    links [1] and [2].
+
+
+Exploit
+===================
+
+    We've created a working demonstration program to exploit the vulnerability.
+
+    The exploit is available from
+
+       http://teso.scene.at/ or https://teso.scene.at/
+
+    and
+	
+       http://www.cs.uni-potsdam.de/homepages/students/linuxer
+
+- ------
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.0 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
+iD8DBQE40ifpcZZ+BjKdwjcRAr4UAJ94lfxiWU7S74ostUGE3U6lIyA7bgCeLG/6
+hNcWIjwNiyL10NtDqtJc55E=
+=+vBE
+-----END PGP SIGNATURE-----

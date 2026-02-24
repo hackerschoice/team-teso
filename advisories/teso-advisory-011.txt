@@ -1,0 +1,295 @@
+
+------
+
+TESO Security Advisory
+06/10/2001
+
+Multiple vendor Telnet Daemon vulnerability
+
+
+Summary
+===================
+
+    Within most of the current telnet daemons in use today there exist a buffer
+    overflow in the telnet option handling. Under certain circumstances it may
+    be possible to exploit it to gain root priviledges remotely.
+
+
+Systems Affected
+===================
+
+
+Tests
+===================
+
+    System                                  | vulnerable   | exploitable *
+    ----------------------------------------+--------------+------------------
+    FreeBSD 4.2-REL                         |      yes     |       yes
+    FreeBSD 4.3-BETA                        |      yes     |       yes
+    FreeBSD 4.3-REL                         |      yes     |        no (1)
+    FreeBSD 4.3-STABLE                      |      yes     |       yes
+    IRIX 6.5                                |      yes     |        no
+    Linux netkit-telnetd < 0.14             |      yes     |        ?
+    Linux netkit-telnetd >= 0.14            |       no     |
+    OpenBSD 2.8                             |      yes     |        ?
+    OpenBSD 2.9                             |      yes     |        ?
+    Solaris 2.8 sparc                       |      yes     |        ?
+    ----------------------------------------+--------------+------------------
+
+    * = From our analysis and conclusions, which may not be correct or we may
+        have overseen things. Do not rely on this.
+    (1) = See specific details below.
+
+    Details about the systems can be found below.
+
+
+Impact
+===================
+
+    Through sending a specially formed option string to the remote telnet
+    daemon a remote attacker might be able to overwrite sensitive information
+    on the static memory pages. If done properly this may result in arbitrary
+    code getting executed on the remote machine under the priviledges the
+    telnet daemon runs on, usually root.
+
+
+Explanation
+===================
+
+    Within every BSD derived telnet daemon under UNIX the telnet options are
+    processed by the 'telrcv' function. This function parses the options
+    according to the telnet protocol and its internal state. During this
+    parsing the results which should be send back to the client are stored
+    within the 'netobuf' buffer. This is done without any bounds checking,
+    since it is assumed that the reply data is smaller than the buffer size
+    (which is BUFSIZ bytes, usually).
+
+    However, using a combination of options, especially the 'AYT' Are You There
+    option, it is possible to append data to the buffer, usually nine bytes
+    long. To trigger this response, two bytes in the input buffer are
+    necessary. Since this input buffer is BUFSIZ bytes long, you can exceed the
+    output buffer by as much as (BUFSIZ / 2) * 9) - BUFSIZ bytes. For the
+    common case that BUFSIZ is defined to be 1024, this results in a buffer
+    overflow by up to 3584 bytes.  On systems where BUFSIZ is defined to be
+    4096, this is an even greater value (14336).
+
+    Due to the limited set of characters an attacker is able to write outside
+    of the buffer it is difficult - if not impossible on some systems - to
+    exploit this buffer overflow. Another hurdle for a possible attacker may be
+    the lack of interesting information to modify after the buffer.
+
+    This buffer overflow should be considered serious nevertheless, since
+    experience has shown that even complicated vulnerabilities can be
+    exploited by skilled attackers, BIND TSIG and SSH deattack come to mind.
+
+
+    Individual system notes
+    =======================
+
+    These notes include our rating about exploitability on the individual
+    systems. This may be invalid, due to us overlooking things or may be even
+    plain wrong. Also only the most common versions have been analyzed. If you
+    want to write an exploit, start here.
+
+
+    FreeBSD 4.2-REL
+    FreeBSD 4.3-BETA
+    ----------------
+
+    The binaries of the 4.2-REL and 4.3-BETA telnetd (/usr/libexec/telnetd
+    a0491784c6bd4662adc4eb806138f6f8 and /usr/libexec/telnetd
+    ae32821691419385103f3ca7cef89703 respectivly) contain a function pointer
+    'encrypt_output' near behind the 'netobuf' buffer, which we can overwrite.
+    This function pointer is used under certain circumstances to encrypt the
+    outgoing telnet traffic, which is called from the 'netflush' function.
+
+    By overwriting this pointer in a special way one can make it point to the
+    upper heap space. By abusing the telnet daemons setenv functionality prior
+    to the overflow one can populate the upper heap space with shellcode and
+    nops, right there, where the function pointer will point to.
+
+    The exploitation works in multiple phases:
+
+       1. Sending of ~16mb (32000 x 510 byte) bytes of nop space and shellcode
+       2. Aligning the 'nfrontp' pointer to have this position
+
+          ... | 0x00 . 0x00 0x00 0x00 | ...
+
+	  Where '|' is the boundary to the function pointer after the 'netobuf'
+          buffer. The '.' position marks where 'nfrontp' points at
+       3. Send an 'IAC WILL 0x08' sequence, which will write:
+
+          ... | 0x00 0xff 0xfb 0x08 | . 0x00 ...
+
+       4. Trigger the function pointer by causing the telnet daemon to call
+          'netflush'
+
+    Step 1 is a tedious process and can even locally take a few minutes,
+    because the entire environment array is walked every time a setenv is
+    called, to check whether the environment variable already exists. Steps 2
+    to 4 are within a final overflow buffer, they are only seperated here for
+    clearness. The alignment in step 2 can be a problem since we can usually
+    only advance the 'nfrontp' pointer by three (IAC WILL|WONT|DO|DONT OPT
+    sequence) or nine ("\r\n[Yes]\r\n") bytes. To come around this we need an
+    advancement 'n' for that is true: n mod 3 = 1. XXX/TODO: write
+
+
+    FreeBSD 4.3-REL
+    ---------------
+
+    Is not affected by the function pointer method. But the 'envinit' array is
+    behind the buffer. Normally the 'envinit' array is used to initialize the
+    'environ' pointer with. The 'envinit' array is in the static memory too and
+    can be overwritten.
+
+    Once setenv is called within the telnetd process, the FreeBSD C library
+    detects that the 'environ' environment pointer points to non allocated
+    space ('alloced' global variable is 0) and creates a copy of the array
+    within the heap space. From there on, all of the telnet daemons setenv
+    requests are inserted within this malloc-stored array and the 'envinit'
+    array, which we can overwrite, becomes useless.
+
+    XXX/Proposed exploitation method:
+
+    Overwrite envinit[0] with a valid pointer to an environment string such as
+    "LD_PRELOAD=/tmp/foo.so". Normally the clients environment set requests are
+    checked for sanity and invalid values such as "LD_*", "_RLD_*" and
+    "SHELLINIT" are avoided. By using this raw overwrite method we may have a
+    chance to inject an environment string directly into the environment array.
+    To make this work a few things have to be considered. First, the pointer
+    must be valid and point to mapped space. By overwritting the pointer and
+    then continuing the normal telnet login we may be able to trick the linker
+    into loading our bogus libraries. This would be a local root exploit or a
+    remote one, if we are able to store files on the remote host.
+
+
+    IRIX 6.5
+    --------
+
+    The good thing about IRIX telnet daemon is that it comes with symbols. The
+    bad thing however is that it does not look to be exploitable. The memory
+    layout is quite easy (/usr/etc/telnetd is a N32 binary):
+
+    sizes:    (4160)  | (4)     | (4)     |
+    what:     netobuf | nfrontp | pfrontp | ...
+
+    They define - as various other telnet daemons do - an extra bogus space to
+    the 'netobuf' buffer, which is 64 bytes (called "NETSLOP" in other daemons
+    sources). 'BUFSIZ' is defined to 1024 by default on IRIX, so at first
+    glance you might think it is a problem to overwrite 4160 bytes, but it is
+    not for that we can send fragmented TCP frames which can be up to 64
+    kilobytes in size. So we can make a 4096 input buffer read without problems.
+
+    But the real problem is the 'nfrontp'. Normally the decent MIPSPro C
+    Compiler optimizes as much pointers into registers as possible, but the
+    'nfrontp' is defined static and used across all over the code, therefore
+    its memory bound into its place and always synced with its real value. If
+    we overwrite just parts of it, it reacts very sensitive and crashes at any
+    read/write access to it. Since IRIX uses the big endian mode of the MIPS
+    CPU the 'nfrontp' is stored with the most significant byte first in the
+    memory. It points to 'netobuf' which is defined on the '.bss' segment,
+    which is located at my installation at: 0x7fc49b70 to 0x7fc4f324. The
+    'nfrontp' content looks like:
+
+         ... (netobuf) ... | 0x7f 0xc4 0xcd 0xa8 | ...
+
+    Since the 'nfrontp' is constantly accessed throughout the code, one has to
+    make it always containing a sane value. Only the mapped areas of the
+    process can be used for this, which are summarized, your addresses may vary:
+
+        0x7fff0000->0x7fff8000  stack
+        0x0f9ec000->0x0fbe8000  various mapped files/libraries
+        0x7fc00114->0x7fc4f400  .text/.*data/.bss and rest
+
+    There may be a way by excessive grow of the heap by using setenv, some more
+    research for this architecture is required to draw a decision. From the
+    current point of view its very difficult, if not impossible to exploit this
+    bug on this binary.
+
+
+    Linux netkit-telnetd version < 0.14
+    -----------------------------------
+
+    XXX/TODO:
+
+
+    Linux netkit-telnetd version >= 0.14
+    ------------------------------------
+
+    Linux netkit-telnetd from version 0.14 is not directly affected by this bug
+    since they wrap a lot of storing operations which utilize 'nfrontp' in a
+    function 'netoprintf', which does boundary checking.
+
+    However it has to be checked for a one byte overflow, which may be possible
+    at multiple occurances of the code, due to the insecure nature of handling
+    'nfrontp'. Then, the following code in the function 'netoprintf' may fail
+    to do the boundary checking:
+
+      int len, maxsize;
+
+      maxsize = sizeof(netobuf) - (nfrontp - netobuf);
+
+      va_start(ap, fmt);
+      len = vsnprintf(nfrontp, maxsize, fmt, ap);
+      va_end(ap);
+
+    In case (nfrontp - netobuf) is greater than sizeof(netobuf), the integer
+    'maxsize' will turn negative and casted to a very large value in the
+    snprintf handling, which makes it behave like sprintf without any boundary
+    checking.
+
+
+Solution
+===================
+
+    The vendors have been notified of the problem at the same time as the
+    general public, vendor patches for your telnet daemon that fix the bug will
+    show up soon.
+
+    Sometimes a fix might not be trivial and require a lot of changes to the
+    source code, due to the insecure nature the 'nfrontp' pointer is handled.
+    The best long term solution is to disable the telnet daemon at all, since
+    there are good and free replacements.
+
+
+Acknowledgements
+===================
+
+    The bug has been discovered by scut.
+
+    The tests and further analysis were done by smiler, zip and scut.
+
+
+Contact Information
+===================
+
+    The TESO crew can be reached by mailing to teso@team-teso.net
+    Our web page is at http://www.team-teso.net/
+
+
+References
+===================
+
+    [1] TESO
+        http://www.team-teso.net/
+
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be inaccurate
+    or wrong. Possibly supplied exploit code is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    link [1].
+
+
+Exploit
+===================
+
+------
+
+

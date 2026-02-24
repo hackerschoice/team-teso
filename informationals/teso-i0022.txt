@@ -1,0 +1,266 @@
+0022 2000/03/19  TESO AUDIT summary: netkit-combo-0.16
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: TESO AUDIT summary: netkit-combo-0.16
+Date .................: 2000/03/19 22:00
+Author ...............: scut
+Publicity level ......: unknown
+Affected .............: Linux netkit-combo-0.16
+Type of entity .......: implementation
+Type of discovery ....: auditing
+Severity/Importance ..: medium
+Found by .............: TESO AUDIT team
+
+Information ===================================================================
+
+This are the results from the TESO Audit project for the netkit-combo-0.16
+package.
+
+No severe vulnerability has been found in the netkit package, although a lot
+of minor issues and half-exploitable things were found. Altogether there were
+seven issues found.
+
+netkit-bootparamd
+-- buffer overflow from config file parsing
+description by Bawd:
+
+	Launching the bootparamd with the debug option in background
+
+	[root@foobar rpc.bootparamd]# ./bootparamd -d &
+	[2] 1268
+
+	Now launch the callbootd (the bootparam debugging proggie given with
+	the package)
+
+	[root@foobar rpc.bootparamd]# ./callbootd 127.0.0.1 127.0.0.1
+	bootparamd: whoami got question for 127.0.0.1
+	This is host localhost
+
+	[2]+  Segmentation Fault (core dumped) ./bootparamd -d
+
+	Here it segfault, why ?
+
+	In fact, the bootparam daemon, receives our request of boot, it looks
+	at the file /etc/bootparams and copies the location of the bootparams
+	database.
+
+	Lets jump in the code to see what does the dameon exactly:
+
+	It's in the rpc.bootparamd.c and more precisely in:
+
+	static int getthefile(char *askname,char *fileid,char *buffer)
+
+	they say :
+	/* getthefile return 1 and fills the buffer with the information
+	   of the file, e g "host:/export/root/client" if it can be found.
+	   If the host is in the database, but the file is not, the buffer
+	   will be empty. (This makes it possible to give the special
+	   empty answer for the file "dump")   */
+
+
+	lets go:
+	bpf = fopen(bootpfile, "r");
+
+	open the file /etc/bootparams
+
+	if (match) {
+		fid_len = strlen(fileid);
+		while (!res && (fscanf(bpf,"%s", info)) > 0) {
+			ch = getc(bpf);               /* and a character */
+			if (*info != '#') {           /* Comment ? */
+				if (!strncmp(info, fileid, fid_len) &&
+					*(info + fid_len) == '=')
+				{
+					where = info + fid_len + 1;
+					if (isprint(*where)) {
+						/* found file */
+						strcpy(buffer, where);
+						res = 1; break;
+					}
+				}
+
+
+	the offending code is in the strcpy
+	it copies the line it found, into the buffer while the buffer is
+	defined like this:
+	(in the bootparamproc_getfile_1_svc)
+
+	if (getthefile(askname, getfile->file_id,buffer))
+
+	and static char buffer[MAXLEN]; with #define MAXLEN 800
+
+	so you can edit the /etc/bootparams configuration file and insert
+	something like
+	192.168.0.111:/AAAAAAAAAAA*2000
+	resulting in a segfault
+
+	So you see that we have to edit the configuration file. It cant be of
+	real use if you trying to remotely exploit this little bug, but (there
+	is a but), you can use it as a wicked backdoor.
+	Say you gained root access to the box and the box runs rpc.bootparamd.
+	Then you can edit the configuration file like this:
+	156.3.2.1:THE_SHELLCODE_that_casts_a_shell
+
+	then remotely you can start callbootd like this:
+	./callbootd <victim-ip> <156.3.2.1>
+	and here you have a good rpc.bootparamd that casts you a shell.
+
+
+bsd-finger/finger/display.c:122
+-- documentation/commentation error
+
+	\t isn't stripped in finger replies, although comments say so.
+
+	* locale settings or is on the other side of the planet. So,
+	* strip 0-31, 127, 128-159, and 255. Note that not stripping
+	* 128-159 is asking for trouble, as 155 (M-esc) is interpreted
+
+	if (((ch&0x7f) >= 32 && (ch&0x7f) != 0x7f) || ch=='\t') {
+
+
+bsd-finger/finger/display.c:141
+-- characters 127-159 that should be stripped can be circumvented
+
+	although characters above and equal to 0x80 are and'ed with \x7f they
+	are later outputted, prepended with "M-^<char>" the <char> is the old
+	original character and'ed with \x7f and \x40 added. so character \x9b,
+	which should be filtered can be outputted by using \xdb, since
+	(\xdb & \x7f) + '@' will result in \x9b.
+
+	if (ch&0x80) {
+		putc('M', f);
+		putc('-', f);
+		ch &= 0x7f;
+	}
+
+	putc('^', f);
+	if (ch==0x7f) putc('?', f);
+	else putc(ch+'@', f);
+
+
+netkit-rwho/rwhod/rwhod.c:246
+netkit-rwho/rwhod/rwhod.c:294
+-- path relevant remotely supplied characters arent stripped from tempfile
+
+	rwhod creates a tempfile from the hostname passed from the remote
+	client:
+
+		wd.wd_hostname[sizeof(wd.wd_hostname)-1] = 0;
+		if (!verify(wd.wd_hostname)) {
+			syslog(LOG_WARNING, "malformed host name from %x",
+				from.sin_addr);
+			continue;
+		}
+		snprintf(path, sizeof(path), "whod.%s", wd.wd_hostname);
+		whod = open(path, O_WRONLY | O_CREAT, 0644);
+
+	while the wd_hostname is truncated and verified the verification
+	routine misses some important characters:
+
+	static int
+	verify(const char *name)
+	{
+		register int size = 0;
+
+		while (*name) {
+			if (!isascii(*name) || !(isalnum(*name) ||
+				ispunct(*name)))
+				return (0);
+		      	name++, size++;
+	      	}
+		return size > 0;
+	}
+
+	so verify ("../../") and verify ("/etc/") return true. whether this
+	results in something exploitable has to be checked.
+
+	Exploitation requires write access to /var/spool/rwho, which is 0755.
+	Unless there is a "arbitrary-make-directory" vulnerability this is
+	not exploitable.
+
+
+netkit-ntalk/talkd/announce.c:135
+-- buffer being copied into another buffer may be 9 bytes too long
+
+	talkd creates some messages before writing the user supplied message
+	to the term. after doing this it merges all messages into one big
+	buffer. however the length checking can be circumvented, as in:
+
+	bptr = big_buf;
+	*bptr++ = '^G'; /* send something to wake them up */
+	*bptr++ = '\r'; /* add a \r in case of raw mode */
+	*bptr++ = '\n';
+	for (i = 0; i < N_LINES; i++) {
+		/* copy the line into the big buffer */
+		lptr = line_buf[i];
+		while (*lptr != '\0')
+			*(bptr++) = safechar(*(lptr++));
+		/* pad out the rest of the lines with blanks */
+		for (j = sizes[i]; j < max_size + 2; j++)
+			*(bptr++) = ' ';
+		*(bptr++) = '\r';       /* add a \r in case of raw mode */
+		*(bptr++) = '\n';
+	}
+	*bptr = 0;
+
+	max_size can be (N_CHARS - 1) as largest value. then the total amount
+	of data being copied is (((N_CHARS - 1) + 2) * N_LINES) + 4 bytes long,
+	which is (N_CHARS = 120, N_LINES = 5): 121 * 5 + 4 = 609 bytes. the
+	buffer big_buf is only N_CHARS*N_LINES (= 600) bytes long. bingo.
+
+	this is only exploitable under a lot of conditions, practically this
+	is of no real use in the field.
+
+
+netkit-ntalk/talkd/announce.c:161
+-- tty filename is user supplied opened without character white/blacklisting
+
+	the talk request announcement is made through directly writing at the
+	target users tty. to check whether this is possible the full path to
+	the tty device file is constructed. this construction does just
+	connects the dev directory path (usualy "/dev/") to the user supplied
+	tty. so user supplied terminal names such as "../root/.rhosts" is
+	possible theoretically. the bad thing about this is that previously
+	to this call this is blocked by the find_user function, which checks
+	whether a) the user is logged in, and b) the user supplied tty is
+	a correct one. however, it should be fixed.
+
+	snprintf(full_tty, sizeof(full_tty), "%s/%s", _PATH_DEV,
+		request->r_tty);
+	if (access(full_tty, F_OK) != 0)
+		return FAILED;
+	fd = open(full_tty, O_WRONLY|O_NOCTTY);
+	if (fd<0) {
+		return (PERMISSION_DENIED);
+	}
+	if (fstat(fd, &stbuf) < 0) {
+		return (PERMISSION_DENIED);
+	}
+	if ((stbuf.st_mode&020) == 0) {
+		return (PERMISSION_DENIED);
+	}
+	print_mesg(fd, request, remote_machine);
+
+
+netkit-base/ping/ping.c:329
+-- invalid parsing of IP address information
+
+	if (sscanf(optarg, "%u.%u.%u.%u%c",
+		&i1, &i2, &i3, &i4, &junk) != 4) {
+		printf("bad interface address '%s'\n",
+			optarg);
+		exit(2);
+	}
+	ifaddr.s_addr = (i1<<24)|(i2<<16)|(i3<<8)|i4;
+
+	since the numbers are parsed as unsigned integers one can set an
+	arbitraty s_addr by using a defunc IP such as for example
+	0.0.0.2378322822. this is not exploitable since later this address
+	is checked when setting the multicast options on the icmp socket.
+        however, it should be fixed.
+
+===============================================================================
+

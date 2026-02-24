@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if [ $# != 2 ]; then
+	echo "usage: $0 address object.o"
+	echo
+	exit
+fi;
+
+readelf -s $2 | awk '
+/^[ ]+[0-9]+: ([0-9a-f]+) / {
+	if ($2 <= addr && ($2 + $3) > addr)
+		print $0
+}' addr=$1

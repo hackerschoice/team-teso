@@ -1,0 +1,55 @@
+
+ldistfp changelog
+
+
+	- added AIX 4.x fingerprint by Jan O. <janoh@telia.com>
+
+
+0.1.4 (2001/05/27) - scut
+	- fixed bug where too less fingerprints were read in
+	- fixed fingerprint counting bug
+	- added auto-update mode, that will update to the latest ldistfp
+	  database file
+	- added mini HTTP/1.0 compliant URL fetching routine
+	- added SuSE 5.1, HP-UX 10.20 and various other fingerprints from
+	  yves <yves@derytier.com>, thanks ! :)
+	- updated "documentation" ;-)
+
+
+0.1.3 (2001/05/08) - scut
+	- added '-r' option to use premade logs as input
+	- added multiple other fingerprints (about 15) from identfp by
+	  f0bic
+	- added HP-UX 10.20 fingerprint, submitted by
+	  <f0bic f0bic@low-level.net>
+	- added HP-UX 11.00, RedHat 7.1, NetBSD 1.5 fingerprints from skyper
+	- added FreeBSD fingerprints from skyper and smiler
+	- added SuSE 7.0 fingerprint
+	- added SlackWare 7.1 fingerprint, submitted by
+	  Max <max0r@digitalsamurai.org>
+
+0.1.2 (2000/08/17) - Patroklos Argyroudis <argp@otenet.gr>, scut
+	- added some patches from Patroklos Argyroudis that enables OpenBSD
+	  to compile ldistfp
+	- cut some unneeded junk (for this program) from network.[ch], that
+	  may cause problems when porting it
+	- added OpenBSD 2.7 fingerprint, submitted by Patroklos Argyroudis
+	- added a different Slackware 7 fingerprint, submitted by gov-boi
+	- added Solaris 8 fingerprint, submitted by gov-boi
+	- added FreeBSD 3.2-rel fingerprint, submitted by gov-boi
+	- added ident2 fingerprint, submitted by Alexander Reelsen
+	- added midentd fingerprint, submitted by X Crypto
+	- added contrib directory and statistic script (fear my awk skillz ;-)
+
+0.1.1 (2000/08/11) - scut
+	- first public release
+
+0.1.0 (2000/06/03) - scut
+	- added over one dozen fingerprints collected from the wild.
+	- first non beta release
+
+0.0.6 (2000/05/04) - scut
+	- overhaul
+
+...
+

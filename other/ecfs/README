@@ -1,0 +1,46 @@
+for starters
+============
+
+!!!
+
+Do not use ECFS. Use it for testing purposes only!
+
+!!!
+
+
+1. Compile ecfs for your current kernel:
+
+	$ cd /path/to/ecfs; make
+
+2. Install
+
+	# cp ecfs.o /lib/modules/`uname -r`/fs
+
+3. Start ECFS
+
+	# ./start-ecfs
+
+   Enter your key (at least 8 byte) and ECFS is loaded.
+
+4. Use ECFS
+
+	# mount -t ecfs /dev/fd0 /mnt
+
+   All read/write to mnt are now crypted. You can use ext2tools
+   to handle ECFS partitions, like fsck.ext2 etc. Its Ext2 after all!
+   ECFS cant handle mmap(), so its not for your root-FS, its even
+   in development, so send feedback to stealth@segfault.net.
+   
+	
+	!!!
+
+	Since its in development, your data may be unreadable
+	when using ECFS.
+	Don't blame me, use tcfs or so if you want well-tested
+        CFS.
+
+	!!!
+
+
+Stealth
+

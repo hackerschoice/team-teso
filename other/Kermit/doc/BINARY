@@ -1,0 +1,71 @@
+Binary Manual
+=============
+
+written by palmers / teso
+you will find here a short and long discription of the binaries.
+
+
+OVERVIEW
+--------
+
+findsym		- find a symbol in kernel memory
+readsym		- read from memory
+writesym	- write to memory
+sys_malloc	- a kmalloc hook
+call_syscall	- call the malloc hook
+unload		- remove patches from memory (from dump file)
+load		- insert patches (from dump file)
+
+findsym
+-------
+
+SymbolFind.conf file format:
+the fields in this file are seperated by a arbitrary amount of white space.
+The meaning of each field is as follows:
+<name> <search-start> <search-end> <offset> <fp-length> <1'st> \
+<2'nd> ... <fp-length'th>
+
+where "name" is the symbol you search. search start and end delimeter the
+serach space. offset is the offset to the beginning of the symbol from where
+the pattern was matched. the lasting fields are hex numbers between 0 and 0xff,
+self explaining, i hope :)
+
+
+readsym & writesym
+------------------
+
+these utils are very alike. the only difference is that one is for reading, the
+other for writing.
+They are really self explaining. all numericals must be supplieed in hex,
+you dont have to take care of offsets inside the memory device. In some
+special cases you have to tell the utils one or two things about the machine
+(e.g. if its a 2.2 kernel configured to handle 2 or 3 GBs of ram. 2.4 uses
+a fixed offset).
+readsym writes the read data hexadecimal, byte per byte, to stdout. readsym
+reads the data in the same format.
+
+
+sys_malloc & call_syscall
+-------------------------
+
+a simple function calling kmalloc and returning the address of the
+first malloced byte. insert its code in the kernel, register it
+to sys_scall_table and use call_syscall to see how you system resources
+vanish.
+
+
+unload
+------
+
+unfinished.
+Unload a Patch or a set of Patches. Take a look at the api dokumentation
+to see how this works. (it uses session files).
+
+
+load
+----
+
+load a Patch or a set of Patches. Use for recovering a aborted session.
+unfinished.
+
+

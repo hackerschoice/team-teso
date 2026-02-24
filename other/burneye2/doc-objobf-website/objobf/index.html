@@ -1,0 +1,184 @@
+<html>
+<head>
+	<title>burneye2 objobf - x86/Linux ELF object obfuscator</title>
+</head>
+<body bgcolor="#ffffff">
+
+<h2>objobf</h2>
+<hr noshade><br>
+
+This page is about the public beta version of <tt>objobf</tt>,
+an obfuscator for x86/Linux ELF relocateable object files (.o files).
+It can also produce fancy graphs to visualize function structure.
+<br><br>
+
+Please send in comments to <tt>scut at team-teso dot net</tt>.
+<br><br>
+
+<hr noshade><br>
+<h3>Features</h3>
+
+<ul>
+	<li>- loader for IA32/Linux ELF relocateable object files (.o)
+	<ul>
+		<li>- IA32 pentium level disassembler (i586, FPU, MMX)
+		<li>- heuristics to deal with gcc generated code (switchtables, PIC, ..)
+		<li>- basic block engine using IDA-like trace method
+	</ul>
+	<li>- extended function graphing capabilities (using xvcg/aiSee)
+	<ul>
+		<li>- control flow graphs
+		<li>- loop visualization (boxed subgraphs)
+		<li>- live register analysis visualization
+		<li>- dominator trees
+	</ul>
+	<li>- codeflow analysis (very basic)
+	<ul>
+		<li>- dominator sets on basic block level
+		<li>- loop detection (two different heuristics: Dragon book and
+			cautious)
+	</ul>
+	<li>- dataflow analysis (function level)
+	<ul>
+		<li>- System V i386 ABI support (calling convention)
+		<li>- Linux specifics support (system calls)
+	</ul>
+	<li>- linearization engine (basic blocks to new .o)
+	<li>- simple code obfuscation
+	<ul>
+		<li>- junk instruction insertion
+		<li>- basic block duplication
+		<li>- basic block splitting (with jump/jcc)
+		<li>- global object basic block entangling (inspired by
+			halvars curses on certain &quot;optimizing&quot;
+			compilers ;-)
+	</ul>
+</ul>
+<br><br>
+
+<hr noshade><br>
+
+<h3>Screenshots</h3>
+&nbsp; - everybody loves screenshots ;)
+<br><br>
+
+This picture on the left side is IDA showing the <tt>output.o</tt> after
+processing with <tt>objobf</tt>. Nothing really harmful here, but see the
+control flow references on the left border, which span over all functions the
+object contains.
+<br><br>
+On the right, the junk instructions generated as of 0.4.10 can be seen. Still
+far from being stealthy, but expect a potency factor of two or higher for
+manual analysis. Will be improved in the future.
+
+<br><br>
+<center>
+<table><tr><td>
+<a href="func-entangle.png">
+	<img alt="entangling in IDA" src="func-entangle-small.png"></a>
+</td><td>
+<a href="junk-inst.png">
+	<img alt="junk instructions in IDA" src="junk-inst-small.png"></a>
+</td></tr></table>
+</center>
+<br><br>
+
+The following pictures show graphs produced by <tt>objobf</tt> in conjunction
+with <a href="http://rw4.cs.uni-sb.de/users/sander/html/gsvcg1.html">xvcg</a>
+and <a href="http://www.absint.com/aisee/index.html">aiSee</a>.
+
+<br><br>
+<center>
+<table>
+<tr><!-- thumbnails -->
+	<td><a href="quicksort-cfg.png"><img src="quicksort-cfg-small.png"
+		alt="CFG of quicksort function"></a></td>
+	<td><a href="quicksort-cfg-loop.png"><img src="quicksort-cfg-loop-small.png"
+		alt="CFG of quicksort with loops marked"></a></td>
+	<td><a href="quicksort-domtree.png"><img src="quicksort-domtree-small.png"
+		alt="dominator tree of quicksort function"></a></td>
+	<td><a href="quicksort-cfg-live-loop.ps.gz"><img
+		src="quicksort-cfg-live-loop-small.png"
+		alt="CFG with live register analysis and loops marked"></a></td>
+</tr>
+<tr><!-- descriptions -->
+	<td>Vanilla CFG of quicksort function</td>
+	<td>same CFG of quicksort with four detected loops.
+		Makes the CFG much more structured</td>
+	<td>Dominator tree of quicksort functions' basic blocks</td>
+	<td>All graph features: CFG, live regs and marked loops</td>
+</tr>
+<tr><!-- second line of thumbnails -->
+	<td><a href="newloop.ps.gz"><img src="newloop-small.png"
+		alt="CFG with new method of loop marking"></a></td>
+</tr>
+<tr><!-- second line of descriptions -->
+	<td>New method of marking loops (clustered subgraphs)</td>
+</tr>
+</table>
+</center>
+<br>
+
+<hr noshade><br>
+
+Last updated 16 Apr 2003.
+<br><br>
+
+No updated versions until 15 Jul 2003.
+
+<br><br>
+
+<table border="1">
+<tr><th>Version</th><th>Comment</th></tr>
+<tr><td><a href="objobf-0.4.13.tar.bz2">0.4.13</a></td>
+	<td>Last version for the next three month. Add experimental
+	instruction swapping (<tt>-w</tt> option). Fix bugs in the dataflow
+	engine. Improve manpage.</td></tr>
+<tr><td><a href="objobf-0.4.12.tar.bz2">0.4.12</a></td>
+	<td>Add opaque conditional basic block splitting (<tt>-O</tt> option, but
+	automatically enabled with <tt>-s</tt>). Add <tt>-A</tt> all-round
+	automatic obfuscation option.</td></tr>
+<tr><td><a href="objobf-0.4.11.tar.bz2">0.4.11</a></td>
+	<td>Add basic block splitting (<tt>-s</tt> option, nice in combination
+	with <tt>-e</tt>), improved junk instruction placement and bug
+	fixes.</td></tr>
+<tr><td><a href="objobf-0.4.10.tar.bz2">0.4.10</a></td>
+	<td>Greatly improved junk instruction generation, more flexible
+	encoding of instructions. Bug fixes.</td></tr>
+<tr><td><a href="objobf-0.4.9.tar.bz2">0.4.9</a></td>
+	<td>Register/instruction usage profiling, slightly more realistic
+	register picking for junk code. Some small bugfixes, should work well
+	for medium-sized objects.</td></tr>
+<tr><td><a href="objobf-0.4.8.tar.bz2">0.4.8</a></td>
+	<td>Add junk instruction insertion and an evil lot of bug fixes.</td></tr>
+<tr><td><a href="objobf-0.4.5.tar.bz2">0.4.5</a></td>
+	<td>Finally add <tt>switch</tt> statement linearization. Add another
+	variation of the loop detection algorithm (<tt>-N</tt> option) which
+	follows the spirit of the Dragon book ;)</td></tr>
+<tr><td><a href="objobf-0.4.4.tar.bz2">0.4.4</a></td>
+	<td>Add vertical ordering to loop nodes (head is on top). Change
+	from boxed to clustered subgraphs, allowing edges to travel freely.
+	Fix small bugs. And... still no support for <tt>switch</tt> :]</td></tr>
+<tr><td><a href="objobf-0.4.3.tar.bz2">0.4.3</a></td>
+	<td>Add dominator trees and natural loop detection (see examples).
+	Fixes of smaller bugs. Still no support for <tt>switch</tt> ;)</td></tr>
+<tr><td><a href="objobf-0.4.1.tar.bz2">0.4.1</a></td>
+	<td>Fixed missing call correction and other small bugs. Should work
+	on larger object files now, although still no support for
+	linearization of <tt>switch</tt> statements.</td></tr>
+</table>
+
+<br><br>
+<hr noshade>
+<h3>theory</h3>
+
+A great paper about obfuscation is
+<a href="http://www.mysz.org/papers/obfuscation.pdf">Gregory Wroblewskis PhD
+dissertation</a>. Also some interesting papers can be found at the site of
+<a href="http://www.cs.arizona.edu/~collberg/Research/Obfuscation/">Christian
+Collberg</a>. A great overall start point is
+<a href="http://citeseer.nj.nec.com/cs?q=code+obfuscation&cs=1">CiteSeer</a>.
+
+<br><br>
+</body>
+</html>

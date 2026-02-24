@@ -1,0 +1,54 @@
+0026 2000/05/30  file existance check through suid binaries
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: file existance check through suid binaries
+Date .................: 2000/05/30 22:00
+Author ...............: scut
+Publicity level ......: most likely known
+Affected .............: some suid binaries
+Type of entity .......: program behaviour
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: scut
+
+===============================================================================
+
+Some suid binaries take filenames as arguments. Some of them even do something
+with the files they take as arguments. And some will even tell you somehow what
+happened when they do something.
+
+This natural behaviour may manifast itself in a small error which could be
+security relevant glitch which allows to check for file existance, although
+normally your permission would forbid that.
+
+As an example, here is the behaviour of the latest IRIX 6.5 netstat binary,
+which happens to have setgid sys permissions. The directory "/tmp/rootonly"
+is only accessible to the root user and users in the sys group, so normal
+users don't have permission to access it, but netstat has.
+Netstat uses the stat() function to check for file existance.
+
+hyperion 24% ls -lsa /tmp/rootonly/
+Cannot access directory /tmp/rootonly/: Permission denied
+total 0
+hyperion 25% ls -lsa /tmp/rootonly/foobar
+Cannot access /tmp/rootonly/foobar: Permission denied
+hyperion 26% /usr/etc/netstat 1 /tmp/rootonly/foo
+netstat: cannot open /tmp/rootonly/foo: No such file or directory
+hyperion 27% /usr/etc/netstat 1 /tmp/rootonly/foobar
+    input   (ec0)     output            input  (Total)    output
+ packets  errs  packets  errs colls  packets  errs  packets  errs colls 
+   14980     0    10661     0    45    15353     0    11034     0    45 
+hyperion 28%
+
+The same can be applied to directories, which can be stat'ed too. There
+is a trick to decide whether a found name is a directory or not.
+Let's say you discovered that there is something stat'able called "foo".
+Just append a "/." to it and check for "foo/.". If it is a file this
+won't work, if it is a directory, stat() will happen as if you didn't
+appended the string.
+
+===============================================================================
+

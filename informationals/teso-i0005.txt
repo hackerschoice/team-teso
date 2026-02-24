@@ -1,0 +1,35 @@
+0005 2000/01/22  Ascend ISDN Router DoS vulnerability (old UDP echo problem)
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Ascend ISDN Router DoS vulnerability
+Date .................: 2000/01/22 21:00
+Author ...............: scut
+Publicity level ......: known
+Affected .............: unfirewalled Ascend ISDN Routers, for example Ascend
+                        Pipeline 50 routers
+Type of entity .......: Router
+Type of discovery ....: denial of service attack
+Severity/Importance ..: interesting
+Found by .............: hendy and scut
+
+Information ===================================================================
+
+A standard Ascend ISDN router has the UDP echo port open. By spoofing the
+source IP address as the destination IP address of the router and sending a UDP
+packet to the router the router will keep the packet within it's internal
+packet table forever. However this is a very old denial of service attack, but
+it has some nice effects here.
+
+For example by sending packets of 500 bytes length you can constantly increase
+the generic router delay time from 0 ms to up to 800 ms. After that the router
+packet table is completely overflowed and the router is inoperational. In this
+state the only thing that will help is a hard reset of the router.
+
+This is just the old echo/echo UDP link problem, but still living very happily
+in any Ascend ISDN router.
+
+===============================================================================
+

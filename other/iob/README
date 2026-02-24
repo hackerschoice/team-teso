@@ -1,0 +1,38 @@
+
+iob - i/o bridge
+version 0.1
+================
+
+simple, stupid tty chaining program
+
+
+used for:	- quick logging of any program
+		- specific non-root based logging
+		- monitoring of users (i.e. log all shell i/o)
+
+
+examples of use:
+
+user@host$ cat iob.c | egrep "^#define.+DEFAULT_LOG"
+#define DEFAULT_LOG     "/tmp/.log-term/"
+user@host$ cp iob /tmp
+user@host$ mkdir /tmp/.log-term
+user@host$ echo $SHELL
+/bin/bash
+user@host$ echo 'alias ssh="/tmp/iob -- ssh"' >> ~/.bash_profile
+
+
+now, if the user logs in, any ssh command he issues, except with hardcoded
+pathnames will trap into our tty chain, logging everything to a date-stamped
+file in the /tmp/.log-term/ directory. simple, stupid, working. do not forget
+to use the "--" option end marker in the alias. else getopt() will fuckup
+inside the iob program, if the user uses ssh options. if you want to log
+everything, run a shell from within his profile with an iob around it. if you
+have any problems compiling/using it somewhere, fix it yourself.
+
+advice: this is easy to detect, two extra processes are spawned per i/o chain,
+        it is far from being unobstrusive.
+
+
+-sc.
+

@@ -1,0 +1,22 @@
+digraph functiondeps {
+
+	node [
+		style = filled
+		shape = "record"
+		fillcolor = "lightskyblue"
+	];
+
+	"main" [
+		label = "{ <fi> | main | <fo> }"
+	];
+	"main":fo -> "atoi":fi;
+	"main":fo -> "printf":fi;
+		"atoi" [
+			label = "{ <fi> | atoi | <fo> }"
+			fillcolor = "red"
+		];
+		"printf" [
+			label = "{ <fi> | printf | <fo> }"
+			fillcolor = "red"
+		];
+}

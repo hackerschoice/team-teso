@@ -1,0 +1,48 @@
+0007 2000/01/23  Conceptual bug in PHP and also in CGI modules
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Bug in scripting modules for web servers
+Date .................: 2000/01/23 18:19
+Author ...............: hendy
+Publicity level ......: well known
+Affected .............: Unix http servers (maybe others)
+Type of entity .......: CGI+PHP
+Severity/Importance ..: low but interesting
+Found by .............: hendy
+
+Information ===================================================================
+
+If your httpd supports PHP and/or CGI scripts, and you allow users to use
+these, those scripts are run as the user/group the webserver runs as. Though
+this is mostly not user root, it can have impact if you have an own group.
+For example you allow group 'foo' to modify webserver configuration or the
+webserver needs access on some files (for example chat scripts, or messaging
+services via PHP/CGI). Every user with access on this machine can easily get
+access to this with little knowledge of scripting:
+
+(in PHP)
+
+<?
+    system("gcc ~user/shell.c -o /tmp/webshell");
+    system("chmod 4755 /tmp/webshell");
+?>
+
+Of course you have to let the webserver read ~/shell.c and shell.c does
+something like setuid(webserver); setgid(webgid); system("/bin/sh");
+
+If CGI scripts are supported its even more easy.
+
+#!/bin/sh
+gcc -o ~user/shell.c -o /tmp/webshell
+chmod 4755 /tmp/webshell
+
+Of course, this is only one possible idea of getting webservers privileges, but
+since this exploitation is possible on every standard Linux distribution, it
+should get somehow known, that giving the webuser more rights than it really
+needs, can be dangerous.
+
+==================================================================================
+

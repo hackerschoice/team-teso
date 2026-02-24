@@ -1,0 +1,70 @@
+0021 2000/04/15  pidentd VERSION Linux distribution fingerprinting
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: pidentd VERSION Linux distribution fingerprinting
+Date .................: 2000/04/15 17:00
+Author ...............: scut
+Publicity level ......: known
+Affected .............: identd daemons
+Type of entity .......: method to obtain information
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: version infos by TESO people
+
+===============================================================================
+
+There are lots of different Linux distributions, and although you can often
+determine the distribution used from their banners, such as the telnet banner
+or the HTTP Server response field, it is difficult to determine the
+distribution from a hardened Linux box. They often only have SSH and identd
+enabled.
+
+However, most people don't know about the identd "VERSION" request, where the
+most popular ident daemon used by almost every Linux distribution, the pidentd,
+answers with it's own version number and compile time.
+
+Here is a list compiled through the help of TESO and friends, that will help
+you to determine the distribution remotely. Thanks go out to all the people
+that send in those lines :-)
+
+To get the version, just do:
+
+(echo VERSION ; sleep 2) | telnet localhost 113
+
+Please mail new distribution and identd version information to
+scut@nb.in-berlin.de, so I can keep this list up to date.
+
+0 , 0 : X-VERSION : <text>
+
+<text>                                                       Distribution
+------------------------------------------------------------ ------------------
+2.6.1 (Compiled: 17:21:18 Jul  2 1998)                       Debian 2.0
+2.6.1 (Compiled: 17:47:13 Feb 13 1999)                       Debian 2.1
+2.5.1                                                        DLD 5.41 Pro
+pidentd 3.0.7 for Linux 2.2.13-22 (Nov  7 1999 00:18:10)     Halloween 4
+INVALID-PORT                                                 SlackWare 4
+2.8.3 (Compiled: 00:36:16 Oct 22 1999)                       SlackWare 7
+2.7.4 (Compiled: 06:11:54 Aug 22 1998)                       SuSE 5.3
+2.7.4 (Compiled: 13:20:35 Dec 14 1998)                       SuSE 6.0
+2.7.4 (Compiled: 06:22:26 Apr 15 1999)                       SuSE 6.1
+2.7.4 (Compiled: 13:22:44 Jul 23 1999)                       SuSE 6.2 EVAL
+2.7.4 (Compiled: 17:09:12 Aug 22 1999)                       SuSE 6.2
+pidentd 3.0.7 for Linux 2.2.10 (Nov  8 1999 20:30:25)        SuSE 6.3
+pidentd 3.1a14 for Linux 2.2.14 (Mar 24 2000 22:28:31)       SuSE 6.4
+UNKNOWN-ERROR                                                RedHat 5.2
+2.8.3 (Compiled: 22:18:25 Jan 27 1999)                       RedHat 6.0 Publish
+2.8.5 (Compiled: 22:13:48 Mar 21 1999)                       RedHat 6.0
+pidentd 3.0.7 for Linux 2.2.5-22smp (Sep 13 1999 20:16:57)   RedHat 6.1
+pidentd 3.0.10 for Linux 2.2.5-22smp (Feb 22 2000 16:14:21)  RedHat 6.2
+0 , 0 : ERROR : INVALID-PORT                                 Stampede Linux
+------------------------------------------------------------ ------------------
+
+Also, the 3.* versions of the pidentd daemon respond to case mixed VERSION
+requests, such as "vERSION", while the 2.* versions need a case fixed "VERSION"
+request and otherwise doesn't recognize it as a command.
+
+===============================================================================
+

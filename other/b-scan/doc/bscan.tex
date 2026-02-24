@@ -1,0 +1,125 @@
+% just run: pdflatex bscan.tex
+
+\ifx\pdfoutput\undefined
+\documentclass[11pt,a4paper,twoside]{article}
+\else
+\documentclass[pdftex,11pt,a4paper,twoside]{article}
+\pdfcompresslevel=9
+\fi
+
+\ifx\pdfoutput\undefined
+\else
+\RequirePackage[colorlinks,hyperindex]{hyperref}
+\def\pdfBorderAttrs{/Border [0 0 0] }
+\fi
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+%\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+%\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+\fancyhf{}
+\fancyhead[LE,RO]{\bfseries\thepage}
+\fancyhead[LO]{\bfseries\rightmark}
+\fancyhead[RE]{\bfseries\leftmark}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\headheight}{0.5pt}
+\fancypagestyle{plain}{%
+    \fancyhead{}%
+    \renewcommand{\headrulewidth}{0pt}%
+}
+
+\begin{document}
+
+\title{b-scan manual}
+\author{b-scan team}
+\maketitle
+\begin{center}
+version 0.0
+\end{center}
+
+\tableofcontents
+
+
+\section{Introduction}
+B-scan is a network scan program. It probes a number of hosts for certain
+properties and evaluates the responses, saving interesting data in a easy
+to understand output format. In contrast to most other network scanning
+programs, b-scan aims at being the best in both stability and speed. There are,
+however very popular programs that are neither stable nor fast, but have
+dozens of useless options you will not find in b-scan.
+
+\section{How b-scan works}
+
+\section{The network layout}
+% include graphic how b-scan sees the network
+
+\subsection{Setting up a proper host environment}
+\subsection{Common problems}
+\subsubsection{MAC address}
+In case bscan will complain about `{\tt arp}' not being found, you have to
+include the path to `{\tt arp}' in the {\tt PATH} variable. Often it is
+found in {\tt /usr/sbin} or {\tt /sbin}, so a simple
+`{\tt export PATH=\$PATH:/sbin:/usr/sbin}' before bscan is started will
+solve this issue.
+
+In case it still does not work, check whether bscans ARP daemon is running
+properly and shows up in {\tt ps}. Then proceed by {\tt ping}ing the source
+IP you have choosen and afterwards to a `{\tt arp -n}' to see whether the
+correct MAC address shows up with the source IP. In case it does not show
+up, you may have a device problem or another host in your LAN is using the
+assigned IP.
+
+\section{Options}
+\subsection{Target}
+\subsubsection{Random mode}
+Using the random mode you can scan random IP addresses, for statistical
+purposes. It is not recommended to use this random mode to scan complete
+networks, there the spread mode fits better, since it takes care of
+target-network routers and their load. However if you want to extrapolate
+statistically correct data from randomly scanned hosts, this mode is the
+right choice. It filters nonsense, reserved, private and multicast addresses
+from the random ones and feeds the remaining ones into the scanner. You can
+specify a counter which will stop bscan after having scanned a number of
+random IPs using the `{\tt :}' suffix:
+\begin{verbatim}
+$ bscan ... random:2000
+\end{verbatim}
+Will scan 2000 random IP addresses. If you leave the number out or give
+`{\tt :0}', then bscan will scan forever, until it is terminated.
+
+
+\section{Scans}
+\subsection{ICMP}
+\subsection{TCP}
+\subsection{UDP}
+\subsection{special}
+
+\section{Logs}
+\subsection{Logformat}
+\subsection{Utilities}
+\subsubsection{BIND-distribution.awk}
+This utility parses the output logs of the {\tt VERSION.BIND} scan and shows
+the percentage and count of each BIND version. It expects only properly
+formatted lines, for example:
+
+\begin{verbatim}
+$ grep "VERSION.BIND" out.log | \
+        awk -f contrib/BIND-distribution.awk
+\end{verbatim}
+
+\section{B-Scan internals}
+\subsection{Directory structure}
+\subsection{Code Layout}
+\subsubsection{Structures}
+\subsubsection{Modules}
+
+\label{references}
+\begin{thebibliography}{99}
+\bibitem{blablafooauthor1} ICMP scanning blabla
+\bibitem{foofooblaauthor2} NMAP portalskasa
+\end{thebibliography}
+
+\end{document}
+
+

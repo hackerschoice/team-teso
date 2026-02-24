@@ -1,0 +1,195 @@
+0017 2000/02/25  Information on how to exploit Lancity cablemodems
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Cablemodems from Lancity are funny.
+Date .................: 2000/02/25 00:00
+Author ...............: zap
+Publicity level ......: unknown
+Affected .............: LCPet10, probably the whole product-family
+Type of entity .......: 
+Type of discovery ....: 
+Severity/Importance ..: medium, since not usable by script-kiddies
+Found by .............: zap
+
+Prelude =======================================================================
+
+Lancity Cablemodems are very popular amongst cablenet-providers.
+At least in Austria they are used almost everywhere.
+
+When I started investigating the ugly thing under my desk I found it very hard
+to gain ANY information about these modems, nowadays sold by Nortel Networks.
+
+I've been in my town's cablenet for about a year which is operated by not very
+competent persons, so this information might not be of any or limited use
+in professionally administrated environments.
+
+Basics ========================================================================
+
+The modem uses the very primitive "Internet Boot Protocol" (RFC951, bootpd(8))
+for gaining basic network information like IP-address, netmask, bootserver and
+so on.
+
+From the bootserver it downloads it's configuration-file (RFC1533) via TFTP 
+(RFC783, tftp(1), tftpd(8)) which contains a MD5-digest generated from a 
+64-byte key. It might also download a upgrade-file after that.
+
+This generally happens on power-up, although I have found my pet reconfiguring
+itself after a while occasionally.
+
+The configuration-file contains information about Tx/Rx-frequencies, bandwidth,
+SNMP-manager-IP's, client-IP's/MAC's, SNMP-community-names and so on.
+
+After the modem is up & running it accepts SNMP-commands from IP's listed as
+managers.
+
+Let's party ...
+
+1. SNMP-managing your modem ===================================================
+
+Since the SNMP used doesn't use another authentication than the IP-address and
+the SNMP-community-name (which is often something like 'private'), it's easy
+to modify and read some interesting values, where most of them are related to
+filters. Some networks allow IP only so it's not possible to use other
+protocols such as IPX (lots of games) - this behaviour can be changed.
+
+Note that it's generally a good idea to disconnect the modem from the rest of
+the net while doing this because the manager is very often a Windows-box which
+are known to start crying upon a IP-conflict - causing a perceived IP-conflict
+would be like calling your provider and telling him that you're having fun with
+your modem.
+
+However if you're sure nothing will happen you can also change the settings
+of other modems.
+
+Finding a manager-IP is quite easy (at least in my case, I'm not sure if it's
+the same everywhere), just watch the network-traffic: If there is some host
+which is periodically pinging modems it is a manager.
+Use it's IP (and eventually MAC) to SN-manage your modem.
+
+IMHO this should work in most of the cases, let's get to something
+really interesting:
+
+2. Configuring your modem from ground-up ======================================
+
+As I said, the configuration-files contains a MD5-digest.
+I have found some providers using the default-key that comes with the lc-modems
+(including my provider), so I assume that this is a fact (let me know if I'm
+wrong). I have tried to change my modem's key once and I didn't succeed -
+maybe it ain't possible at all? (not likely)
+
+If you're able to produce a valid config-file for your modem you can do magic
+things like expanding your modem's bandwidth to 10mbit, increasing your net-
+work priority and so on.
+
+Let's assume you've got your modems "secret" key for now.
+
+You'll need a config-file (no matter if cleartext or binary, since you can 
+decode the binaries) used in your network.
+
+Attempt to tftp to the manager and request files like 1.cfg, 1.md5, test.md5
+and so on; Be creative.
+The file-naming depends on your provider, but they most likely use some
+file-name which is somehow related to your ip, your name, your modem's ip or
+something. You don't actually need _your_ configuration, any would do.
+Some also run quite braindead TFTP-daemons, try to request ../autoexec.bat
+for example - if this works you might be able to retrieve other useful
+information (as for example the non-standard key!).
+
+Another way would be to try sniffing TFTP-requests from your or other modems
+to find out filenames, try unplugging the network-side while your modem is
+booting (check the leds) and see if it sends the request to your side.
+
+If your modem requests a file like '212.md5' chances are big that you'll be
+able to request '212.cfg' from the manager's tftpd (although you don't
+necessarily need the cleartext-file).
+
+Once you got the needed information, download the modem's update-file from the
+manager (if mentioned in the cfg) via TFTP, build a valid config-file, encode it
+and try to feed it to your modem:
+
+Configure a bootpd-server (see bootpd(8)), edit your bootptab (see bootptab(5)),
+set up your tftpd and copy the needed files there.
+
+The bootptab-entry for my modem looked like this:
+
+mypet:ht=ether:ha=0000CA066166:bf=mypet.md5:ip=10.10.0.15:sm=255.0.0.0:to=3600:sa=10.0.0.58
+
+ha: ethernet-address, you'll get this by watching the network-traffic
+bf: md5-encoded bootfile
+ip: your modem's ip (use the ip your provider gave your modem!!)
+sm: subnet-mask
+to: timeout
+sa: tftp-server to be used (your box!)
+
+I noticed that my modem always prepended the bootfile-name with a '/', so the
+tftpd-server didn't serve the file the modem wanted, however a small hack to
+tftpd made this work.
+
+Once you get this running (watch the LEDs) you've won. You can modify the
+modem's behaviour to your wishes.
+
+Once again, DON'T CHANGE your modem's or your ip-address. Even if you've got
+dumb administrators they will catch you someday (I can tell from experience).
+Another good idea is NOT to open your modem (=breaking the seal) cause even
+if they get suspicious and want the modem back they won't be able to prove that
+you've manipulated the modem.
+
+Pretty wild, but let's push it a little further...
+
+3. Making your modem half-promicious ==========================================
+
+This one is quite tricky.
+It's very important that your modem forwards any data with any MAC&IP-address
+from your side to the network - this can be easily done by reconfiguring your
+modem (set MaxNodes > 1, ClientEnetAddr & ClientIpAddr to all 0's).
+I might have used a special sniff-configuration where the gateway and my box
+were the only allowed clients - I can't clearly remember this, you'll have to
+try both variations.
+
+Ok, this is how it's done:
+
+- Power-off the modem
+
+- Start sending some data (I think I used ICMP-pings) with the *SAME* MAC
+  and IP as the gateway (or the host you want to sniff) has
+
+- Power-on the modem
+
+- Configure it as described in 2.
+
+- Stop sending data after a while
+
+I remember that the timing was very vital to perform this correctly! If it
+works you'll immediately see LOTS of network-traffic.
+
+My theory on how this works:
+The modem communicates with a so-called Head-End-Controller (read the Lancity-
+docs) and it tells the controller which IP and MAC (I think the MAC is
+essential) it's client(s) has. The controller routes all the stuff for this MAC
+to your segment, where your modem will again route it thankfully to you.
+
+This is why I call it "half-promicious" - you'll only get the stuff that other
+clients send to the gateway, not the other direction.
+However one way of the traffic is enough to sniff. Simply patch tcpdump a
+little to log anything you've ever wanted to know about your neighbours.
+
+In a earlier state of investigation I found out that sending faked ARP-queries
+(you, with the same MAC & IP as the gateway, want to know the MAC of some dummy
+host) made the modem route stuff on the cable destinating to the gateway
+to you. The disadvantage is that you'll only get stuff which is on your segment
+only and this might be very little interesting data.
+
+Appendix ======================================================================
+
+This document might be slightly inaccurate, but it all worked for me.
+I'm very curious about feedback, corrections and clarifications.
+The needed files (cfg-file-en/decoder, snmp-vars-documentation, general lcpet-
+documentation, patched tftpd, default-key, sample-cfg's etc.) should be
+available as teso-lancity-x.x.tar.gz in teso's internal file-area.
+
+Have fun.
+
+===============================================================================

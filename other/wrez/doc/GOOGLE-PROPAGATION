@@ -1,0 +1,12 @@
+
+http://groups.google.com/groups?as_q=warcraft&as_ugroup=rec.games.misc&num=100&as_scoring=d&hl=en
+
+
+so:
+<keyword>	some unique string the virus identifies messages with
+<dgroup>	newsgroup to drop the messages to
+
+
+http://groups.google.com/groups?as_q=keyword&as_ugroup=dgroup&num=100&as_scoring=d&hl=en
+
+

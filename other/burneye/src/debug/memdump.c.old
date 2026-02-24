@@ -1,0 +1,164 @@
+
+#include <sys/types.h>
+#include <sys/ptrace.h>
+#include <sys/wait.h>
+#include <sys/user.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+void
+hexdump (unsigned char *data, unsigned int amount);
+
+int
+main (int argc, char *argv[])
+{
+	pid_t			fpid;
+	struct user		regs;
+	unsigned long int	addr,
+				len;
+	unsigned long int	addr_walker,
+				eip;
+	unsigned char		data_saved[256];
+
+	if (argc < 5 || sscanf (argv[1], "0x%lx", &eip) != 1 ||
+		sscanf (argv[2], "0x%lx", &addr) != 1 ||
+		sscanf (argv[3], "0x%lx", &len) != 1)
+	{
+		printf ("usage: %s <eip> <addr> <len> <argv0 [argv1 [...]]>\n\n", argv[0]);
+		printf ("will run 'argv0' as program with given arguments, until 'eip' is reached, then\n"
+			"dumping 'len' bytes from 'addr'.\n\n"
+			"example: %s 0x08049014 0x08048000 0x100 /bin/ls -l\n\n", argv[0]);
+		exit (EXIT_FAILURE);
+	}
+
+	fpid = fork ();
+	if (fpid < 0) {
+		perror ("fork");
+		exit (EXIT_FAILURE);
+	}
+	if (fpid == 0) {	/* child */
+		if (ptrace (PTRACE_TRACEME, 0, NULL, NULL) != 0) {
+			perror ("ptrace PTRACE_TRACEME");
+			exit (EXIT_FAILURE);
+		}
+		fprintf (stderr, "  child: TRACEME set\n");
+
+		fprintf (stderr, "  child: executing: %s\n", argv[4]);
+		close (1);
+		dup2 (2, 1);
+		execve (argv[4], &argv[4], NULL);
+
+		/* failed ? */
+		perror ("execve");
+		exit (EXIT_FAILURE);
+	}
+
+#if 0
+	if (ptrace (PTRACE_ATTACH, fpid, NULL, NULL) < 0) {
+		perror ("ptrace");
+		exit (EXIT_FAILURE);
+	}
+	fprintf (stderr, "attached to pid %d (from us, the parent, pid %d)\n", fpid, getpid ());
+#endif
+//	sleep (1);
+
+#if 0
+	/* trace until trap'ed */
+	if (ptrace (PTRACE_CONT, fpid, NULL, NULL) < 0) {
+		perror ("ptrace PTRACE_CONT");
+		exit (EXIT_FAILURE);
+	}
+#endif
+	fprintf (stderr, "it should execve now\n");
+	sleep (1);
+
+	memset (&regs, 0, sizeof (regs));
+
+	if (ptrace (PTRACE_GETREGS, fpid, NULL, &regs) < 0) {
+		perror ("ptrace PTRACE_GETREGS");
+		exit (EXIT_FAILURE);
+	}
+	fprintf (stderr, "[0x%08lx] first stop\n", regs.regs.eip);
+
+	/* now single step until given eip is reached */
+	do {
+		if (ptrace (PTRACE_SINGLESTEP, fpid, NULL, NULL) < 0) {
+			perror ("ptrace PTRACE_SINGLESTEP");
+			exit (EXIT_FAILURE);
+		}
+		wait (NULL);
+
+		memset (&regs, 0, sizeof (regs));
+		if (ptrace (PTRACE_GETREGS, fpid, NULL, &regs) < 0) {
+			perror ("ptrace PTRACE_GETREGS");
+			exit (EXIT_FAILURE);
+		}
+	} while (regs.regs.eip != eip);
+
+	fprintf (stderr, "hook traped @ 0x%08lx\n", eip);
+	fprintf (stderr, "dumping 0x%lx bytes @ 0x%08lx\n", len, addr);
+
+	/* save data */
+	for (addr_walker = 0 ; addr_walker < len ; ++addr_walker) {
+		errno = 0;
+		*((unsigned long int *) &data_saved[0]) = ptrace (PTRACE_PEEKDATA, fpid,
+			addr + addr_walker, NULL);
+		if (errno == 0)
+			write (1, &data_saved[0], 1);
+		else
+			fprintf (stderr, "- [0x%08lx] invalid PTRACE_PEEKDATA\n",
+				addr + addr_walker), _exit(1);
+	}
+//	hexdump (data_saved, sizeof (data_saved));
+
+	if (ptrace (PTRACE_DETACH, fpid, NULL, NULL) < 0) {
+		perror ("ptrace PTRACE_DETACH");
+		exit (EXIT_FAILURE);
+	}
+
+	fprintf (stderr, "success. terminating.\n");
+	exit (EXIT_SUCCESS);
+}
+
+
+
+void
+hexdump (unsigned char *data, unsigned int amount)
+{
+	unsigned int	dp, p;	/* data pointer */
+	const char	trans[] =
+		"................................ !\"#$%&'()*+,-./0123456789"
+		":;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklm"
+		"nopqrstuvwxyz{|}~...................................."
+		"....................................................."
+		"........................................";
+
+	for (dp = 1; dp <= amount; dp++) {
+		printf ("%02x ", data[dp-1]);
+		if ((dp % 8) == 0)
+			printf (" ");
+		if ((dp % 16) == 0) {
+			printf ("| ");
+			p = dp;
+			for (dp -= 16; dp < p; dp++)
+				printf ("%c", trans[data[dp]]);
+			printf ("\n");
+		}
+	}
+	if ((amount % 16) != 0) {
+		p = dp = 16 - (amount % 16);
+		for (dp = p; dp > 0; dp--) {
+			printf ("   ");
+			if (((dp % 8) == 0) && (p != 8))
+				printf (" ");
+		}
+		printf (" | ");
+		for (dp = (amount - (16 - p)); dp < amount; dp++)
+			printf ("%c", trans[data[dp]]);
+	}
+	printf ("\n");
+
+	return;
+}

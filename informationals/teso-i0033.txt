@@ -1,0 +1,102 @@
+0033 2001/02/25  (not-so) advanced way to find KERNEL32.DLL base address 
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: shellcode enhancement technique to stabilize NT sploits
+Date .................: 2000/12/28 06:00
+Author ...............: halvar
+Publicity level ......: its very obvious, but not used in any sploits I know
+Affected .............: NT/Win32 specific
+Type of entity .......: theoretical shit
+Type of discovery ....: useful information
+Severity/Importance ..: n/a
+Found by .............: don't know; I spoke to lorian about this long ago
+
+===============================================================================
+
+Everyone who has played around with NT shellcode knows that we need to rely on
+some hardcoded values. As we don't have the luxury of usable syscalls via INT's
+as under *NIX, we need to get access to the Windows API by either using values
+inside the executable (PE) header or by getting the KERNEL32.DLL base address
+somehow. Both approaches rely on hardcoded values; This is bad since we either
+need to know the exact NT-Version & Service Pack (for guessing KERNEL32 base)
+or the exact version of the executable we're attacking. 
+
+There are a few tricks to figure out the base address of KERNEL32 with maximum
+stability, but I will just discuss my favourite one here:
+
+Exception Handler Parsing
+
+NT features something called "third-party-exception-handling" or "structured
+exception handling" which allows applications to install exception handlers
+that get control when (or if) an exception occurs. 
+The excact structure of these things are documented all over the place in 
+various articles on Win32 Assembly coding. (winasm32.cjb.net ?)
+The structure of these exception handlers is basically a single-linked list
+of pointers to functions handling exceptions. 
+
+In memory they consist of two dwords:
+
+[pointer to next handler structure][pointer to handler code]
+
+Every function can establish a new exception handler and layer it on top of 
+all the others, so if an exception occurs and is not handled by the most re-
+cently installed handler then the next handler will be called until the 
+application runs out of self-installed handlers and the default exception 
+handler in KERNEL32.DLL is called ("Blablah.exe caused an exception at...").
+The default exception handler structure is the end of the chain, and the 
+pointer to the next handler structure is 0xFFFFFFFF in this case. 
+
+The beginning of the chain (the most recently installed exception handler
+structure) is referenced to by a pointer at fs:0.
+
+So the trick in finding the base address of KERNEL32.DLL is to parse through
+the exception handler structures until the end of the chain is reached; The
+pointer to the handler code will then point into KERNEL32.DLL. As soon as
+we have this address, we scan all page-beginnings backwards (all DLLs are
+mapped page-aligned) for a "MZ" signature.
+
+Some example assembly code for this (this is not size optimized, just for
+educational purposes):
+
+        xor     ecx, ecx        ; this avoids NULL bytes in the shell
+        mov     eax, [fs:ecx]
+.tunnel:
+        mov     ecx, [eax]      ; Get pointer to next structure
+        cmp     ecx, -1         ; Have we reached the end of the chain ?
+        jz      .skip1          ; Yes, then jump to .skip1
+        mov     eax, ecx        ; No ? Then walk the chain further
+        jmp     .tunnel
+.skip1:
+        mov     eax, [eax+4]    ; Now we have an address inside KERNEL32
+        xor     ax, ax          ; Kill low 16 bits and thus page-align
+        xor     ecx, ecx        ; Move size of a page in ecx (0x1000)
+        mov     ch, 0x10        ; without NULL bytes
+.tunnel2:
+        mov     dx, word [eax]  ; load first 2 bytes
+        cmp     dx, "MZ"        ; compare to our signature
+        jz      .skip2          
+        sub     eax, ecx        ; scan one page more backwards in mem
+        jmp     .tunnel2
+.skip2:                
+
+This is a lot more size-efficient than the other methods I've seen to 
+find the KERNEL32.DLL base address reliably (relying on hardcoded 
+0x00400000 base address for the executable, then parsing its PE header
+to find a function imported from KERNEL32.DLL to get an address within
+it). 
+
+One note of caution with this, though: It seems that the installation
+of Microsoft Kernel Debugging stuff and Visual Studio will screw the
+entire NT exception handling in a way that the final exception handler
+points into NTDLL.DLL instead of KERNEL32.DLL. So if you're attacking
+a system of which you know it is a development workstation with Visual
+Studio installed you might want to try parsing the PE header in the 
+end :-)
+
+Have fun,
+Halvar
+
+===============================================================================
+

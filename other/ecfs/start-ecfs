@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+use Term::ReadKey;
+
+print "This program is used to read in the key for ECFS\n".
+      "This avoids that your key shows up in .history-file\n".
+      "since ECFS is started like 'insmod ecfs_key=blah'\n\n".
+      "You are now prompted for the key. Mount ECFS partitions like\n".
+      "'mount -t ecfs /dev/fd0 /mnt' afterwards. Remember that mmap()\n".
+      "is not supported by ECFS.\n\n".
+      "Also make sure ecfs.o is in apropriate /lib/modules/... location.\n\n";	
+
+$p1 = "X";
+$p2 = "Y";
+
+ReadMode('noecho');
+while ($p1 ne $p2) {
+	print "Key: ";
+	$p1 = ReadLine(0);
+	print "\n(again): ";
+	$p2 = ReadLine(0);
+	print "\n";
+	chop($p1); chop($p2);
+}
+
+ReadMode('normal');
+
+exec "insmod", "ecfs", "ecfs_key=$p1";
+

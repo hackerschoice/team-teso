@@ -1,0 +1,10 @@
+
+function {
+	vaddr 0x084882c8
+	length 0x102
+	[filepos 0x482c8]
+}
+
+--
+vi:fo=tcrq:tw=79
+

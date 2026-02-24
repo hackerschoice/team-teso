@@ -1,0 +1,225 @@
+
+------
+
+TESO Security Advisory
+26/09/1999
+
+Linux Kernel 2.2.x ISN Vulnerability
+
+
+Summary
+===================
+
+    A weakness within the TCP stack in Linux 2.2.x kernels has been
+    discovered. The vulnerability makes it possible to "blind-spoof" TCP
+    connections.
+    It's therefore possible for an attacker to initiate a TCP connection
+    from an arbitrary non existing or unresponding IP source address,
+    exploiting IP address based access control mechanisms.
+
+    Linux 2.0.x kernels were tested against this attack and found not to
+    be vulnerable in any case.
+
+
+Systems Affected
+===================
+
+    All systems running the kernel versions 2.2.x of the Linux operating
+    system. Linux 2.3.x systems may be affected, too, we didn't tested
+    this versions.
+
+    In our test situations we noticed that it doesn't seem to matter
+    whether the TCP syncookie functionality was enabled or not (enabled
+    within the kernel and activated through the proc filesystem options).
+
+
+Tests
+===================
+
+    This is the beginning of a log of a successfully mounted blind TCP
+    spoofing attack agains a Linux 2.2.12 system.
+    (tcpdump output formatted for better readability)
+
+    16:23:02.727540 attacker.522  > victim.ssh  : S  446679473: 446679473(0)
+    16:23:02.728371 victim.ssh    > attacker.522: S 3929852318:3929852318(0)
+    16:23:02.734448 11.11.11.11.522 > victim.ssh: S  446679473: 446679473(0)
+    16:23:02.734599 victim.ssh > 11.11.11.11.522: S 3929859164:3929859164(0)
+    16:23:03.014941 attacker.522  >   victim.ssh: R  446679474: 446679474(0)
+    16:23:05.983368 victim.ssh > 11.11.11.11.522: S 3929859164:3929859164(0)
+    16:23:06.473192 11.11.11.11.522 > victim.ssh: . ack 3929855318
+    16:23:06.473427 victim.ssh > 11.11.11.11.522: R 3929855318:3929855318(0)
+    16:23:06.554958 11.11.11.11.522 > victim.ssh: . ack 3929855319
+    16:23:06.555119 victim.ssh > 11.11.11.11.522: R 3929855319:3929855319(0)
+    16:23:06.637731 11.11.11.11.522 > victim.ssh: . ack 3929855320
+    16:23:06.637909 victim.ssh > 11.11.11.11.522: R 3929855320:3929855320(0)
+    ...
+
+    The first ISN of the victim's host is 3929852318, which is within a SYNACK
+    packet to the attackers host. This is unspoofed and can be easily snagged
+    by the attacker.
+    At the same time the attacker sent out the first unspoofed SYN packet he
+    sent a spoofed SYN packet from 11.11.11.11 too. This packet is answered
+    by the victims host too with the ISN of 3929859164.
+    The difference between the first visible ISN and the second ISN is only
+    (3929859164-3929852318) = 6846.
+
+    Please notice that all TCP and IP parameters of the spoofed packet, except
+    for the IP source address are the same as of the unspoofed packet. This is
+    important (see below).
+
+    This small differences within the initial TCP sequence number (ISN) is
+    exploitable. In other tests, where both hosts were unlagged we even had
+    differences below 500 sometimes.
+
+    We've managed to successfully blind spoof TCP connections on different
+    Linux 2.2.x systems, that is reaching the TCP "ESTABLISHED" state without
+    being able to sniff the victim host.
+
+
+Impact
+===================
+
+    By sending packets from a trusted source address, attackers could possibly
+    bypass address based authentication and security mechanisms.
+
+    There have been similiar exploiting technics, aimed especially at r* and
+    NFS services, in the past that demonstrated the security impact of weak
+    ISNs very well.
+    We have written a working exploit to demonstrate the weakness.
+
+
+Explanation
+===================
+
+    The problem relies on a implementation flaw within the random ISN algorithm
+    in the Linux kernel.
+
+    The problem is within drivers/char/random.c, line 1684:
+
+    __u32 secure_tcp_sequence_number(__u32 saddr, __u32 daddr,
+                                     __u16 sport, __u16 dport)
+    {
+            ...
+            static __u32    secret[12];
+            ...
+            secret[0]=saddr;
+            secret[1]=daddr;
+            secret[2]=(sport << 16) + dport;
+
+            seq = (halfMD4Transform(secret+8, secret) &
+                   ((1<<HASH_BITS)-1)) + count;
+            ...
+    }
+
+    As already said, in our spoofed TCP SYN packet only the IP source address
+    differs, that is only secret[0], so of 12*4 random bytes used to create the
+    sequence number from, only 4 bytes differ.
+    Obviously the hash created by halfMD4Transform has similarities if the
+    source and destination ports and the destination address are the same.
+
+    It seems that the src-adress is least-significant to the above MD4
+    algorithm. Changing the source-ports too, makes the 2 ISNs more differ.
+    Due to the short gap of time, the last
+
+            seq += tv.tv_usec + tv.tv_sec*1000000;
+
+    is useless. This may be the reason why this bug may have survived long:
+    In any real network situation it is uncommon that the source and
+    destination ports are equal in two different connections on one host.
+
+    Further analyzation of the hash algorithm in this routine may result in a
+    better ISN prediction than the one we use (range prediction).
+
+
+Solution
+===================
+
+    First: It's always unwise to rely on address based authentication,
+           because in a sniffable enviroment, such as the Internet, there
+           are always means of bypassing address based authentication.
+
+    Second: The press shouldn't hype this as _THE_ Linux bug.. everyone having
+            looked at the ISNs/DNS Sequence numbers of any of Microsoft's
+            operating systems knows that their 'random numbers' are _much_
+            easier targets to use for IP and DNS spoofing attacks. For a
+            a description how the ISN numbers of the Microsoft Windows NT
+            TCP stack have even weakened with the latest Service Packs, you
+            may want to browse the latest postings to the Bugtraq security
+            mailing list [1] or read [2].
+            Well.. not that it matters.. but who uses Microsoft software
+            anyway ?
+
+    The Linux kernel developers have been notified at the same time as the
+    public Linux community, so a safe patch should be available real soon.
+
+
+Acknowledgments
+================
+
+    The bugdiscovery and the exploit is due to:
+
+    Stealth    http://www.kalug.lug.net/stealth
+    S. Krahmer http://www.cs.uni-potsdam.de/homepages/students/linuxer
+
+    This advisory has been written by typo and scut.
+    The tests and further analyzation were done by stealth and scut.
+    The demonstration exploit has been written by S. Krahmer.
+
+
+Contact Information
+===================
+
+    The teso crew can be reached by mailing to teso@shellcode.org.
+    Our webpage is at http://teso.scene.at/
+
+
+References
+===================
+
+    [1] Mail to the Bugtraq mailing list
+        From: Roy Hills <bugtraq-l@NTA-MONITOR.COM>
+        Subject: NT Predictable Initial TCP Sequence numbers - changes observed
+                 with SP4
+
+    [2] Microsoft Knowledge Database Article
+        ID: Q192292 "Unpredictable TCP Sequence Numbers in SP4".
+
+    [3] libUSI++, a spoofing library
+        http://www.cs.uni-potsdam.de/homepages/students/linuxer/
+
+    [4] TESO
+        http://teso.scene.at/
+
+    [5] S. Krahmer
+        http://www.cs.uni-potsdam.de/homepages/students/linuxer
+
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be
+    inaccurate or wrong. The supplied exploit is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    link [4] and [5].
+
+
+Exploit
+===================
+
+    We've created a working exploit to demonstrate the vulnerability.
+    The exploit needs libUSI++ installed, which can be obtained through [3].
+
+    The exploit is available from either
+
+       http://teso.scene.at/
+    or
+       http://www.cs.uni-potsdam.de/homepages/students/linuxer/
+
+
+------
+
+

@@ -1,0 +1,166 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+
+- ------
+
+TESO Security Advisory
+03/09/2000
+
+wmcdplay local root compromise
+
+
+Summary
+===================
+
+    A vulnerability within the wmcdplay CD playing application for the
+    WindowMaker desktop has been discovered. It allows local root compromise
+    through arbitrary code execution.
+
+
+Systems Affected
+===================
+
+    Any system which has wmcdplay installed as setuid root. Though on most
+    popular system distributions wmcdplay is not installed by default, the
+    optional installation of it is always setuid root, hence affected by the
+    problem.
+
+    Please note that wmcdplay doesn't require WindowMaker as its desktop,
+    so even if you haven't installed WindowMaker you may be vulnerable.
+
+    Among the vulnerable distributions (if the package is installed) are the
+    following systems:
+
+      Debian/GNU Linux 2.1, wmcdplay 1.0beta1-2
+      Halloween Linux Version 4
+
+
+Tests
+===================
+
+
+    liane:[bletchley]> id -a
+    uid=501(bletchley) gid=501(bletchley) groups=501(bletchley)
+    liane:[bletchley]> cd wmhack/
+    liane:[wmhack]> uname -a
+    Linux liane.c-skills.de 2.2.13-13 #21 Thu Mar 2 10:36:13 WET 2000 i686 unknown
+    liane:[wmhack]> stat `which wmcdplay`
+      File: "/usr/X11R6/bin/wmcdplay"
+      Size: 38372        Filetype: Regular File
+      Mode: (4755/-rwsr-xr-x)         Uid: (    0/    root)  Gid: (    0/    root)
+    Device:  3,1   Inode: 213954    Links: 1
+    Access: Sat Mar  4 14:21:43 2000(00004.20:34:20)
+    Modify: Thu Nov 11 09:59:00 1999(00119.00:57:03)
+    Change: Fri Mar  3 15:31:42 2000(00005.19:24:21)
+    liane:[wmhack]> cc wmexp.c
+    liane:[wmhack]> ./a.out
+    You can also add an offset to the command-line. 40 worked for me on the console.
+    Get the real deal at http://www.cs.uni-potsdam.de/homepages/students/linuxer
+    Respect other users privacy!
+    wmcdplay : Tried to find artwork file, but failed.
+    Segmentation fault
+    liane:[wmhack]> ./a.out 40
+    Get the real deal at http://www.cs.uni-potsdam.de/homepages/students/linuxer
+    Respect other users privacy!
+    wmcdplay : Tried to find artwork file, but failed.
+    Illegal instruction
+    liane:[wmhack]> ./a.out 140
+    Get the real deal at http://www.cs.uni-potsdam.de/homepages/students/linuxer
+    Respect other users privacy!
+    wmcdplay : Tried to find artwork file, but failed.
+    sh-2.03# id -a
+    uid=0(root) gid=501(bletchley) groups=501(bletchley)
+    sh-2.03#
+
+Impact
+===================
+
+    Through exploitation of the buffer overflow within wmcdplay a local user
+    can elevate his privileges to the superuser level. Once this is archived
+    the attacker has complete access to the system, allowing compromitation
+    of all data stored on it.
+
+
+Explanation
+===================
+
+    Due to inaccurate bounds-checking a sprintf() call with commandline
+    arguments, it can be used to overflow a stack-located buffer.
+    By setting proper values and avoiding zero-bytes an attacker can execute
+    arbitrary code.    	
+
+
+Solution
+===================
+
+    The author and the distributor has been informed before. A patch is already
+    available. Short-timed just remove the suid-bit; it is not necessary.
+	 	
+
+Acknowledgments
+================
+
+    The bug-discovery and the demonstration programs are due to S. Krahmer [2].
+    The shell-code is due to Stealth.
+
+    This advisory has been written by scut and S. Krahmer.
+
+
+Contact Information
+===================
+
+    The TESO crew can be reached by mailing to tesopub@coredump.cx.
+    Our web page is at http://teso.scene.at/
+    
+    C-Skills developers may be reached through [2].
+
+
+References
+===================
+
+    [1] TESO
+        http://teso.scene.at/
+
+    [2] S. Krahmer, C-Skills
+        http://www.cs.uni-potsdam.de/homepages/students/linuxer/
+
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be
+    inaccurate or wrong. The supplied exploit is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    link [1] and [2].
+
+
+Exploit
+===================
+
+    We've created a working demonstration program to exploit the vulnerability.
+
+    The exploit is available from
+
+       http://teso.scene.at/
+
+    and
+	
+       http://www.cs.uni-potsdam.de/homepages/students/linuxer
+
+- ------
+
+
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.0 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
+iD8DBQE4yQ4QcZZ+BjKdwjcRAobJAJwO+vEtw5on/9obko1ozI7DywhbSwCgnG18
+7aAhRDSSJr15f06W1Ei4b64=
+=HrTR
+-----END PGP SIGNATURE-----

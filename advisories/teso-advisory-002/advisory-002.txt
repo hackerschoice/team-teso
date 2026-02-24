@@ -1,0 +1,150 @@
+
+------
+
+TESO Security Advisory
+01/09/2000
+
+Linux Kernel 2.0.x and 2.2.x local Denial of Service attack
+
+
+Summary
+===================
+
+    A weakness within the Linux 2.0.x and Linux 2.2.x kernels has been
+    discovered. The vulnerability allows any user without limits on the
+    system to crash arbitary processes, even those owned by the superuser.
+    Even system crashes can be experienced.
+
+
+Systems Affected
+===================
+
+    All systems running the kernel versions 2.0.x or 2.2.x of the Linux
+    operating system with local users who have no resource limits.
+    It is not enough to set special values only for the max. number of
+    processer per user ('forkbomb').
+    Linux 2.3.x systems may be affected, too, we didn't tested this versions.
+
+
+Tests
+===================
+
+    A system crash or the crash of particular processes can be reproduced
+    using the included exploit file "ml2.c", written by Stealth [3].
+    We've successfully managed to crash Linux 2.0.x and 2.2.x systems with
+    it.
+
+
+Impact
+===================
+
+    By crashing single processes or even crashing the whole system an attacker
+    may render the whole system unuseable to any other user (including
+    superuser) or selectivly kill only important processes, denying services
+    to legitimate use.
+
+
+Explanation
+===================
+
+    Any user can request a big amount of memory, 'stealing' required space for
+    important processes (syslogd, klogd, ...). Due to a lack of space, a
+    system-call of these processes that requires new space will fail. In
+    consequence this process will be killed by the kernel.
+    (see arch/{...}/mm/fault.c)
+
+    There should be a mechanism that protects a pool of memory for important
+    processes, which can only be accessed by the kernel itself or by processes
+    with (E)UID of 0. 
+
+    The real bad thing in this is that unlimited resources are the default-case
+    and kernel happily gives away all the space to these unlimited processes. 
+    In the kernel's eyes the process of luser foo has the same right/priority
+    for memory-requests as even init.
+    
+
+Solution
+===================
+
+    Since the problem can only be exploited by users who already have local
+    access, the best way to prevent this and other local attacks is to give
+    only those users access that can be trusted.
+
+    However this problem is within the Linux kernel and can definitely be
+    fixed.
+    As a general advice the administrator should heavily use resource-limits
+    for all 'dangerous' parts such as max. numbers of processes, max. memory
+    etc.. Also programs such as [4] should be used on important systems to
+    prevent local DoS attacks.
+
+    The Linux kernel developers have been notified at the same time as the
+    public Linux community, so a safe patch should be available real soon.
+
+
+Acknowledgments
+================
+
+    The bugdiscovery and further analyzation was done by
+
+    S. Krahmer http://www.cs.uni-potsdam.de/homepages/students/linuxer
+
+    The exploit is due to
+
+    Stealth    http://www.kalug.lug.net/stealth
+
+    This advisory has been written by scut and stealth.
+
+
+Contact Information
+===================
+
+    The teso crew can be reached by mailing to teso@shellcode.org.
+    Our webpage is at http://teso.scene.at/
+
+    C-skilled developers may be reached through [2].
+
+
+References
+===================
+
+    [1] TESO
+        http://teso.scene.at/
+
+    [2] S. Krahmer
+        http://www.cs.uni-potsdam.de/homepages/students/linuxer
+
+    [3] Stealth
+        http://www.kalug.lug.net/stealth/
+
+    [4] Fork Bomb Defuser
+        http://www.geocities.com/SiliconValley/Software/9197/rexfbd.htm
+
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be
+    inaccurate or wrong. The supplied exploit is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    link [1] and [2].
+
+
+Exploit
+===================
+
+    We've created a working exploit to demonstrate the vulnerability.
+
+    The exploit is available on either
+
+       http://teso.scene.at/
+    or
+       http://www.cs.uni-potsdam.de/homepages/students/linuxer/
+
+
+------
+
+

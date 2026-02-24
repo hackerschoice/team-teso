@@ -1,0 +1,57 @@
+0008 2000/01/24  Check for IP spoofing abilities for a local IP address
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Check for IP spoofing abilities for a local IP address
+Date .................: 2000/01/24 18:15
+Author ...............: scut
+Publicity level ......: public, but not widely known
+Affected .............: IP
+Type of entity .......: Protocol
+Type of discovery ....: interesting information
+Severity/Importance ..: low
+Found by .............: scut
+
+Information ===================================================================
+
+The ability to IP spoof has drastically decreased over the last years, mainly
+to hinder either denial of service attacks to be executed or to stop
+sophisticated attacks which involve IP spoofing. While in general IP spoofing
+is a bad thing, sometimes you need to be capable to send spoofed datagrams.
+While there are still numerous hosts on the Internet that can set arbitrary IP
+source addresses, you often need to tell whether you can spoof from a host you
+have superuser access on.
+
+The only way to tell whether you can spoof from a host is to try sending of a
+frame which has a source IP address that is not used within that network and is
+not one of the reserved private addresses. The other part of the problem
+is how we can check whether the spoofed packet got through all the routers to
+it's destination.
+
+In general we can only tell this if the packet we send has a noticeable effect.
+This can be for example if we spoof a packet which triggers an attack signature
+in some IDS system, where the log is displayed publically on the web (www.
+antionline.com does this), or we can just send the packet to some other IP
+where we can receive the packet and display it. This is the first method:
+
+1) Send a spoofed packet to another IP not on the local network and see if the
+   packet arrives. Optionally put the real source IP into the packet and send
+   an answer packet back to this IP, so the source host knows whether it can
+   spoof or not.
+
+Another method is similar to the first, but only needs the local host and a
+domain NS entry for the local IP or a sniffable IP. It works like this:
+
+2) Send a spoofed DNS query for a host inside your local domain, which you
+   have an NS entry for on your local host or on a host in the local network,
+   that is sniffable. Send the query to a public usable nameserver outside
+   your local network, then see if some nameservers issues a query for the
+   host you originally asked for, if it does, you can spoof.
+
+Method 2) is used by the DNS spoofing program "zodiac" to determine if it can
+spoof from the current network it is running on.
+
+===============================================================================
+

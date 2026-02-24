@@ -1,0 +1,6 @@
+
+int
+__write (void)
+{
+}
+

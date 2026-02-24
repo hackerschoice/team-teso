@@ -1,0 +1,16 @@
+
+0.4.1, 2003/03/26
+
+	It should be able to cope with larger objects now, although switch
+	handling is still missing.
+
+	- fix call linearization handling
+	- fix different relocation behaviour of later GCC versions, where
+	  local functions of an object were called either through the help of
+	  a relocation, or using a fixed displacement without relocation
+
+
+0.4.0, 2003/03/25
+
+	- initial release
+

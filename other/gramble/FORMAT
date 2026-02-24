@@ -1,0 +1,6 @@
+
+
+prodname:
+	[prod|strings*](size:min-max)(filter:/filter/)(~filter:/filterinverted/)
+
+

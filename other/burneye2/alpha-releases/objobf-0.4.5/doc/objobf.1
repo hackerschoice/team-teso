@@ -1,0 +1,205 @@
+.TH objobf 1 "31 Mar 2003" "TEAM TESO"
+.nh
+.SH NAME
+objobf \- burneye2 x86/Linux ELF relocateable object obfuscator
+
+version 0.4.5.
+
+.SH SYNOPSIS
+.B objobf [-o file] [-e] [-n] [-<l|c|d> func] [-v num] [-r file] inputfile
+
+.SH DESCRIPTION
+This page documents the
+.B burneye2
+object file obfuscator utility,
+.I objobf.
+It reads one ELF relocateable object file and
+produces a functional equivalent output file, which is an obfuscated version
+of the input file. To do this,
+.I objobf
+breaks up all functions in the file to the basic block level. This
+representation is used to mutate the code while keeping it semantically
+equivalent. This involves dataflow analysis and basic block transformations.
+Afterwards, the basic block representation as control flow graph is linearized
+into a new object file, which is created from scratch.
+
+.SH BETA SOFTWARE
+Please note that the software is in an early state of development, and does
+not contain some of the features mentioned. Right now it only has the ability
+to reschedule the order of basic blocks among multiple functions
+("entangling") and does not provide substantial protection against any kind of
+analysis. It is meant as demonstration of the object input/output engine right
+now.
+
+.SH OPTIONS
+.TP
+.I "-o file"
+Write the output to
+.I file
+rather than the default output file "output.o"
+.TP
+.I -e
+Entangle basic blocks of all functions in the object. That is, the basic block
+order is randomized globally while the control flow is properly maintained.
+However, there are no opaque predicates between basic blocks right now, and
+the entanglement is easily seperateable (but it does fsck with IDA very well
+already ;)
+.TP
+.I -n
+Do a
+.I natural loop analysis
+on the control flow graph. This is only useful in conjunction with either the
+.I -c
+or
+.I -l
+output option. If this option is enabled, for every basic block in the CFG a
+dominator set is build. Upon this set, a loop detection analysis is
+performed. Only reducible flow graphs can be analyzed this way. This usually
+includes all compiler generated code, though ;). The header block is marked in
+aquamarine (light blue-green).
+For a more detailed explanation of the loop detection, see below at
+.I LOOP DETECTION.
+Please note, that if you use this option, you cannot use
+.I xvcg
+anymore to display the graphs, as boxed subgraphs are used to display the loop
+nesting. The
+.I aiSee
+program supports a superset of the VCG graph language which can handle this.
+Get a free version of aiSee at http://www.absint.com/aisee/download/. You
+might also consider symlinking
+.I aisee.bin
+to
+.I xvcg
+so that the graphs are displayed from
+.I objobf.
+.TP
+.I -N
+Do a
+.I natural loop analysis
+just as with the
+.I -n
+option, but using the heuristics recommended in the Dragon book. There, the
+unification of multiple possible loops is prefered, whereas the method used
+with
+.I -n
+prefers the nesting of those loops. Read below at
+.I LOOP DETECTION.
+.TP
+.I "-l func"
+Dump a register usage analysis for function
+.I func.
+More specifically, a live register dataflow analysis for the function is done
+and written as VCG graph to the file "output.vcg". If the
+.I VCG
+program is installed as
+.I xvcg,
+an output file "output.ps" is created and displayed using
+.I gv.
+.TP
+.I "-c func"
+A simple control flow graph (CFG) of the function
+.I func
+is written as VCG file to "output.vcg". As with the
+.I -l
+option,
+.I xvcg
+is ran and the output is displayed with
+.I gv.
+.TP
+.I "-d func"
+Do a dominator tree analysis on the CFG of function
+.I func
+and dump the graph as VCG file to "output.vcg".
+.I xvcg
+and
+.I gv
+are ran as usual. A basic block B1 is dominated by another basic block B2, if
+all codepathes to B1 go through B2. The dominator tree is visual candy, as
+all blocks above a certain block B1 are executed before B1 is. The dominator
+tree itself is not very useful to human analysis, but substantial for loop
+detection.
+.TP
+.I "-v num"
+Set the verbosity level for both the frontend (analyzation phase) and the
+backend (obfuscation and linearization). Values between zero (0) and three (3)
+are allowed, where 0 means low and 3 high verbosity. Default is zero (low).
+.TP
+.I "-r file"
+Read the random data required from
+.I file.
+This allows for easier reproduction of bugs, as otherwise the random data is
+always pulled dynamically from /dev/urandom. If you can reproduce a bug on a
+small object, use a constant
+.I file
+as randomization input.
+
+.SH EXAMPLES
+
+The included simple example shows how to use the obfuscator:
+.PP
+.in +4
+.nf
+gcc -c -o quicksort.o quicksort.c
+objobf -v 3 -e -o quicksort_obf.o quicksort.o
+gcc -o main main.c quicksort_obf.o
+
+gcc -c -O2 -o reducebind.o reducebind.c
+objobf -e reducebind.o
+gcc -o reducebind-obfuscated output.o
+strip reducebind-obfuscated
+
+objobf -n -l quicksort quicksort.o
+aisee.bin -color -psoutput output.ps output.vcg
+gv output.ps
+.fi
+.in -4
+.SH KNOWN BUGS
+.I Multiple code sections.
+Only one code section (usually .text) in the object is supported. The most
+common case of multiple code sections are global constructors or destructors
+in C++ programs or system library initialization functions (in both cases the
+sections are called .init and .fini).
+
+.I Too many loops detected.
+The loop analysis has trouble if there are more than one backedge to a loop
+head. Then, two scenarios are possible. Either - the first case - it could be
+that there are multiple loops nested within each other, and two loops should
+be displayed. This case is correctly handled. Or, - the second case - it is
+only one loop with multiple continuation points, such as continue statements.
+This case is not correctly handled and multiple nested loops are displayed,
+which all share the same loop head. I implemented algorithms for both cases,
+but the problem is to choose the proper one. To solve this problem, further
+loop analysis would be required. The Dragon book advises to assume it as one
+loop, while I find it easier to manually group multiple nested loops as one,
+once it is clear that it is just one loop. You can choose between the two
+methods of loop detection with the
+.I -n
+(prefer the nesting of loops) and
+.I -N
+(prefer the unification of loops) options. Maybe in the future I will
+implement induction variable analysis and provide better heuristics to select
+the proper nested/group-as-one algorithm.
+
+.SH LOOP DETECTION
+
+Within the control flow graph, there are edges which have the property of
+being
+.I back edges.
+A back edge is an edge where the target basic block dominates its source basic
+block (see the
+.I -d option
+for the definition of dominator blocks). All such edges may imply a loop in
+the program. The list of basic blocks within this loop is called
+.I natural loop.
+One basic block of the loop is the so called
+.I header block
+which is the first one and the loops entry point. All natural loops only have
+one single entry point.
+
+.SH BUG REPORTS
+
+If you find a bug (and that is for sure), please try to reproduce it with an
+object as small as possible, as the analysis will be easier then. Please mail
+me at
+.I scut@team-teso.net
+

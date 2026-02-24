@@ -1,0 +1,91 @@
+.\" Copyright (c) 2000 David A. Holland.
+.\" All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\" 3. All advertising materials mentioning features or use of this software
+.\"    must display the following acknowledgement:
+.\"	This product includes software developed by David A. Holland.
+.\" 4. Neither the name of the Author nor the names of any contributors
+.\"    may be used to endorse or promote products derived from this software
+.\"    without specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND ANY CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR ANY CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\"	$Id: telnetlogin.8,v 1.4 2000/07/30 23:57:10 dholland Exp $
+.\"
+.Dd April 12, 2000
+.Dt TELNETLOGIN 8
+.Os "Linux NetKit (0.17)"
+.Sh NAME
+.Nm telnetlogin
+.Nd login wrapper for telnetd
+.Sh SYNOPSIS
+.Nm telnetlogin
+.Op Fl h Ar host
+.Op Fl p
+.Op Ar username
+.Sh DESCRIPTION
+.Nm telnetlogin
+is a setuid wrapper that runs
+.Xr login 1 .
+It is meant to be invoked by
+.Xr telnetd 8 ;
+the idea is to remove the necessity of running telnetd as root.
+.Pp
+.Nm telnetlogin
+should be installed mode 4750, user root, group telnetd. Then,
+telnetd may be run from
+.Pa /etc/inetd.conf
+as user ``nobody'', group ``telnetd'', and with the option
+.Fl L Ar path-to-telnetlogin .
+.Pp
+.Nm telnetlogin
+accepts only the subset of options to
+.Xr login 1
+shown above, in the order listed. This is the order 
+.Nm telnetd 8
+normally provides them in.
+.Nm telnetlogin
+also does sanity checks on the environment variables
+.Ev TERM , 
+and
+.Ev REMOTEHOST .
+It also insists that the standard input, output, and error streams are
+open on a terminal, and that it is the process group leader of the
+foreground process of that terminal. After checking all of these
+conditions, checking the values of the above environment variables for
+reasonable values, resetting signal handlers, and so forth, it execs
+login.
+.Sh SEE ALSO
+.Xr login 1 ,
+.Xr inetd.conf 5 ,
+.Xr inetd 8 ,
+.Xr telnetd 8
+.Sh RESTRICTIONS
+.Nm telnetlogin
+does not permit the
+.Fl f
+option to login, so will not
+work with telnetds that perform authentication via Kerberos or SSL.
+.Pp
+THIS IS PRESENTLY EXPERIMENTAL CODE; USE WITH CAUTION.
+.Sh HISTORY
+.Nm telnetlogin
+was written during the development of NetKit 0.17.

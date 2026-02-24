@@ -1,0 +1,47 @@
+0016 2000/02/23  Trick to hide UDP ports, trick to discover this
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Trick to hide UDP ports, trick to discover this
+Date .................: 2000/02/23 18:00
+Author ...............: scut
+Publicity level ......: unknown
+Affected .............: UDP/IP stack
+Type of entity .......: implementation
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: scut
+
+Information ===================================================================
+
+Many hacking tools operate as an UDP daemon, which listens on a UDP port for
+messages. Usually this open UDP ports are easily discovered through a simple
+UDP port scan. However, most hackers try to avoid detection by using a high
+port number which won't be scanned usually.
+
+  There is a better method of hiding UDP ports, by copying the behaviour of a
+closed UDP port: Just send a ICMP Port Unreachable packet each time a packet
+is received on the port. To do this you have to call an ICMP send routine
+directly after you have received an UDP packet. This ICMP send routine has to
+craft a Unreachable packet similar to the one the system would create and send
+it back to the source IP of the received UDP packet.
+
+While this looks very stealthy it has a really cool flaw which is easy to
+oversee. Every IP packet, hence the ICMP packet too has to have an IP ID,
+which is linear on most systems. If you just fill in a random one in the ICMP
+packet you generate, your port can still be detected. To do this one will
+sequentially scan all UDP ports and collect all received ICMP unreachable
+packets. Then your artificial ICMP packets will be those which don't match
+into the mostly linear IP ID's of the other ICMP packets.
+
+To avoid detection completely on a system whose kernel generates linear IP ID's
+you have to aquire the current IP ID before sending a bogus ICMP packet. This
+can be discovered remotely too, if you get the ID by sending a packet to a UDP
+port yourself and watch the IP ID in the ICMP unreachable packet send back to
+you: An IP ID increment value of two instead of one will be observed. To do
+this right a direct access to the current IP ID is required.
+
+===============================================================================
+

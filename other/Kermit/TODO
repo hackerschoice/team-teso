@@ -1,0 +1,9 @@
+todo list:
+
+- collect SymbolFind.conf patterns. use the get_some.sh script and create
+a file of the form <kernel-version>-<hostname or sth.> in the tmp dir with
+the output.
+
+- porting the whole thing (look at arch.hpp in include/).
+
+

@@ -1,0 +1,6 @@
+#!/bin/sh
+# written by palmers / teso
+
+for x in `awk '{print $1}' SymbolFind.conf`; do
+  ./findsym $x
+done

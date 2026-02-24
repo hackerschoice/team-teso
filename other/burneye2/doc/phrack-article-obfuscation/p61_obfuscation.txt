@@ -1,0 +1,63 @@
+
+                             ==Phrack Inc.==
+
+               Volume 0x0b, Issue 0x3d, Phile #0x00 of 0x00
+
+|=-------------=[ Machine code analysis and obfuscation ]=---------------=|
+|=-----------------------------------------------------------------------=|
+|=--------------------=[ scut <scut@team-teso.net> ]=--------------------=|
+
+
+
+--[ 1 - Introduction
+
+   There has been a lot of research into obfuscation of computer programs
+on all levels, from source code, abstract syntax tree to machine code
+representations. Virus writers, commercial software vendors and copy
+protectionists have used obfuscation to make analysis or detection of hostile
+code more difficult. Last year, a great paper about program obfuscation has
+been published by Gregory Wroblewski [1], that provides a great theoretical
+and practical introduction.
+
+   In the course of this article the concepts shown in the paper will be
+implemented and refined to provide a robust practical obfuscator for use
+with ELF relocateable objects (.o files). Additionally, the paper
+introduces the reader into the algorithms involved when analysing code.
+
+
+--[ ... - The code representation
+
+----[ ... - Control Flow Graphs (CFG)
+
+--[ ... - Code analysis
+
+----[ ... - Live register analysis
+
+----[ ... - Loop detection
+
+--[ ... - Obfuscation
+
+----[ ... - Basic block scheduling
+----[ ... - Function entangling
+
+----[ ... - Generating and inserting random code
+----[ ... - Generating opaque predicates
+----[ ... - Complicated problems in deobfuscation
+
+--[ ... - The obfuscator - objobf
+
+----[ ... - Problems in the implementation
+	TODO: anecdotes about real code (grep heuristic */*.c)
+
+
+--[ A - References
+
+ [1] Wrobleski, Gregory, 2002. "General Method of Program Code Obfuscation"
+     TODO: add url
+
+TODO: Ref, Dragonbook
+TODO: Ref, Cifuentes
+TODO: Ref, Halvar
+
+|=[ EOF ]=---------------------------------------------------------------=|
+

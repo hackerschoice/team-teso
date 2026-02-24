@@ -1,0 +1,5 @@
+
+pname:	"foo" cow
+cow:	["moo" cow](filter:/baz/)
+cow:	"baz"
+

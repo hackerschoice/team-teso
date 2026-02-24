@@ -1,0 +1,42 @@
+0001 2000/01/20  Difference in Linux 2.x ARP Request handling 
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Difference in Linux 2.x ARP Request handling
+Date .................: 2000/01/20 18:00
+Author ...............: scut
+Publicity level ......: unknown
+Affected .............: ARP protocol handling in Linux 2.x kernels
+Type of entity .......: Protocol
+Type of discovery ....: implementation difference
+Severity/Importance ..: interesting
+Found by .............: rookie and scut
+
+Information ===================================================================
+
+An ARP resolution request is usually done in two steps, where one ARP Request
+message is send and the host that has an interface configured for the
+requested IP address answers with an ARP Answer message. Every ARP message
+of one protocol conversion type has the same length to ease processing of the
+messages.
+
+In an ARP Answer the sender IP and sender MAC address is included along with
+the target IP address and the target MAC address. While it makes sense in an
+ARP Answer the same values are included in an ARP Request too, for the sense
+of simplicity. While most implementations ignore the sender IP/MAC address
+pair in an ARP Request the Linux kernel adds this pair to it's internal ARP
+table, having the same effect as if it is an ARP Answer packet.
+
+This allows us to ARP spoof using ARP Requests instead of ARP Answers if the
+target system runs Linux. This may be done for stealth purposes or to subvert
+ARP packet watching programs such as arpwatch.
+
+Note that this is the correct behavior as defined in RFC 826, where every
+implementation should update it's cache before even looking at the ARP opcode.
+Every other common implementation however (including all BSDs and Windows
+systems) do not do this.
+
+===============================================================================
+

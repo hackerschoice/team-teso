@@ -1,0 +1,53 @@
+0030 2000/10/14  exploitable format string problem in cfingerd <= 1.4.2
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: exploitable format string problem in cfingerd <= 1.4.2
+Date .................: 2000/10/14 12:00
+Author ...............: scut
+Publicity level ......: unknown
+Affected .............: cfingerd (The Configureable Finger Daemon) <= 1.4.2
+Type of entity .......: exploitable format string vulnerability
+Type of discovery ....: vulnerabilitiy
+Severity/Importance ..: high
+Found by .............: scut
+
+===============================================================================
+
+The Configureable Finger Daemon claims from itself to be quite secure, however
+it suffered from several buffer overflows in the past, and this time it suffers
+from a format string vulnerability when calling syslog, as in:
+
+snprintf(syslog_str, sizeof(syslog_str), "%s fingered (internal) from %s",
+	username, ident_user);
+syslog(LOG_NOTICE, (char *) syslog_str);
+
+And some other times in the code. Although it looks like it is trivial to
+exploit, this may not be as easy as it looks. We can supply both the username
+and the ident_user buffers, though the ident_user buffer is limited to 60
+arbitrary bytes. The username buffer has to survive very restrictive whitelist
+filtering, hence it is not suitable to store the shellcode in it. And 60 bytes
+is not enough usually to store the stackpop+addresses+write+shellcode (using
+"%.f" or the like to move esp) or the write+addresses+shellcode (using %..$n)
+in it, so we have to find another way to inject the data into the memory.
+
+Here is how we do it:
+sscanf(username, "%[^\r\n]\r\n", username);
+
+This line allows us to store an additional 70 arbitrary bytes, if we make
+username look like this: legit\rourdata, where legit is a normal finger query,
+and ourdata is arbitrary stuff. The \r char will be overwritten by a NUL byte
+and hence the following restrictive filtering only affects the legit content.
+
+This is how we exploit it on Linux (debian 2.1/2.2), on *BSD (and bsd libc
+based systems) we run into problems with the %..$n trick, because they deny
+large values. I currently know of no way to exploit this on BSD.
+
+An exploit is available as 7350cfingerd, with default offsets for some
+distributions. Cfingerd is not enabled on most distributions by default,
+however.
+
+===============================================================================
+

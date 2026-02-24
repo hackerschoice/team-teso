@@ -1,0 +1,85 @@
+
+|1000 0001|1100 0rrr|rr?? ????|???? ????|	jmp
+|1001 1111|1100 0rrr|rr?? ????|???? ????|	call
+
+jmp
+|.... ....|.... ....|.... ....|.... ....|
+|1000 0001|1100 0rrr|rr?? ????|???? ????|
+
+0x81c00000	jmp	%g0
+0x81c04000	jmp	%g1
+0x81c08000	jmp	%g2
+0x81c0c000	jmp	%g3
+0x81c10000	jmp	%g4
+0x81c14000	jmp	%g5
+0x81c18000	jmp	%g6
+0x81c1c000	jmp	%g7
+
+0x81c20000	jmp	%o0
+0x81c24000	jmp	%o1
+0x81c28000	jmp	%o2
+0x81c2c000	jmp	%o3
+0x81c30000	jmp	%o4
+0x81c34000	jmp	%o5
+0x81c38000	jmp	%o6
+0x81c3c000	jmp	%o7
+
+0x81c40000	jmp	%l0
+0x81c44000	jmp	%l1
+0x81c48000	jmp	%l2
+0x81c4c000	jmp	%l3
+0x81c50000	jmp	%l4
+0x81c54000	jmp	%l5
+0x81c58000	jmp	%l6
+0x81c5c000	jmp	%l7
+
+0x81c60000	jmp	%i0
+0x81c64000	jmp	%i1
+0x81c68000	jmp	%i2
+0x81c6c000	jmp	%i3
+0x81c70000	jmp	%i4
+0x81c74000	jmp	%i5
+0x81c78000	jmp	%i6
+0x81c7c000	jmp	%i7
+
+
+|.... ....|.... ....|.... ....|.... ....|
+|1001 1111|1100 0rrr|rr?? ????|???? ????|
+
+0x9fc00000	call	%g0
+0x9fc04000	call	%g1
+0x9fc08000	call	%g2
+0x9fc0c000	call	%g3
+0x9fc10000	call	%g4
+0x9fc14000	call	%g5
+0x9fc18000	call	%g6
+0x9fc1c000	call	%g7
+
+0x9fc20000	call	%o0
+0x9fc24000	call	%o1
+0x9fc28000	call	%o2
+0x9fc2c000	call	%o3
+0x9fc30000	call	%o4
+0x9fc34000	call	%o5
+0x9fc38000	call	%o6
+0x9fc3c000	call	%o7
+
+0x9fc40000	call	%l0
+0x9fc44000	call	%l1
+0x9fc48000	call	%l2
+0x9fc4c000	call	%l3
+0x9fc50000	call	%l4
+0x9fc54000	call	%l5
+0x9fc58000	call	%l6
+0x9fc5c000	call	%l7
+
+0x9fc60000	call	%i0
+0x9fc64000	call	%i1
+0x9fc68000	call	%i2
+0x9fc6c000	call	%i3
+0x9fc70000	call	%i4
+0x9fc74000	call	%i5
+0x9fc78000	call	%i6
+0x9fc7c000	call	%i7
+
+

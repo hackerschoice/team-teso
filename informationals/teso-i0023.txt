@@ -1,0 +1,156 @@
+0023 2000/04/16  Information on BinTec Router DoS 
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: By filling the NAT table of a BinTec Router one can
+                        force the machine to reboot because of memory shortage
+Date .................: 2000/04/16 00:00
+Author ...............: rookie
+Publicity level ......: unknown
+Affected .............: BinTec Router (BRICK-XS1/4 tested)
+                        Firmware 4.9.3 has fixed this bug by deleting
+                        Table entries, the 'Final Release' 5.1.2 reintroduced
+                        the bug again
+Type of entity .......: 
+Type of discovery ....:
+Severity/Importance ..: low, stupid DoS, easy to use
+Found by .............: rookie
+
+===============================================================================
+
+BinTec Router will reboot automatically when memory is short, so the perfect
+DoS is to fill up the memory.
+
+A common setup especially for workgroup and small business Access Router to
+connect many computers over one or two ISDN lines is NAT (Network Adress
+Translation). However, NAT is also considered to be a 'security feature'
+because it acts like a stateful transparent proxy for private networks, so it
+can be found on other setups, too.
+
+Due to this behaviour a router doing NAT has to manage a table with the
+following information for every connection:
+
+internal network ip & port -> router external port -> target ip & port 
+
+
+a.)
+
+Example from an XS Router (Firmware 5.1.2):
+
+cass:system> ipNatTable
+
+inx IfIndex(*ro)      Protocol(*ro)     IntAddr(*ro)      IntPort(*ro)
+    ExtAddr(ro)       ExtPort(ro)       RemoteAddr(ro)    RemotePort(ro)
+    Direction(ro)     Age(ro)
+
+ 00 10001             tcp               192.168.0.100     1112
+    195.202.39.137    32824             212.3.152.130     50005
+    outgoing          0 00:00:02.00
+
+
+b.)
+
+A packet with SYN flag establishes an entry:
+
+raven:~# nmap -sS www.ccc.de -p 12345
+
+ 08 10001             tcp               192.168.0.100     63072
+    195.202.39.137    33016             195.21.255.248    12345
+    outgoing          0 00:00:02.00
+
+
+c.)
+
+However the table entry is deleted for that connection if a RST, FIN or
+ICMP Error is received:
+
+cass:ipExtIfTable> ipextifnatrmvfin
+
+inx NatRmvFin(rw)
+
+ 00 yes /* ethernet 1*/
+
+ 01 yes /* ethernet 2*/
+
+ 02 yes /* dial up line */
+
+
+d.)
+
+For idle connections there is a timeout of 1 hour for TCP and 30
+seconds for icmp and udp:
+
+cass:ipExtIfTable> ipextifnattcptimeout
+
+inx NatTcpTimeout(rw)
+
+ 00 3600
+
+ 01 3600
+
+ 02 3600
+
+cass:ipExtIfTable> ipextifnatothertimeout
+
+inx NatOtherTimeout(rw)
+
+ 00 30
+
+ 01 30
+
+ 02 30
+
+
+Notice: Setting down the timeout won't help much, you can force the machine
+        to reboot with nmap -sS down to about 2 seconds *with* RSTet
+        connections. With anything below 30 seconds the router will kill any
+        telnet, IRC and whatsoever idle connection.
+
+Conclusion: Rebooting the machine from the masqueraded network is trivial by
+            sending lots of SYN packets from different source IPs and ports to
+            an external IP that does not send RST packets back (however even
+            thenn the router memory might overflow)
+
+e.)
+
+Very often a forward rule is implemented to allow services from the outside
+through NAT. 
+
+The default behaviour is to reject connections from the outside:
+
+Apr 19 23:39:18 cass INET: NAT: refused incoming session on ifc 10001 prot 6
+195.202.39.137:113 <- 128.176.216.234:1046
+
+However a forward rule can be defined:
+
+          Service                         user defined
+          Protocol                        tcp
+          Port (-1 for any)               113
+          Destination                     192.168.0.100
+
+The identd request goes through:
+
+Apr 20 00:39:28 raven tcplogd: auth connection attempt from
+HOTSPOT2.UNI-MUENSTER.DE [128.176.216.234]
+
+
+f.)
+
+Entry in the NAT Table:
+
+cass:ipNatTable> ipNatTable
+
+inx IfIndex(*ro)      Protocol(*ro)     IntAddr(*ro)      IntPort(*ro)
+    ExtAddr(ro)       ExtPort(ro)       RemoteAddr(ro)    RemotePort(ro)
+    Direction(ro)     Age(ro)
+
+ 05 10001             tcp               192.168.0.100     113
+    195.202.39.137    113               128.176.216.234   1049
+    incoming          0 00:00:05.00
+
+Conclusion: Rebooting from the outside is simple if a forward rule has been
+            defined (very likely).
+
+===============================================================================

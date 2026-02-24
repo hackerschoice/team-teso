@@ -1,0 +1,16 @@
+
+burneye2 objobf - x86/Linux ELF relocateable object obfuscator
+=============================================================================
+
+Just a very early version, do not expect it to work on anything larger than a
+100 line C file.
+
+Send comments to scut@team-teso.net.
+
+Also read the manpage.
+
+The graph output stuff may be interesting (visually at least :)
+
+Also try to load the output objects in IDA.
+
+

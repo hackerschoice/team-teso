@@ -1,0 +1,180 @@
+This is pdfTeX, Version 3.14159-1.00a-pretest-20011114-ojmw (Web2C 7.3.7) (format=pdftex 2002.3.30)  14 APR 2002 11:21
+**/secure/cvs-impact/wrez/wrez/doc/wrez-manual/wrez.texinfo
+(/secure/cvs-impact/wrez/wrez/doc/wrez-manual/wrez.texinfo{/usr/share/texmf/pdf
+tex/config/pdftex.cfg}
+Babel <v3.7h> and hyphenation patterns for american, french, german, ngerman, n
+ohyphenation, loaded.
+(/usr/share/texmf/tex/texinfo/texinfo.tex
+Loading texinfo [version 2002-03-01.06]: Basics,
+\bindingoffset=\dimen16
+\normaloffset=\dimen17
+\pagewidth=\dimen18
+\pageheight=\dimen19
+\outerhsize=\dimen20
+\outervsize=\dimen21
+\cornerlong=\dimen22
+\cornerthick=\dimen23
+\topandbottommargin=\dimen24
+\headlinebox=\box16
+\footlinebox=\box17
+\margin=\insert252
+\EMsimple=\toks12
+\singlespaceskip=\skip18
+\groupinvalidhelp=\toks13
+\mil=\dimen25
+\exdentamount=\skip19
+\inmarginspacing=\skip20
+ pdf,
+\tempnum=\count26
+\lnkcount=\count27
+\filename=\toks14
+\filenamelength=\count28
+\pgn=\count29
+\toksA=\toks15
+\toksB=\toks16
+\toksC=\toks17
+\toksD=\toks18
+\boxA=\box18
+\countA=\count30
+
+(/usr/share/texmf/pdftex/plain/misc/pdfcolor.tex) fonts,
+\sffam=\fam8
+\textleading=\dimen26
+\mainmagstep=\count31
+\fontdepth=\count32
+ page headings,
+\titlepagetopglue=\skip21
+\titlepagebottomglue=\skip22
+\evenheadline=\toks19
+\oddheadline=\toks20
+\evenfootline=\toks21
+\oddfootline=\toks22
+
+tables,
+\tableindent=\dimen27
+\itemindent=\dimen28
+\itemmargin=\dimen29
+\itemmax=\dimen30
+\itemno=\count33
+\multitableparskip=\skip23
+\multitableparindent=\skip24
+\multitablecolspace=\dimen31
+\multitablelinespace=\skip25
+\colcount=\count34
+ conditionals, indexing,
+\secondaryindent=\skip26
+\partialpage=\box19
+\doublecolumnhsize=\dimen32
+ sectioning,
+\chapno=\count35
+\secno=\count36
+\subsecno=\count37
+\subsubsecno=\count38
+\appendixno=\count39
+\absseclevel=\count40
+\secbase=\count41
+\chapheadingskip=\skip27
+\secheadingskip=\skip28
+\subsecheadingskip=\skip29
+ toc,
+\tocfile=\write0
+\contentsrightmargin=\skip30
+\savepageno=\count42
+\lastnegativepageno=\count43
+\shortappendixwidth=\dimen33
+\tocindent=\dimen34
+ environments,
+\dblarrowbox=\box20
+\longdblarrowbox=\box21
+\pushcharbox=\box22
+\bullbox=\box23
+\equivbox=\box24
+\errorbox=\box25
+\lispnarrowing=\skip31
+\envskipamount=\skip32
+\circthick=\dimen35
+\cartouter=\dimen36
+\cartinner=\dimen37
+\normbskip=\skip33
+\normpskip=\skip34
+\normlskip=\skip35
+\lskip=\skip36
+\rskip=\skip37
+\tabw=\dimen38
+ defuns,
+\defbodyindent=\skip38
+\defargsindent=\skip39
+\deftypemargin=\skip40
+\deflastargmargin=\skip41
+\parencount=\count44
+ macros,
+\macscribble=\write1
+\paramno=\count45
+\macname=\toks23
+
+cross references,
+\auxfile=\write2
+\savesfregister=\count46
+\footnoteno=\count47
+ (/usr/share/texmf/tex/plain/dvips/epsf.tex
+\epsffilein=\read0
+\epsfframemargin=\dimen39
+\epsfframethickness=\dimen40
+\epsfrsize=\dimen41
+\epsftmp=\dimen42
+\epsftsize=\dimen43
+\epsfxsize=\dimen44
+\epsfysize=\dimen45
+\pspoints=\dimen46
+\epsfnoopenhelp=\toks24
+)
+\noepsfhelp=\toks25
+ localization,
+\nolanghelp=\toks26
+\defaultparindent=\dimen47
+
+and turning on texinfo input format.) (./wrez.aux)
+@cpindfile=@write3
+@fnindfile=@write4
+@vrindfile=@write5
+@tpindfile=@write6
+@kyindfile=@write7
+@pgindfile=@write8
+ [1
+\openout2 = `wrez.aux'.
+
+\openout3 = `wrez.cp'.
+
+\openout4 = `wrez.fn'.
+
+\openout5 = `wrez.vr'.
+
+\openout6 = `wrez.tp'.
+
+\openout7 = `wrez.ky'.
+
+\openout8 = `wrez.pg'.
+
+{/usr/share/texmf/dvips/config/pdftex.map}] [2] (./wrez.toc) [-1] (./wrez.toc) 
+(./wrez.toc)
+(WREZ Introduction)
+\openout0 = `wrez.toc'.
+
+ Chapter 1 [1] [2] Chapter 2 [3] [4] Chapter 3 [5]
+Chapter 4 [6] [7] Chapter 5 [8] [9] [10] [11] (Index) [12] (./wrez.cps)
+[13] ) 
+Here is how much of TeX's memory you used:
+ 1516 strings out of 12477
+ 16330 string characters out of 89681
+ 42065 words of memory out of 263001
+ 2512 multiletter control sequences out of 10000+0
+ 31784 words of font info for 110 fonts, out of 400000 for 1000
+ 19 hyphenation exceptions out of 1000
+ 12i,6n,10p,262b,319s stack positions out of 300i,100n,500p,50000b,4000s
+</usr/share/texmf/fonts/type1/bluesky/cm/cmti9.pfb></usr/share/texmf/font
+s/type1/bluesky/cm/cmr9.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmtt12.pfb
+></usr/share/texmf/fonts/type1/bluesky/cm/cmtt10.pfb></usr/share/texmf/fonts/ty
+pe1/bluesky/cm/cmti10.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmbxti10.pfb
+></usr/share/texmf/fonts/type1/bluesky/cm/cmsy10.pfb></usr/share/texmf/fonts/ty
+pe1/bluesky/cm/cmr10.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmbx12.pfb>
+Output written on wrez.pdf (16 pages, 126833 bytes).

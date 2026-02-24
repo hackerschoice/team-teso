@@ -1,0 +1,6 @@
+
+	- SIGSEGV handler which does something useful
+	- SIGTRAP handler that does decryption or something useful
+	- running line SIGTRAP handler which does the first glfsr decryption
+
+

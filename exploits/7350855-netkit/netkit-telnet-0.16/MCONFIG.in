@@ -1,0 +1,30 @@
+# Dirs
+INSTALLROOT
+BINDIR
+MANDIR
+SBINDIR
+
+# Modes
+BINMODE
+DAEMONMODE
+MANMODE
+
+# Compiling
+ALLWARNINGS
+CC
+CXX
+CFLAGS
+CXXFLAGS
+LDFLAGS
+LIBS
+
+# Features
+FN(snprintf)
+FN(logwtmp)
+LIBTERMCAP
+GLIBC
+BSDSIGNAL
+
+# We actually use openpty, but they come from the same place on all systems
+# I know.
+FN(forkpty)

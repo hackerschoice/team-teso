@@ -1,0 +1,88 @@
+0013 2000/02/17  Linux blind TCP spoofing methods overview
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Linux blind TCP spoofing methods overview
+Date .................: 2000/02/17 21:00
+Author ...............: scut
+Publicity level ......: known
+Affected .............: Linux 2.0.x/2.2.x TCP stack
+Type of entity .......: implementation
+Type of discovery ....: useful information
+Severity/Importance ..: medium
+Found by .............: various people (NAI, nergal, stealth)
+
+Information ===================================================================
+
+There are several blind TCP spoofing methods known for the used Linux 2.0.x and
+2.2.x kernel series. By blind TCP spoofing you can arbitrarily set the source
+IP of a remote TCP connection and hence exploit IP based authorization
+schemes and/or bypass access control lists.
+
+I'll summarize the methods known to me.
+
+
+<= 2.0.35  FIN pushes data to application although state is SYN_RECEIVED
+
+Discovered by Network Associates on 1999/03/09, this vulnerability allows you
+to remotely flush the already received TCP data to the application. Normally
+the system buffers all the received data and only passes them to the
+application if the connection has been established. However, in Linux kernels
+below and equal too 2.0.35, the kernel will send all buffered data to the
+application if you terminate the not yet established TCP connection by sending
+a FIN packet when it is currently in the SYN_RECEIVED state, without checking
+whether the connection has already completed the three-way-handshake. There are
+two public exploits available, receive.c and lin35.c (by myself), but
+exploitation is trivial. This vulnerability can especially well abused for non
+interactive protocols such as FTP or SMTP.
+
+
+<= 2.0.37  Too high ACK results in a RST packet being send, detectable through
+           linear IP ID on victim host
+
+While developing libnids, a network intrusion detection library, which offers
+a easy interface to TCP streams in the network, nergal ported the Linux 2.0.37
+TCP/IP stack into userland. While doing this he audited the code and found this
+vulnerability. He posted his results to the Bugtraq Mailing List on 1999/07/31.
+To be exact, there are two small bugs that add up to a relevant vulnerability:
+One lies in the Linux 2.0.37 kernel implementation of the ACK number
+verification routine. Linux 2.0.37 kernels and older kernels will send out RST
+datagrams if the acknowledgement number received is higher then the one
+assigned to the connection, but will behave quiet if the number is less or
+equal to the correct number. Once the connection is in the ESTABLISHED state
+this behavior changes to that no packet is generated on a too high
+acknowledgement number. This way one can easily find the correct ISN number
+through a binary search in the search space when the attacker is able to tell
+whether a packet was send or not. Linux kernels use sequential IP ID fields,
+which can be abused to indicate whether a host sends packets (ID increases) or
+not (ID is constant). Through constantly pinging the victim and monitoring the
+IP ID increasing either by one (just our ping reply) or by two (our ping reply
+plus the RST packet) one can easily do the search and find the correct ISN.
+A public exploit is available from nergal himself and was attached to his
+original Bugtraq posting. Note that the host must be really idle to do this
+search, which can take up to three dozens seconds.
+
+
+<= 2.2.12  TCP Sequence numbers are predictable on similar TCP states
+
+In September 1999 stealth discovered that Linux 2.2.x kernels behaved different
+in their ISN selection if the TCP connection perimeters (port, seq, IP) were
+alike: If two connections are similar in their parameters, having the same
+ports and equal ISN's the remote Linux system will assign a similar Initial
+Sequence Number to the connection. As it was later discussed on the Linux
+kernel mailing list this resulted from two bugs within the Linux kernel and an
+invalid use of the hash function (MD4).
+While all kernels below and equal to 2.2.12 kernels do have this vulnerability
+it doesn't even seem to matter whether the TCP SYN cookie functionality is
+enabled or not. To exploit this you create two TCP connections, one from the
+spoofed IP and one from a sniffable IP. The trick is to assign the same source
+and destination ports as well as the same Initial Sequence Number to the SYN
+packets. The ISN assigned by the victim computer to the two new connections
+will differ only by a few thousands, so range prediction is easily possible.
+An exploit is available in the TESO Advisory about this topic, called
+blindSpoof.cc, written by stealth.
+
+===============================================================================
+

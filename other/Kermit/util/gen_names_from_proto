@@ -1,0 +1,11 @@
+#!/bin/bash
+# written by palmers / teso
+
+IN_FILE="../include/pseudo_link.h"
+OUT_FILE="../tmp/_names"
+
+grep "^[A-Za-z0-9_-]* [\*]*(\*" $IN_FILE | \
+	awk -F\( '{print $2}' | \
+	awk -F\* '{print $2}' | \
+	awk -F\) '{print $1}' > $OUT_FILE 
+

@@ -1,0 +1,88 @@
+                                Nothing is more important than to see the
+                                sources of invention, which are, in my
+                                opinion, more interesting than the
+                                invention themselves.
+                                                G.W.Leibniz (1646-1716)
+
+[0] General
+
+ Load modules with the '-L' parameter.
+
+ -L "<modulename> <arg1> <arg2> ..."
+ arg1..argN are passed to the init-functioin
+ of the module (in int argc, char *argv[]-style).
+
+ The arg's are seperated by spaces.
+ If you want to pass an arguement with spaces in it
+ to the module you have to escape them:
+ -L "modules/mod_http.so -r GET\s/cgi-bin/test-cgi\sHTTP/1.0\r\n\r\n"
+  
+ Each module has additional parameters.
+ bscan -h -L "modules/mod_banner.so" -L "modules/mod_ping.so" \
+           -L "modules/mod_bind.so" -L "modules/mod_httpid.so"
+ gives usage information for bscan AND all modules.
+  
+
+
+Bscan comes with the following modules:
+
+[1] mod_banner
+ 
+ This is the "generic" module + banner-scanner module.
+ ./bscan -h -L "modules/mod_banner.so" for help.
+ Use this module alone for banner-scan or tcp-open scan.
+ 
+[2] mod_ping
+ 
+ ICMP_REQUEST module.
+ I always use this module in conjunction with mod_banner.so.
+ As i said....mod_banner.so is not just a tcp-banner module
+ but also a 'gerneric' module handling the tcp-userland stack
+ and icmp-host-unreachable packets.
+
+[3] mod_httpd
+
+ This module requests "HEAD / HTTP/1.0" by default.
+ You can specify requests with the '-r' option:
+ Don't forget to escape ' ', '\n', '\r', '\t'!
+ 
+ for example: -r GET\s/cgi-bin/finger?@127.0.0.1\sHTTP/1.0\r\n\r\n 
+
+[4] mod_bind
+ 
+ Requests version.bind [type=txt, class=chaos] from nameservers.
+ Default sourceport = 53 (udp).
+
+
+-=-
+
+I'll add a small 'howto' on how to code modules for bscan, soon :)
+For now, please take a look into mod_ping.so and mod_banner.so.
+
+A module MUST declare the following shared functions:
+int init (char **, int, char **, void *);            /* init + getopt etc */
+int fini ();                                         /* called on exit(); */
+void musage ();             /* print out usage information for the module */
+int callmdl (int, void *);            /* send first pkg, process rcvd pkg */
+
+callmdl (int, void *) does all the hard work.
+There are two entry points to this function:
+First entry-point is in the bscan parent process [MOD_FIRSTPKG].
+Second entry-point is in the 'snarf'-process [MOD_RCV].
+
+Return values are:
+RMOD_OK: everything is ok. process as usual
+RMOD_SKIP: everythin is fine, but jump to the next module.
+RMOD_ERROR: currently not implemented
+
+Ideas for modules:
+- rpcinfo module [maybe udp (!) version. most ppl only deny tcp/111]
+  source-port = 53
+- mod_avt [telnetd-banner scanner]
+- ftp module [scan for anonymous login and +w /incoming]
+- nmap/queso like os-fingerprint module
+- snmp 'system' or 'system.sysDescr'
+- smbclient -L ? nmblookup -A ?
+- <add your idea here :>
+
+

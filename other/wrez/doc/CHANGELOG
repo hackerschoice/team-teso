@@ -1,0 +1,17 @@
+
+0.7.6	add lookup-pm.[ch] generic lookup interface
+	add preliminary inmem.[ch] in-memory infection module
+	fix tons of bugs in the lookup module
+	incorporate inmem module into build process
+	add test targets to makefile
+
+0.7.4	fix bugs in GOT chaining
+	write doc
+	add wrezsweep program
+
+0.7.0	bugfixes, bugfixes, bugfixes
+
+0.6.14	ah, there is a changelog, nice i forgot about it ;)
+
+0.6.8	changelog generated
+

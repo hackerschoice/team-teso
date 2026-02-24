@@ -1,0 +1,41 @@
+
+Code obfuscation
+
+	- add dataflow analysis caps to ia32-decode (macros: REG_SQUASH and
+	  REG_ACCESS) to encode implicit instruction requirements/outputs
+	- do basic block level reg use analysis
+	- do function level reg use analysis
+	- do bblock/function level obfuscation
+
+=====
+
+GNU lightning "risc to machine code" dynamic code generation library
+
+	- create a simple ia32 to risc converter for the 10 most used
+	  instructions
+	- create a simple code obfuscation engine for this risc level
+	- generate machine code by using the GNU lightning library
+
+=====
+
+(from uclibc faq)
+When I run 'ldd' to get a list of the library dependencies for a uClibc
+binary, ldd segfaults! What should I do?
+
+	Use the ldd that is built by uClibc, not your system's one. When your
+system's ldd looks for library dependencies, it actually _runs_ that program.
+This works fine -- usually. It generally will not work at all when you have
+been cross compiling (which is why ldd segfaults). The ldd program created by
+uClibc is cross platform and doesn't even try to run the target program (like
+your system one does). So use the uClibc one and it will do the right thing,
+and it won't segfault even when you are cross compiling.
+
+	- maybe exploit that to gain privs when people run "ldd file"
+
+=====
+
+file overflow
+	- write a reliable exploit that could be used to seize control (just
+	  make eh_shentsize very large, direct stack overflow)
+
+

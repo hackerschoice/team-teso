@@ -1,0 +1,41 @@
+
+0.4.4, 2003/03/29
+
+	Improve graph layout for loop marked graphs.
+
+	- add vertical_order attributes to nodes within loop detected
+	  subgraphs, to preserve a "natural order" (head node is at top of the
+	  loop, and with high likelyhood the backedge source node is at the
+	  bottom)
+	- replace boxed subgraphs with clustered ones, allowing edges to point
+	  inside and outside of subgraphs freely (note that this feature is
+	  unsupported in aiSee and hence a bit wacky).
+
+
+0.4.3, 2003/03/28
+
+	Add more graph options and loop detection. Support of aiSee.
+
+	- add loop detection through dominators and backedges (see manpage for
+	  example)
+	- add boxed subgraph representation of natural loops in the control
+	  flow graph (supply -n option if -c or -l is used)
+	- add dominator tree output
+	- small bug fixes
+
+
+0.4.1, 2003/03/26
+
+	It should be able to cope with larger objects now, although switch
+	handling is still missing.
+
+	- fix call linearization handling
+	- fix different relocation behaviour of later GCC versions, where
+	  local functions of an object were called either through the help of
+	  a relocation, or using a fixed displacement without relocation
+
+
+0.4.0, 2003/03/25
+
+	- initial release
+

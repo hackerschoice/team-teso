@@ -1,0 +1,23 @@
+
+you need latest 
+  libnet: http://www.packetfactory.net/libnet
+  libpcap: http://www.tcpdump.org
+
+# tar xfvz b-scan.tar.gz
+# make
+# cd modules
+# make
+# cd ..
+# ./bscan -h
+
+Successfully compiled on:
+ Debian Linux fhs 2.4.0-test10 i586 unknown
+ RedHat Linux wu.sec 2.2.17 i586 unknown
+ SunOS 5.7 Generic_106541-04 sun4c sparc
+ SunOS 5.8 Generic sun4m sparc
+ 
+
+
+
+send bug-reports to anonmous@segfault.net
+

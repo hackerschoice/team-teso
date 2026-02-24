@@ -1,0 +1,58 @@
+                                     No one believes an hypothesis except its
+                                     originator, but everyone believes an
+                                     experiment except the experimenter.
+                                                       J.Anon, 1823
+
+
+[0] General
+
+ As larger the target network (10.0.0.0/8 is large) is as
+ faster you can scan (-X -l 5000+).
+
+ Use 'spreadmode' (-X) whereever possible.
+
+ Use an unused ip from your local network for spoofing.
+ (bscan comes with its own arp-daemon to handle arp-requests
+ to the spoofed ip)
+
+ 
+[1] Scanning your own LOCAL network:
+
+ If you get packet loss and missing scan results while
+ scanning your local network, please lower the scan rate.
+ Your host is unable to resolve 1000 arp's per second
+ and therefor drops packets.
+ Try some smaller values at about 50-100 hosts/second.
+
+ 
+[2] Why is 'spreadmode' so much better ?
+ 
+ First: its non-linear and so more 'stealthy'.
+ Default timeout for most IDS is around 4 mins. 
+ If you scan linear [not spreadmode] you hit
+ the target network several thousand times the second.
+
+ Second: The last router has to resolve all mac's for
+ the hosts on the target network.
+ There is no router that can resolve 1000+ mac's per second.
+ 'Spreadmode' tries to guess the 'router distance' and
+ send packets to different routers [non-linear].
+ It tries to achieve the maximum time-distance between
+ two packets hit the same router.
+ It's up to the reader to proof that a random scan 
+ is inadequate in this situation.
+
+
+[3] Does bscan work on other media than ethernet ?
+
+ Short answer: NO!.
+ Long answer: I'll add support for other media's later.
+
+  
+[4] Does it work through NAT ?
+ 
+ Yes. But be aware that most NAT-systems are unable to keep the
+ state of 100.000 seconds. Try reducing the scan-speed (-l 100?)
+ for instance.
+
+ 

@@ -1,0 +1,53 @@
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000 0xffffffffffffffff
+
+Linker script and memory map
+
+                0x06660000                . = 0x6660000
+
+.text           0x06660000     0x16b0
+ wrez.o(.text)
+ .text          0x06660000      0x200 wrez.o
+                0x06660103                decompressor_end
+                0x06660000                wrez_init
+                0x06660005                wrcfg
+                0x06660042                decompressor_start
+                0x06660103                data_start
+ wrcore.o(.text)
+ .text          0x06660200      0xaa9 wrcore.o
+                0x06660200                wrez_main
+ lime-interface.o(.text)
+ *fill*         0x06660ca9        0x3 00
+ .text          0x06660cac       0x27 lime-interface.o
+                0x06660cac                lime_generate
+ lime.o(.text)
+ *fill*         0x06660cd3        0xd 00
+ .text          0x06660ce0      0x9cd lime.o
+                0x06660e68                lime
+ *(.text)
+ *(.rodata)
+ .rodata        0x066616ad        0x2 wrcore.o
+ *(.data)
+ *fill*         0x066616af        0x1 00
+
+.rel.dyn
+
+/DISCARD/
+ *(.bss)
+ *(.eh_frame)
+ *(.comment)
+ *(.note)
+OUTPUT(wrez elf32-i386)
+
+.debug_abbrev
+
+.debug_info
+
+.debug_line
+
+.debug_pubnames
+
+.debug_aranges

@@ -1,0 +1,136 @@
+0024 2000/05/06  chroot break possibilities overview
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: chroot break possibilities overview
+Date .................: 2000/05/06 13:00
+Author ...............: scut
+Publicity level ......: known
+Affected .............: most OS's offering the chroot() system call
+Type of entity .......: access elevation
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: original discovery unknown, OS data by vax and teso
+
+===============================================================================
+
+Most Unix operating systems offer the chroot() system call. With it the root
+pointer of the filesystem can be changed for one process, so only parts of the
+filesystem are still visible to it. This is useful for some daemons, which
+would have access to the whole filesystem in case their security breaks.
+However to properly allow the chroot() idea to work, two things must be done
+directly after the chroot() call: a chdir to the chroot'ed directory must be
+done and the superuser privileges have to be dropped.
+
+The first condition, the change dir to the chroot directory is required because
+the current working directory is still outside of the chroot directory and the
+OS will treat any process which is outside of it's chroot pointer as if the
+chroot doesn't exist. Once it is inside this will change and the process can
+not escape from the directory. The dropping of the superuser privileges has
+another cause, since only the root user can issue chroot() system calls, he
+may be able to issue chroot() calls even when inside the chroot directory,
+this has to be disabled by dropping the privileges.
+
+The trick to break chroot() is just working under UID 0 and works as this:
+
+      /* chroot + chdir */
+      chroot ("/tmp");
+      chdir ("/tmp");
+
+      /* now we're jailed in /tmp, so our root / is actually /tmp */
+      /* create a subdirectory */
+      mkdir ("foobar", 0700);
+
+      /* chroot to this subdirectory */
+      chroot ("foobar");
+
+      /* now we're outside of the chroot'ed environment, so we cd up */
+      /* to the root directory */
+      for (i = 10 ; i > 0 ; --i)
+         chdir ("..");
+
+      /* now undo the whole chroot mess */
+      chroot (".");
+
+As you can see we first get outside of the change root directory not by
+changing or working directory (because we can't do that), but by changing
+the chroot directory itself to a subdirectory. For this operation we need
+root privileges. Since we are outside the chroot environment we can freely
+move our working directory except into the chroot()'ed one, which would
+limit us again. Once we are at the root directory we chroot to it to undo
+the whole mess created earlier.
+
+Who discovered this nice trick in the first place is unknown, if you know
+it please contact me.
+
+Unfortunatly this does not work on all operating systems. Here is a list of
+operating systems and whether they allow this. Thanks to vax, skyper, doze and
+various other people to help compiling this data.
+
+	Operating System			break successful
+	-------------------------------------	-----------------
+	AIX 4.1.5				no
+	AIX 4.3.3				no
+	FreeBSD 2.2.8-STABLE			yes
+	FreeBSD 4.0-RELEASE			no
+	IRIX 5.3				yes
+	IRIX 6.4				yes
+	IRIX 6.5				yes
+	Linux 2.0.x				yes
+	Linux 2.2.x				yes
+	Linux 2.3.x				yes
+	OpenBSD 2.6				no
+	OpenBSD 2.7-beta			no
+	SunOS 5.5				yes
+	SunOS 5.5.1				yes
+	SunOS 5.6				yes
+	SunOS 5.7				yes
+	-------------------------------------	-----------------
+
+If you have test data that isn't in the list yet, please mail it to me.
+(scut@nb.in-berlin.de)
+
+ADDENDUM:
+(from a mail send to HERT mailinglist about 7350wu chroot breaking code.
+ smiler thinks this does not work on normal chroot-scenarios, but
+ nevertheless I include it for the archives ;)
+
+Date: Tue, 19 Sep 2000 00:16:30 +0200
+From: Kalou <pb@hert.org>
+To: hert@hert.org
+Subject: [HERT Private] drunk again
+
+Just to restate some things clearly :
+
+linux/7350wu/7350wu.c: unmodified: line 142 of 1450 [9%].
+
+/* break chroot and exec /bin/sh - dont use on an unbreakable host like 4.0 */
+
+I wish i could reach [-sc. & z-.] =)
+
+As i may have posted some time ago, freebsd chroot() is breakable
+even with FreeBSD 4-0.. In 4.0, they forbid a chroot() with an open
+file descriptor pointing to a directory *but* they forget to call
+chdir() from within chroot(). So anything you need to break it is
+to chroot() without having done an open("."..) and to chdir("../../../..")
+immediatly after. Shortly, just remove open(".") and fchdir() from your
+eggshells. This works with older releases, too.
+
+I didn't see many public chroot breaking techniques not involving this
+fchdir() trick, that is necessary only for O.S. that chdir() when you
+call chroot().
+
+Anyway don't forget chroot() allows mknod().
+
+This was tested on:
+
+FreeBSD eclipse 4.0-RELEASE FreeBSD 4.0-RELEASE #4: Sat Aug 19 22:08:48 CEST 2000
+root@eclipse:/usr/src/sys/compile/ECLIPSE alpha
+
+Just please correct this if i'm wrong.
+
+
+===============================================================================
+

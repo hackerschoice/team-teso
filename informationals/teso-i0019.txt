@@ -1,0 +1,34 @@
+0019 2000/03/21  Majordomo include inconveniences
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Majordomo include inconveniences
+Date .................: 2000/03/21 19:26
+Author ...............: typo
+Publicity level ......: well known
+Affected .............: Mailing Lists
+Type of entity .......: implementation
+Type of discovery ....: useful information
+Severity/Importance ..: medium
+Found by .............: everyone?
+
+Information ===================================================================
+
+Most people that use Majordomo with the rules imposed by the resend script
+use another, supposed to be secret, MTA include for the real outgoing mails
+instead of a dedicated bulk mailer.
+
+But if you know the name of the real include you can simply bypass all
+rules that resend enforces.
+
+Lets take a reallife example and look at some headers:
+
+Received: (from majordomo@localhost) by kxxxxxxaxxe.org (8.9.3/8.9.3) 
+id QAA21181 for linuxde-outgoing; Tue, 21 Mar 2000 16:30:36 +0100 
+
+the real name is linuxde-outgoing.. mails sent there can be of
+arbitary size, and  bypass moderation, headers, footers, banned words,...
+
+===============================================================================

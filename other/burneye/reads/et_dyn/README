@@ -1,0 +1,11 @@
+this small package demonstrates how to create ET_DYN ELF
+files that are still executable. the only thing that one
+should have to change in a normal Makefile is the linker
+switches: add "-shared crt1.o interp.o" before the other
+object files. after this the resulting binary will look
+like a shared library (with full relocs, handled by the
+runtime linker) and can be arbitrarily remapped.
+
+interp.o should be compiled only once and put into the
+same directory where the other systemwide crt* files are
+(since it will be needed for all relinked executables).

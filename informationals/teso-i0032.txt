@@ -1,0 +1,350 @@
+0032 2001/02/03  explanations of malloc() overwrite technique
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Explanations of malloc() overwrite technique
+Date .................: 2001/02/03 23:00
+Author ...............: scut
+Publicity level ......: known
+Affected .............: heap overflows in malloc'ed memory, special libc's
+Type of entity .......: exploitation technique
+Type of discovery ....: exploitation technique
+Severity/Importance ..: medium
+Found by .............: Solar Designer
+
+===============================================================================
+
+Originally discovered by Solar Designer, this techniques allows arbitrary
+memory overwrites if you can overflow a malloc'ed buffer.
+
+On a common buffer overflow within the stack space, there are interesting
+variables after the overflowing buffer. Often this includes pointers, return
+addresses, function parameters, etc.
+
+In heap space there is far less interesting data that can be overwritten. But
+buffer overflows do occur in malloc'ed or static buffers, too. For static
+buffers, there are some techniques, namely to overwrite function pointers,
+jmp_buf'ers, or GCC created DTORS tables.
+
+For malloced space the situation was way more complicated, since the heap
+space used by malloc is dynamically ordered, giving away chunks of memory to
+the program if it requests them. Beside the order also the addresses and the
+content of the memory can vary a lot depending on the programs usage, system
+load or the moonlight. Well, nearly.
+
+However, it is desireable to find a more reliable way to exploit buffer
+overflows occuring within malloc'ed areas. This may have been the intention
+of our hero, Solar Designer, who thought upon this neat technique.
+
+Here it is, but first some technical background.
+
+The malloc(3) function is used to request memory from a dynamically growing
+memory area, called 'the heap'. Using the sbrk(2) system call a program can
+modify the border of this area. If the program needs a lot of memory in
+pieces and dynamically this can result in a lot of work to sort, use, reuse
+this memory areas efficiently. So this basic functionality of memory
+management is implemented in a efficient way within the standard C library.
+The internals are not interesting to the programmer, since he only uses
+malloc(3) to request memory of a certain size, and free(3) to release the
+memory after it is not in use anymore.
+
+But for taking advantage of a buffer overflow within a buffer that was created
+using malloc(3) we have to look at the details of the memory management
+system. In this case we use the all so popular GNU C Library.
+
+The C library keeps the information about the memory slices the application
+requests in so called 'chunks'. They look like this (adapted from malloc.c):
+
+             +----------------------------------+
+    chunk -> | prev_size                        |
+             +----------------------------------+
+             | size                             |
+             +----------------------------------+
+      mem -> | data                             |
+             : ...                              :
+             +----------------------------------+
+nextchunk -> | prev_size ...                    |
+             :                                  :
+
+Where mem is the pointer you get as return value from malloc(). So if you do
+a:
+        unsigned char *	mem = malloc (16);
+
+Then 'mem' is equal to the pointer in the figure, and (mem - 8) would be
+equal to the 'chunk' pointer.
+
+The 'prev_size' element has a special function: If the chunk before the
+current one is unused (it was free'd), it contains the length of the chunk
+before. If the chunk before the current one is used, the 'prev_size' value is
+zero.
+The 'size' field has a special meaning. As you would expect it contains the
+length of the current block of memory, the data section. As you call malloc(),
+it is set and is always padded up to the next double-word boundary. So a
+malloc(7) will become a malloc(8), and a malloc(20) will become malloc(24).
+For malloc(0) it will be padded to malloc(8), the reason we will see later in
+this text.
+
+Since this padding implies that the lower three bits are always zero and have
+no meaning to the real length, they are used otherwise, to indicate special
+attributes of this chunk. The lowest bit, called PREV_INUSE, indicates whether
+the previous chunk is used or not. It is set if it is used. The second least
+significant bit is set if the memory area is mmap'ed, a special case which we
+will not consider. The third least significant bit is unused.
+
+To test whether the current chunk is in use or not, we have to check the next
+chunks PREV_INUSE bit within its size value.
+
+Once we free() the chunk, using free(mem), some checks take place and the
+memory is released. If its neighbour blocks are free, too (checked using the
+PREV_INUSE flag), then they are merged, to keep the number of reuseable
+blocks low, but their sizes as large as possible. If a merge is not possible,
+the next chunk is tagged with a cleared PREV_INUSE bit, and the chunk changes
+a bit:
+
+             +----------------------------------+
+    chunk -> | prev_size                        |
+             +----------------------------------+
+             | size                             |
+             +----------------------------------+
+      mem -> | fd                               |
+             +----------------------------------+
+             | bk                               |
+             +----------------------------------+
+             | (old memory, can be zero bytes)  |
+             :                                  :
+
+nextchunk -> | prev_size ...                    |
+             :                                  :
+
+As you can see, where our data was previously stored at the 'mem' pointer
+returned by malloc, there are two new values, called 'fd' and 'bk',
+forward and backward namely. They are pointers and point into a double
+linked list of unconsolidated blocks of free memory. Everytime a new free
+is issued now this list is checked, and possible unconsolidated blocks
+are merged, or the whole memory is defragmented to release memory.
+Since the malloc size we give to it is at least 8 bytes all the time, there
+is always enough space for both pointers. If there is remaining old memory
+behind the 'bk' pointer it remains unused until this memory is malloc'ed
+again.
+
+The interesting essence of this whole stuff is that the memory management
+information itself is stored beside the data, a clear channeling problem
+(just as with format string commands within the string itself, as control
+channels in breakable phonelines, as return addresses within stack memory,
+etc).
+
+Since we can overwrite this management information if we can overwrite a
+malloced area, we should take a look at how it is processed later on. As
+every malloc'ed area is free()'d again in any sane program, we take a look
+at free, which is a wrapper to chunk_free() within malloc.c (simplified a
+bit to take out #ifdef's):
+
+static void
+chunk_free(arena *ar_ptr, mchunkptr p)
+{
+  size_t     hd = p->size; /* its head field */
+  size_t     sz;           /* its size */
+  int        idx;          /* its bin index */
+  mchunkptr  next;         /* next contiguous chunk */
+  size_t     nextsz;       /* its size */
+  size_t     prevsz;       /* size of previous contiguous chunk */
+  mchunkptr  bck;          /* misc temp for linking */
+  mchunkptr  fwd;          /* misc temp for linking */
+  int        islr;         /* track whether merging with last_remainder */
+
+  check_inuse_chunk(ar_ptr, p);
+
+  sz = hd & ~PREV_INUSE;
+  next = chunk_at_offset(p, sz);
+  nextsz = chunksize(next);
+
+Since the malloc management keeps chunks within special structures called
+'arenas', it is now tested whether the current chunk that should be free
+directly borders to the 'top' chunk, a special chunk. The 'top' chunk is
+always the top-most available memory chunk within an arena, it is bordering
+the end of available memory. The whole if block is not interesting to the
+typical buffer overflow within malloc space.
+
+  if (next == top(ar_ptr))                         /* merge with top */
+  {
+    sz += nextsz;
+
+    if (!(hd & PREV_INUSE))                    /* consolidate backward */
+    {
+      prevsz = p->prev_size;
+      p = chunk_at_offset(p, -(long)prevsz);
+      sz += prevsz;
+      unlink(p, bck, fwd);
+    }
+
+    set_head(p, sz | PREV_INUSE);
+    top(ar_ptr) = p;
+
+      if ((unsigned long)(sz) >= (unsigned long)trim_threshold)
+        main_trim(top_pad);
+    return;
+  }
+
+Now the 'size' of the current chunk is tested whether the previous chunk is
+unused (testing for the PREV_INUSE flag), and if it is the case both chunks
+are merged.
+
+  islr = 0;
+
+  if (!(hd & PREV_INUSE))                    /* consolidate backward */
+  {
+    prevsz = p->prev_size;
+    p = chunk_at_offset(p, -(long)prevsz);
+    sz += prevsz;
+
+    if (p->fd == last_remainder(ar_ptr))     /* keep as last_remainder */
+      islr = 1;
+    else
+      unlink(p, bck, fwd);
+  }
+
+Now the same is done into the other direction, it is checked whether the
+chunk in front of the current chunk is free (testing for the PREV_INUSE
+flag of the size two chunks ahead). If it is the case the chunk is merged
+into the current one.
+
+  if (!(inuse_bit_at_offset(next, nextsz)))   /* consolidate forward */
+  {
+    sz += nextsz;
+
+    if (!islr && next->fd == last_remainder(ar_ptr))
+                                              /* re-insert last_remainder */
+    {
+      islr = 1;
+      link_last_remainder(ar_ptr, p);
+    }
+    else
+      unlink(next, bck, fwd);
+
+    next = chunk_at_offset(p, sz);
+  }
+  else
+    set_head(next, nextsz);                  /* clear inuse bit */
+
+  set_head(p, sz | PREV_INUSE);
+  next->prev_size = sz;
+  if (!islr)
+    frontlink(ar_ptr, p, sz, idx, bck, fwd);
+}
+
+As Solar Designer showed us, it is possible to use the 'unlink' macro to
+overwrite arbitrary memory locations. Here is how:
+
+A usual buffer overflow situation might look like:
+
+        mem = malloc (24);
+        gets (mem);
+        ...
+        free (mem);
+
+This way the malloc'ed chunk looks like this:
+
+[ prev_size ] [ size P] [ 24 bytes ... ] (next chunk)
+                                         [ prev_size ] [ size P] [ fd ] [ bk ]
+                                                              or [ data ... ]
+
+As you can see, the next chunk directly borders to our chunk we overflow. We
+can overwrite anything behind the data region of our chunk, including the
+header of the following chunk.
+
+If we take a closer look at the end of the chunk_free function, we see this
+code:
+
+  if (!(inuse_bit_at_offset(next, nextsz)))   /* consolidate forward */
+  {
+    sz += nextsz;
+
+    if (!islr && next->fd == last_remainder(ar_ptr))
+                                              /* re-insert last_remainder */
+    {
+      islr = 1;
+      link_last_remainder(ar_ptr, p);
+    }
+    else
+      unlink(next, bck, fwd);
+
+    next = chunk_at_offset(p, sz);
+  }
+
+The inuse_bit_at_offset, is defined as macro in the beginning of malloc.c:
+
+#define inuse_bit_at_offset(p, s)\
+ (((mchunkptr)(((char*)(p)) + (s)))->size & PREV_INUSE)
+
+Since we control the header of the 'next' chunk we can trigger the whole if
+block at will. The inner if statement is uninteresting, except our chunk is
+bordering to the top-most chunk. So if we choose to trigger the outer if
+statement, we will call unlink, which is defined as macro, too:
+
+#define unlink(P, BK, FD)                                                     \
+{                                                                             \
+  BK = P->bk;                                                                 \
+  FD = P->fd;                                                                 \
+  FD->bk = BK;                                                                \
+  BK->fd = FD;                                                                \
+}
+
+The unlink is called with a pointer to a free chunk and two temporary pointer
+variables, called bck and fwd. It does this to the 'next' chunk header:
+
+*(next->fd + 12) = next->bk
+*(next->bk + 8) = next->fd
+
+They are not swapped, but the 'fd' and 'bk' pointers point to other chunks.
+This two chunks being pointed to are linked, zapping the current chunk from
+the table.
+
+So to exploit a malloc based buffer overflow we have to write a bogus header
+in the following chunk and then wait for our chunk getting free'd.
+
+        [buffer .... ] | [ prev_size ] [ size ] [ fd ] [ bk ]
+
+'|' is the chunk boundary.
+
+The values we set for 'prev_size' and 'size' do not matter, but two conditions
+have to be met, in case it should work:
+
+  a) the two least significant bits of 'size' have to be zero
+  b) both, 'prev_size' and 'size' should be add-safe to a pointer that is
+     read from. So either use very small values up to a few thousand, or -
+     to avoid NUL bytes - use big values such as 0xfffffffc.
+
+'fd' and 'bk' can be set this way (as used in Solar Designers Netscape
+Exploit):
+
+  fd = retloc - 12
+  bk = retaddr
+
+But beware, that (retaddr + 8) is being written to and the content there is
+destroyed. You can circumvent this by a simple '\xeb\x0c' at retaddr,
+which will jump twelve bytes ahead, over the destroyed content. Or you are
+an evil nerd and directly do shellcode which immediatly loads a register with
+it's own address and take advantage of the write ;-) (I am shooked SolarDiz'
+did not mention that ;)
+
+Well, however, exploitation is pretty straight forward now:
+
+<jmp-ahead, 2> <6> <4 bogus> <nop> <shellcode> |
+        \xff\xff\xff\xfc \xff\xff\xff\xfc <retloc - 12> <retaddr>
+
+Where '|' is the chunk boundary (from that point we overflow). Now, the next
+two negative numbers are just to survive a few checks in free() and to avoid
+NUL bytes. Then we store (retloc - 12) properly encoded and then the return
+address, which will return to the 'jmp-ahead'. The buffer before the '|' is
+the same as with any x86 exploit, except for the first 12 bytes, because we
+have to take care of the extra write operation by the unlink macro.
+
+
+XXXTODO: add off-by-one techniques
+
+Thanks Solar Designer, for another nasty trick :-]
+
+===============================================================================
+

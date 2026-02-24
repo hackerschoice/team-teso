@@ -1,0 +1,347 @@
+Terminals which are not used
+
+   STR
+
+
+State 10 conflicts: 1 shift/reduce
+
+
+Grammar
+
+    0 $accept: prodlist $end
+
+    1 prodlist: prodlist prod
+    2         | prod
+
+    3 prod: NTERM ':' prodr
+
+    4 prodr: prodr prodrelem
+    5      | prodrelem
+
+    6 prodrelem: '[' prodr ']' poptl
+    7          | NTERM
+    8          | TERM
+
+    9 poptl: poptl '(' popt ')'
+   10      | /* empty */
+
+   11 popt: FILTER ':' '/' NSSTR '/'
+   12     | NEGFILTER ':' '/' NSSTR '/'
+   13     | SIZE ':' NUM '-' NUM
+
+
+Terminals, with rules where they appear
+
+$end (0) 0
+'(' (40) 9
+')' (41) 9
+'-' (45) 13
+'/' (47) 11 12
+':' (58) 3 11 12 13
+'[' (91) 6
+']' (93) 6
+error (256)
+STR (258)
+NSSTR (259) 11 12
+NTERM (260) 3 7
+TERM (261) 8
+FILTER (262) 11
+NEGFILTER (263) 12
+SIZE (264) 13
+NUM (265) 13
+
+
+Nonterminals, with rules where they appear
+
+$accept (18)
+    on left: 0
+prodlist (19)
+    on left: 1 2, on right: 0 1
+prod (20)
+    on left: 3, on right: 1 2
+prodr (21)
+    on left: 4 5, on right: 3 4 6
+prodrelem (22)
+    on left: 6 7 8, on right: 4 5
+poptl (23)
+    on left: 9 10, on right: 6 9
+popt (24)
+    on left: 11 12 13, on right: 9
+
+
+state 0
+
+    0 $accept: . prodlist $end
+
+    NTERM  shift, and go to state 1
+
+    prodlist  go to state 2
+    prod      go to state 3
+
+
+state 1
+
+    3 prod: NTERM . ':' prodr
+
+    ':'  shift, and go to state 4
+
+
+state 2
+
+    0 $accept: prodlist . $end
+    1 prodlist: prodlist . prod
+
+    $end   shift, and go to state 5
+    NTERM  shift, and go to state 1
+
+    prod  go to state 6
+
+
+state 3
+
+    2 prodlist: prod .
+
+    $default  reduce using rule 2 (prodlist)
+
+
+state 4
+
+    3 prod: NTERM ':' . prodr
+
+    NTERM  shift, and go to state 7
+    TERM   shift, and go to state 8
+    '['    shift, and go to state 9
+
+    prodr      go to state 10
+    prodrelem  go to state 11
+
+
+state 5
+
+    0 $accept: prodlist $end .
+
+    $default  accept
+
+
+state 6
+
+    1 prodlist: prodlist prod .
+
+    $default  reduce using rule 1 (prodlist)
+
+
+state 7
+
+    7 prodrelem: NTERM .
+
+    $default  reduce using rule 7 (prodrelem)
+
+
+state 8
+
+    8 prodrelem: TERM .
+
+    $default  reduce using rule 8 (prodrelem)
+
+
+state 9
+
+    6 prodrelem: '[' . prodr ']' poptl
+
+    NTERM  shift, and go to state 7
+    TERM   shift, and go to state 8
+    '['    shift, and go to state 9
+
+    prodr      go to state 12
+    prodrelem  go to state 11
+
+
+state 10
+
+    3 prod: NTERM ':' prodr .
+    4 prodr: prodr . prodrelem
+
+    NTERM  shift, and go to state 7
+    TERM   shift, and go to state 8
+    '['    shift, and go to state 9
+
+    NTERM     [reduce using rule 3 (prod)]
+    $default  reduce using rule 3 (prod)
+
+    prodrelem  go to state 13
+
+
+state 11
+
+    5 prodr: prodrelem .
+
+    $default  reduce using rule 5 (prodr)
+
+
+state 12
+
+    4 prodr: prodr . prodrelem
+    6 prodrelem: '[' prodr . ']' poptl
+
+    NTERM  shift, and go to state 7
+    TERM   shift, and go to state 8
+    '['    shift, and go to state 9
+    ']'    shift, and go to state 14
+
+    prodrelem  go to state 13
+
+
+state 13
+
+    4 prodr: prodr prodrelem .
+
+    $default  reduce using rule 4 (prodr)
+
+
+state 14
+
+    6 prodrelem: '[' prodr ']' . poptl
+
+    $default  reduce using rule 10 (poptl)
+
+    poptl  go to state 15
+
+
+state 15
+
+    6 prodrelem: '[' prodr ']' poptl .
+    9 poptl: poptl . '(' popt ')'
+
+    '('  shift, and go to state 16
+
+    $default  reduce using rule 6 (prodrelem)
+
+
+state 16
+
+    9 poptl: poptl '(' . popt ')'
+
+    FILTER     shift, and go to state 17
+    NEGFILTER  shift, and go to state 18
+    SIZE       shift, and go to state 19
+
+    popt  go to state 20
+
+
+state 17
+
+   11 popt: FILTER . ':' '/' NSSTR '/'
+
+    ':'  shift, and go to state 21
+
+
+state 18
+
+   12 popt: NEGFILTER . ':' '/' NSSTR '/'
+
+    ':'  shift, and go to state 22
+
+
+state 19
+
+   13 popt: SIZE . ':' NUM '-' NUM
+
+    ':'  shift, and go to state 23
+
+
+state 20
+
+    9 poptl: poptl '(' popt . ')'
+
+    ')'  shift, and go to state 24
+
+
+state 21
+
+   11 popt: FILTER ':' . '/' NSSTR '/'
+
+    '/'  shift, and go to state 25
+
+
+state 22
+
+   12 popt: NEGFILTER ':' . '/' NSSTR '/'
+
+    '/'  shift, and go to state 26
+
+
+state 23
+
+   13 popt: SIZE ':' . NUM '-' NUM
+
+    NUM  shift, and go to state 27
+
+
+state 24
+
+    9 poptl: poptl '(' popt ')' .
+
+    $default  reduce using rule 9 (poptl)
+
+
+state 25
+
+   11 popt: FILTER ':' '/' . NSSTR '/'
+
+    NSSTR  shift, and go to state 28
+
+
+state 26
+
+   12 popt: NEGFILTER ':' '/' . NSSTR '/'
+
+    NSSTR  shift, and go to state 29
+
+
+state 27
+
+   13 popt: SIZE ':' NUM . '-' NUM
+
+    '-'  shift, and go to state 30
+
+
+state 28
+
+   11 popt: FILTER ':' '/' NSSTR . '/'
+
+    '/'  shift, and go to state 31
+
+
+state 29
+
+   12 popt: NEGFILTER ':' '/' NSSTR . '/'
+
+    '/'  shift, and go to state 32
+
+
+state 30
+
+   13 popt: SIZE ':' NUM '-' . NUM
+
+    NUM  shift, and go to state 33
+
+
+state 31
+
+   11 popt: FILTER ':' '/' NSSTR '/' .
+
+    $default  reduce using rule 11 (popt)
+
+
+state 32
+
+   12 popt: NEGFILTER ':' '/' NSSTR '/' .
+
+    $default  reduce using rule 12 (popt)
+
+
+state 33
+
+   13 popt: SIZE ':' NUM '-' NUM .
+
+    $default  reduce using rule 13 (popt)

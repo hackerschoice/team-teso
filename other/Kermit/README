@@ -1,0 +1,47 @@
+KERMIT - Kernel, Module, Permission, recognicion, whatever ...
+==============================================================
+
+written by palmers / teso
+read the LICENSE, NOW!
+
+
+what is this?
+-------------
+
+this source codes and text files cover my research on linux kernel
+manipulation using direct memory access (/dev/mem). What you will
+find are utils for basic kernel manipulation (reading / writing),
+a utility for finding a given symbol in the kernel (providing its
+virtual address in the kernel) and a api for building kernel patches.
+Those patches are, effectivly, applieable to any linux kernel and
+provied the same functionality as a kernel module. With the little
+difference that you do not need to (re)compile it and you do not
+need native module support. Of course, the patch would not register
+itself to the module table ;)
+
+
+how does it work?
+-----------------
+
+See the doc/ directory for the long version. Short version: see
+above :) 
+
+
+compiling
+---------
+
+needed for compiling: c/c++ compiler and some generic unix tools.
+just type ``make''. if you wonder about the strange things happening
+take a look or two into the doc/'s.
+Dont forget to take a look into MakeOpt.
+
+
+using
+-----
+
+well, if you havnt already got at this point where to look you better
+turn to something else.
+
+
+
+

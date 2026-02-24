@@ -1,0 +1,25 @@
+
+mips/irix shellcodes
+some comments in this file
+
+
+for execvesh and portshellsh append "/bin/sh\x42" to the code.
+
+if you want to execute something different than "/bin/sh", be sure to properly
+set the first four bytes to a valid opcode ("/bin" is valid) or insert a nop
+and adjust the self-relocation.
+
+the codedump utility build extra cache control syscalls, so it flushes all
+caches properly and you can run the code safily then from a flushed cache.
+
+example:
+
+scut@hyperion $ make >/dev/null
+scut@hyperion $ ./execvesh
+  <... dumps the hexcode ...>
+scut@hyperion $ ./execvesh exec
+len = 68
+$
+$ exit
+scut@hyperion $
+

@@ -1,0 +1,15 @@
+
+Undocumented option:
+
+TAG option: -T
+
+$ TAG=ENV:KEY:VALUE ./burneye -T TAG -o ls /bin/ls
+$ ./ls
+README  README.private  burneye  fingerprint  ls
+$ ENV=KEY ./ls
+VALUE
+$ ENV=KEY_ ./ls
+ÒB9^"g06š!ùñûï›`1¼å¤ÚÃ˜ÔÂûL
+$
+
+

@@ -1,0 +1,11 @@
+sys_fork
+sys_read
+sys_write
+sys_exit
+sys_setuid
+sys_setgid
+sys_getuid
+sys_getgid
+sys_open
+sys_close
+kmalloc

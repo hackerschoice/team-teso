@@ -1,0 +1,150 @@
+objobf - x86/linux ELF object obfuscator, version 0.4.12.
+Copyright (C) 2002-2003 -- TEAM TESO
+
+-+- PRELIMINARY BETA SOFTWARE, DO NOT USE IN PRODUCTION -+-
+
+codepair: .text / .rel.text with .symtab
+adding 4 items to 0 items long list
+main                             | 0x00000000 - 0x000002b0 | @ 0x0806ce08
+elf_dump_new                     | 0x000002b0 - 0x0000069f | @ 0x0806d0b8
+file_advance_roundup             | 0x000006a0 - 0x000006d6 | @ 0x0806d4a8
+elf_get_entrypoint               | 0x000006d8 - 0x0000073d | @ 0x0806d4e0
+
+### FUNCTION LIST BEGIN ###
+main                             | 0x00000000 - 0x000002b0 | @ 0x0806ce08
+elf_dump_new                     | 0x000002b0 - 0x0000069f | @ 0x0806d0b8
+file_advance_roundup             | 0x000006a0 - 0x000006d6 | @ 0x0806d4a8
+elf_get_entrypoint               | 0x000006d8 - 0x0000073d | @ 0x0806d4e0
+### FUNCTION LIST END ###
+
+0x0-0x33, 1.: pt1 = 10, pt2 = 11, swapable = YES
+0x0-0x33, 2.: pt1 = 10, pt2 = 12, swapable = YES
+0x0-0x33, 3.: pt1 = 10, pt2 = 13, swapable = YES
+0x0-0x33, 4.: pt1 = 12, pt2 = 13, swapable = YES
+swap: 10 with 11
+i_start = 0x19, i_len = 3, cur->from = 0x11(+0)
+i_start = 0x19, i_len = 3, cur->from = 0x1d(+0)
+i_start = 0x19, i_len = 3, cur->from = 0x2a(+0)
+i_start = 0x19, i_len = 3, cur->from = 0x2e(+1)
+i_start = 0x1c, i_len = 5, cur->from = 0x11(+0)
+i_start = 0x1c, i_len = 5, cur->from = 0x1d(+0)
+   move reloc at 0x1d(+0) by -3
+i_start = 0x1c, i_len = 5, cur->from = 0x2a(+0)
+i_start = 0x1c, i_len = 5, cur->from = 0x2e(+1)
+0x3f-0x4d, 1.: pt1 = 0, pt2 = 1, swapable = YES
+0x3f-0x4d, 2.: pt1 = 1, pt2 = 2, swapable = YES
+0x6b-0x78, 1.: pt1 = 1, pt2 = 2, swapable = YES
+0xf4-0x116, 1.: pt1 = 0, pt2 = 1, swapable = YES
+0xf4-0x116, 2.: pt1 = 1, pt2 = 2, swapable = YES
+0xf4-0x116, 3.: pt1 = 1, pt2 = 3, swapable = YES
+0xf4-0x116, 4.: pt1 = 2, pt2 = 3, swapable = YES
+swap: 2 with 3
+i_start = 0xd, i_len = 6, cur->from = 0x9(+0)
+i_start = 0xd, i_len = 6, cur->from = 0x1d(+1)
+i_start = 0x13, i_len = 10, cur->from = 0x9(+0)
+i_start = 0x13, i_len = 10, cur->from = 0x1d(+1)
+0x2de-0x2f1, 1.: pt1 = 0, pt2 = 1, swapable = YES
+0x2de-0x2f1, 2.: pt1 = 2, pt2 = 3, swapable = YES
+0x31d-0x362, 1.: pt1 = 5, pt2 = 6, swapable = YES
+0x31d-0x362, 2.: pt1 = 5, pt2 = 7, swapable = YES
+0x31d-0x362, 3.: pt1 = 5, pt2 = 8, swapable = YES
+0x31d-0x362, 4.: pt1 = 5, pt2 = 9, swapable = YES
+0x31d-0x362, 5.: pt1 = 6, pt2 = 7, swapable = YES
+0x31d-0x362, 6.: pt1 = 6, pt2 = 8, swapable = YES
+0x31d-0x362, 7.: pt1 = 6, pt2 = 9, swapable = YES
+0x31d-0x362, 8.: pt1 = 7, pt2 = 8, swapable = YES
+0x31d-0x362, 9.: pt1 = 7, pt2 = 9, swapable = YES
+0x31d-0x362, 10.: pt1 = 8, pt2 = 9, swapable = YES
+swap: 5 with 8
+i_start = 0x11, i_len = 10, cur->from = 0x40(+1)
+i_start = 0x2d, i_len = 10, cur->from = 0x40(+1)
+swap: 6 with 9
+i_start = 0x1b, i_len = 9, cur->from = 0x40(+1)
+i_start = 0x37, i_len = 9, cur->from = 0x40(+1)
+swap: 8 with 9
+i_start = 0x2d, i_len = 10, cur->from = 0x40(+1)
+i_start = 0x37, i_len = 9, cur->from = 0x40(+1)
+swap: 5 with 6
+i_start = 0x11, i_len = 10, cur->from = 0x40(+1)
+i_start = 0x1b, i_len = 9, cur->from = 0x40(+1)
+0x389-0x39a, 1.: pt1 = 1, pt2 = 2, swapable = YES
+0x42d-0x466, 1.: pt1 = 3, pt2 = 4, swapable = YES
+0x42d-0x466, 2.: pt1 = 6, pt2 = 7, swapable = YES
+0x42d-0x466, 3.: pt1 = 6, pt2 = 8, swapable = YES
+0x42d-0x466, 4.: pt1 = 6, pt2 = 9, swapable = YES
+0x42d-0x466, 5.: pt1 = 6, pt2 = 10, swapable = YES
+0x42d-0x466, 6.: pt1 = 6, pt2 = 12, swapable = YES
+0x42d-0x466, 7.: pt1 = 6, pt2 = 13, swapable = YES
+0x42d-0x466, 8.: pt1 = 8, pt2 = 9, swapable = YES
+0x42d-0x466, 9.: pt1 = 8, pt2 = 10, swapable = YES
+0x42d-0x466, 10.: pt1 = 8, pt2 = 12, swapable = YES
+0x42d-0x466, 11.: pt1 = 8, pt2 = 13, swapable = YES
+0x42d-0x466, 12.: pt1 = 9, pt2 = 10, swapable = YES
+0x42d-0x466, 13.: pt1 = 10, pt2 = 11, swapable = YES
+0x42d-0x466, 14.: pt1 = 10, pt2 = 12, swapable = YES
+0x42d-0x466, 15.: pt1 = 10, pt2 = 13, swapable = YES
+0x42d-0x466, 16.: pt1 = 12, pt2 = 13, swapable = YES
+swap: 10 with 11
+i_start = 0x1f, i_len = 7, cur->from = 0x34(+1)
+i_start = 0x26, i_len = 2, cur->from = 0x34(+1)
+swap: 8 with 11
+i_start = 0x18, i_len = 5, cur->from = 0x34(+1)
+i_start = 0x21, i_len = 7, cur->from = 0x34(+1)
+swap: 12 with 13
+i_start = 0x28, i_len = 6, cur->from = 0x34(+1)
+i_start = 0x2e, i_len = 6, cur->from = 0x34(+1)
+swap: 6 with 13
+i_start = 0x15, i_len = 1, cur->from = 0x34(+1)
+i_start = 0x2e, i_len = 6, cur->from = 0x34(+1)
+swap: 6 with 13
+i_start = 0x15, i_len = 6, cur->from = 0x34(+1)
+i_start = 0x33, i_len = 1, cur->from = 0x34(+1)
+swap: 6 with 12
+i_start = 0x15, i_len = 1, cur->from = 0x34(+1)
+i_start = 0x28, i_len = 6, cur->from = 0x34(+1)
+swap: 11 with 13
+i_start = 0x28, i_len = 5, cur->from = 0x34(+1)
+i_start = 0x2e, i_len = 6, cur->from = 0x34(+1)
+0x466-0x49e, 1.: pt1 = 0, pt2 = 1, swapable = YES
+0x466-0x49e, 2.: pt1 = 1, pt2 = 2, swapable = YES
+0x466-0x49e, 3.: pt1 = 4, pt2 = 5, swapable = YES
+0x466-0x49e, 4.: pt1 = 4, pt2 = 6, swapable = YES
+0x466-0x49e, 5.: pt1 = 4, pt2 = 7, swapable = YES
+0x466-0x49e, 6.: pt1 = 4, pt2 = 8, swapable = YES
+0x466-0x49e, 7.: pt1 = 4, pt2 = 9, swapable = YES
+0x466-0x49e, 8.: pt1 = 4, pt2 = 10, swapable = YES
+0x466-0x49e, 9.: pt1 = 5, pt2 = 6, swapable = YES
+0x466-0x49e, 10.: pt1 = 5, pt2 = 7, swapable = YES
+0x466-0x49e, 11.: pt1 = 5, pt2 = 8, swapable = YES
+0x466-0x49e, 12.: pt1 = 5, pt2 = 9, swapable = YES
+0x466-0x49e, 13.: pt1 = 5, pt2 = 10, swapable = YES
+0x466-0x49e, 14.: pt1 = 6, pt2 = 7, swapable = YES
+0x466-0x49e, 15.: pt1 = 6, pt2 = 8, swapable = YES
+0x466-0x49e, 16.: pt1 = 6, pt2 = 9, swapable = YES
+0x466-0x49e, 17.: pt1 = 6, pt2 = 10, swapable = YES
+0x466-0x49e, 18.: pt1 = 7, pt2 = 8, swapable = YES
+0x466-0x49e, 19.: pt1 = 7, pt2 = 9, swapable = YES
+0x466-0x49e, 20.: pt1 = 7, pt2 = 10, swapable = YES
+0x466-0x49e, 21.: pt1 = 8, pt2 = 9, swapable = YES
+0x466-0x49e, 22.: pt1 = 8, pt2 = 10, swapable = YES
+swap: 4 with 8
+swap: 5 with 9
+swap: 7 with 9
+swap: 0 with 1
+swap: 4 with 7
+swap: 7 with 9
+swap: 4 with 9
+0x4b8-0x4d3, 1.: pt1 = 0, pt2 = 1, swapable = YES
+0x4da-0x4f5, 1.: pt1 = 0, pt2 = 1, swapable = YES
+0x4da-0x4f5, 2.: pt1 = 0, pt2 = 2, swapable = YES
+0x4da-0x4f5, 3.: pt1 = 1, pt2 = 2, swapable = YES
+swap: 1 with 2
+i_start = 0x6, i_len = 6, cur->from = 0x16(+1)
+i_start = 0xc, i_len = 2, cur->from = 0x16(+1)
+0x4f5-0x504, 1.: pt1 = 1, pt2 = 2, swapable = YES
+0x50f-0x522, 1.: pt1 = 0, pt2 = 1, swapable = YES
+0x5cd-0x5e2, 1.: pt1 = 2, pt2 = 3, swapable = YES
+0x5fe-0x60d, 1.: pt1 = 1, pt2 = 2, swapable = YES
+0x6ec-0x6f5, 1.: pt1 = 1, pt2 = 2, swapable = YES
+0x712-0x71a, 1.: pt1 = 0, pt2 = 1, swapable = YES
+wrote object file "output.o".

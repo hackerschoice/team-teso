@@ -1,0 +1,3 @@
+"struct ucontext" you have to get from the kernel tree
+probably in arch/i386/kernel/signal.c
+that's the only thing where 2.0 could be different

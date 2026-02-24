@@ -1,0 +1,157 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+- ------
+
+TESO Security Advisory
+2000/03/13
+
+imwheel local root compromise
+
+
+Summary
+===================
+
+    A vulnerability within the imwheel application for Linux has been
+    discovered. Some of these packages are shipped with an suid-root
+    wrapper-script that invokes the insecure program 'imwheel' with UID 0.
+
+
+Systems Affected
+===================
+
+    Any system which has imwheel-solo wrapper-script installed as set-UID root.
+
+    Among the vulnerable distributions (if the package is installed) are the
+    following systems:
+
+      Halloween Linux Version 4 - imwheel package from the
+                                  powertools/contrib. CD
+
+
+Tests
+===================
+
+    [stealth@liane stealth]$ id
+    uid=500(stealth) gid=500(stealth) groups=500(stealth)
+    [stealth@liane stealth]$ cd imhack/
+    [stealth@liane imhack]$ stat `which imwheel-solo`
+      File: "/usr/X11R6/bin/imwheel-solo"
+      Size: 795          Filetype: Regular File
+      Mode: (4755/-rwsr-xr-x)         Uid: (    0/    root)  Gid: (    0/    root)
+    Device:  3,1   Inode: 214472    Links: 1
+    Access: Mon Mar 13 17:32:22 2000(00000.00:04:38)
+    Modify: Mon Nov  1 23:41:15 1999(00132.17:55:45)
+    Change: Sun Mar 12 17:49:43 2000(00000.23:47:17)
+    [stealth@liane imhack]$ cc imexp.c
+    [stealth@liane imhack]$ ./a.out
+    Creating boom-shell...
+    Creating shellcode...
+    You can also add an offset to the commandline.
+    Get the real deal at http://www.cs.uni-potsdam.de/homepages/students/linuxer
+    Respect other users privacy!
+    Invoking vulnerable program (imwheel-solo)...
+    imwheel is not running as a daemon.
+    imwheel is not checking/writing a pid file, BE CAREFUL!
+    An imwheel may be running already, two or more imwheel processes
+    on the same X display, or using gpm -W, will not operate as expected!
+    imwheel started (pid=1385)
+    Knocking on heavens door...
+    sh-2.03# id
+    uid=0(root) gid=500(stealth) groups=500(stealth)
+    sh-2.03#
+
+
+Impact
+===================
+
+    An attacker may gain local root-access to a system where vulnerable imwheel
+    package is installed. Even if it should not be possible for him to get a
+    root-shell (f.e. due to a non-exec stack-patch) he can use the suid-root
+    perlscript to kill arbitrary processes.
+
+
+Explanation
+===================
+
+    The suid-root perlscript 'imwheel-solo' invokes the 'imwheel' program with
+    EUID 0.
+    Due to inaccurate bounds-checking an internal stack-located buffer can
+    be overflowed by an attacker. The 'imwheel' program doesn't bounds-check
+    the string it gets from the HOME environment variable.
+    Further the wrapper-script which runs privileged can be fooled into sending
+    a SIGTERM signal to arbitrary processes, causing them to die.
+    This problem appears because imwheel-solo blindly trusts any PID given by a
+    world-writable pid-file.
+
+
+Solution
+===================
+
+    The author and the distributor has been informed before.
+    A patch is not yet available. Just remove the suid wrapper-script.
+
+
+Acknowledgments
+================
+
+    The bug-discovery and the demonstration programs are due to S. Krahmer [1].
+    The shell-code is due to Stealth.
+
+    This advisory has been written by S. Krahmer.
+
+
+Contact Information
+===================
+
+    The TESO crew can be reached by mailing to teso@coredump.cx.
+    Our web page is at https://teso.scene.at/
+    
+    C-Skills developers may be reached through [1].
+
+
+References
+===================
+
+    [1] S. Krahmer, C-Skills
+        http://www.cs.uni-potsdam.de/homepages/students/linuxer/
+
+    [2] TESO
+	http://teso.scene.at or https://teso.scene.at/
+	
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be
+    inaccurate or wrong. The supplied exploit is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    link [1] and [2].
+
+
+Exploit
+===================
+
+    We've created a working demonstration program to exploit the vulnerability.
+
+    The exploit is available from
+
+       http://teso.scene.at/ or https://teso.scene.at/
+
+    and
+	
+       http://www.cs.uni-potsdam.de/homepages/students/linuxer
+
+- ------
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.0 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
+iD8DBQE4zpugcZZ+BjKdwjcRAjFrAJ94U2wicQsueZ7SdbelfcxHatqyDACfUTT8
+bRCC41Ikx6h0NQZZx1JoT60=
+=/R6+
+-----END PGP SIGNATURE-----

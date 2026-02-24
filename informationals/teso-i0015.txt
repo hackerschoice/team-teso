@@ -1,0 +1,45 @@
+0015 2000/02/19  Possible security weakness in implementation of PHP3 scripts
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: set values for PHP variables from URL handler
+Date .................: 2000/01/19 00:01
+Author ...............: hendy
+Publicity level ......: unknown?
+Affected .............: PHP3 scripting engine, possibly other scripting
+                        languages
+Type of entity .......: PHP(3)
+Severity/Importance ..: low
+Found by .............: hendy
+
+Information ===================================================================
+
+In PHP it is possible to supply 'external' variables via HTTP POST or GET 
+methods which is useful for html-forms or something. the weakness in this 
+implementation is that anybody can easily set values for variables.
+for example you can request
+
+http://teso.scene.at/index.php3?foo=bar
+
+within the PHP script index.php3 there will be the variable $foo with value
+bar. this should be no real problem, because usually coders initialize 
+variables in the program if they first use it. but there are some exceptions
+where (lazy?) coders often do
+
+while(bleh)
+{
+    $foo = $foo . $bar;
+    ...
+}
+
+so you could insert code into the variable $foo now. such loops are for example
+used for dynamically making mysql query code, you can insert your own code
+then, exploiting the backend database.
+
+there is one point which is still very difficult: whats the name of the
+variable(s) used, and for what. i dont have a solution for that, sorry. brute
+force and a bit brain is the best solution IMHO ;)
+
+===============================================================================

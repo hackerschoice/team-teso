@@ -1,0 +1,13 @@
+eliminate global variables
+	clean up command processing
+		fix "send" command
+	clean up option processing
+
+add empty encrypt hooks (layer over ring buffers)
+flushout --> use nullsink
+
+fix ring buffer so it allocates more buf instead of overflowing
+
+put tracing back in
+
+authentication?

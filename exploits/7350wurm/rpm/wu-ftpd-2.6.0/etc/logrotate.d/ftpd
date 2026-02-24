@@ -1,0 +1,4 @@
+/var/log/xferlog {
+    # ftpd doesn't handle SIGHUP properly
+    nocompress
+}

@@ -1,0 +1,191 @@
+.TH objobf 1 "25 Mar 2003" "TEAM TESO"
+.nh
+.SH NAME
+objobf \- burneye2 x86/Linux ELF relocateable object obfuscator
+
+version 0.4.3.
+
+.SH SYNOPSIS
+.B objobf [-o file] [-e] [-n] [-<l|c|d> func] [-v num] [-r file] inputfile
+
+.SH DESCRIPTION
+This page documents the
+.B burneye2
+object file obfuscator utility,
+.I objobf.
+It reads one ELF relocateable object file and
+produces a functional equivalent output file, which is an obfuscated version
+of the input file. To do this,
+.I objobf
+breaks up all functions in the file to the basic block level. This
+representation is used to mutate the code while keeping it semantically
+equivalent. This involves dataflow analysis and basic block transformations.
+Afterwards, the basic block representation as control flow graph is linearized
+into a new object file, which is created from scratch.
+
+.SH BETA SOFTWARE
+Please note that the software is in an early state of development, and does
+not contain some of the features mentioned. Right now it only has the ability
+to reschedule the order of basic blocks among multiple functions
+("entangling") and does not provide substantial protection against any kind of
+analysis. It is meant as demonstration of the object input/output engine right
+now.
+
+.SH OPTIONS
+.TP
+.I "-o file"
+Write the output to
+.I file
+rather than the default output file "output.o"
+.TP
+.I -e
+Entangle basic blocks of all functions in the object. That is, the basic block
+order is randomized globally while the control flow is properly maintained.
+However, there are no opaque predicates between basic blocks right now, and
+the entanglement is easily seperateable (but it does fsck with IDA very well
+already ;)
+.TP
+.I -n
+Do a
+.I natural loop analysis
+on the control flow graph. This is only useful in conjunction with either the
+.I -c
+or
+.I -l
+output option. If this option is enabled, for every basic block in the CFG a
+dominator set is build. Upon this set, a loop detection analysis is performed,
+which detects compiler generated loops, more specifically only reducible flow
+graphs can be analyzed this way. This usually includes all compiler generated
+code, though ;). The header block is marked in aquamarine (light blue-green).
+For a more detailed explanation of the loop detection, see below at
+.I LOOP DETECTION.
+Please note, that if you use this option, you cannot use
+.I xvcg
+anymore to display the graphs, as boxed subgraphs are used to display the loop
+nesting. The
+.I aiSee
+program supports a superset of the VCG graph language which can handle this.
+Get a free version of aiSee at http://www.absint.com/aisee/download/ (you
+might also consider symlinking
+.I aisee.bin
+to
+.I xvcg
+so that the graphs are displayed from
+.I objobf.
+.TP
+.I "-l func"
+Dump a register usage analysis for function
+.I func.
+More specifically, a live register dataflow analysis for the function is done
+and written as VCG graph to the file "output.vcg". If the
+.I VCG
+program is installed as
+.I xvcg,
+an output file "output.ps" is created and displayed using
+.I gv.
+.TP
+.I "-c func"
+A simple control flow graph (CFG) of the function
+.I func
+is written as VCG file to "output.vcg". As with the
+.I -l
+option,
+.I xvcg
+is ran and the output is displayed with
+.I gv.
+.TP
+.I "-d func"
+Do a dominator tree analysis on the CFG of function
+.I func
+and dump the graph as VCG file to "output.vcg".
+.I xvcg
+and
+.I gv
+are ran as usual. A basic block B1 is dominated by another basic block B2, if
+all codepathes to B1 go through B2. The dominator tree is visual candy, as
+all blocks above a certain block B1 are executed before B1 is. The dominator
+tree itself is not very useful to human analysis, but substantial for loop
+detection.
+.TP
+.I "-v num"
+Set the verbosity level for both the frontend (analyzation phase) and the
+backend (obfuscation and linearization). Values between zero (0) and three (3)
+are allowed, where 0 means low and 3 high verbosity. Default is zero (low).
+.TP
+.I "-r file"
+Read the random data required from
+.I file.
+This allows for easier reproduction of bugs, as otherwise the random data is
+always pulled dynamically from /dev/urandom. If you can reproduce a bug on a
+small object, use a constant
+.I file
+as randomization input.
+
+.SH EXAMPLES
+
+The included simple example shows how to use the obfuscator:
+.PP
+.in +4
+.nf
+gcc -c -o quicksort.o quicksort.c
+objobf -v 3 -e -o quicksort_obf.o quicksort.o
+gcc -o main main.c quicksort_obf.o
+
+gcc -c -O2 -o reducebind.o reducebind.c
+objobf -e reducebind.o
+gcc -o reducebind-obfuscated output.o
+strip reducebind-obfuscated
+
+objobf -n -l quicksort quicksort.o
+aisee.bin -color -psoutput output.ps output.vcg
+gv output.ps
+.fi
+.in -4
+.SH KNOWN BUGS
+.I Switch tables.
+Currently, switch tables cannot be linearized correctly. While there are
+extensive heuristics to parse them in the analyzation phase, there is no code
+yet to write a new relocation block for switch statements. Hence, do not use
+switch's in code to be obfuscated. Will be fixed shortly.
+
+.I Multiple code sections.
+Only one code section (usually .text) in the object is supported. The most
+common case of multiple code sections are global constructors or destructors
+in C++ programs or system library initialization functions (in both cases the
+sections are called .init and .fini).
+
+.I Xvcg/aiSee graph defects.
+When using the 
+.I -n
+option, edges leading from outside into a loop (to the header block that is),
+or from the inside to the outside (breaks and loop-terminator blocks) are not
+displayed correctly. The destination node or source node respectivly is
+substituted by the entire graph box, which leads to information loss. For
+example, its hard to tell which basic blocks could leave a loop. As of March
+2003 the original (previously obfuscated) sources of xvcg are made public
+under the GPL. If anyone wants to add boxed subgraphs and meanwhile fixing
+this problem, go ahead (the clean sources are in the debian source archive).
+
+.SH LOOP DETECTION
+
+Within the control flow graph, there are edges which have the property of
+being
+.I back edges.
+A back edge is an edge where the target basic block dominates its source basic
+block (see the
+.I -d option
+for the definition of dominator blocks). All such edges imply a loop in the
+program. The list of basic blocks within this loop is called
+.I natural loop.
+One basic block of the loop is the so called
+.I header block
+which is the first one and the loops entry point. All natural loops only have
+one single entry point.
+
+.SH BUG REPORTS
+
+If you find a bug (and that is for sure), please try to reproduce it with an
+object as small as possible, as the analysis will be easier then. Please mail
+me at
+.I scut@team-teso.net
+

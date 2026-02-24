@@ -1,0 +1,17 @@
+# written by palmers / teso
+CXX = g++
+CXXFLAGS = -O2 -Wall -I. -I../include #-g -DDEBUG
+
+CC = gcc
+CFLAGS = -O2 -Wall -I. -I../include #-g -DDEBUG
+
+AR = ar
+ARFLAGS = -cr
+
+UTIL_DIR=../util
+LIB_DIR = ../lib
+BIN_DIR = ../bin
+
+AR_OUT = $(LIB_DIR)/libKermit.a
+SHARE_OUT = $(LIB_DIR)/libKermit.so
+

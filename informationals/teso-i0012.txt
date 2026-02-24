@@ -1,0 +1,57 @@
+0012 2000/02/08  Method to stretch DNS packet length
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Method to stretch DNS packet length
+Date .................: 2000/02/08 16:00
+Author ...............: scut
+Publicity level ......: possibly known
+Affected .............: DNS protocol
+Type of entity .......: protocol
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: scut
+
+Information ===================================================================
+
+When conducting attacks against the DNS protocol, which is some peoples
+favorite hobby, it is sometimes necessary to send out large DNS packets,
+answers or queries.
+
+There are some ways to enlarge a DNS packet, most of them modify the meaning
+of the packet. When the meaning should not be modified, there is only one
+method how to insert bogus bytes that are still within the DNS protocol
+specification.
+
+DNS domain names are constructed by appending labels, which are ASCII strings
+which are prepended with a size-qualifier, consisting of one byte. This size-
+byte has another function: Some values tell the DNS packet decoder that the
+following labels should be acquired from somewhere else in the packet. This is
+called "compressed" DNS domain names. There exist numerous attacks to exploit
+poorly coded DNS packet decoders, such as pointing to the same label all the
+time, resulting in a loop. All the common DNS decoders (the one in BIND and
+the descendant in glibc), are immune to such attacks.
+
+However we can use the compressed label format to construct legal label
+sequences, which just enlarge the packet, but don't modify the meaning of the
+packet. This can be done like this:
+
+<pointer-two-bytes-ahead><pointer-two-bytes-ahead>\x04real\x03dom\x04name\x00
+
+This enlarges the domain by 4 bytes, without modifying the final decoding
+result of "real.dom.name". We can use this prepending-compression as often as
+we want, however nameservers such as BIND decompress the packet before doing
+anything, such as caching, so we can just use this if we send the packet.
+
+Such a compressed domain name will reassemble to a correct domain name for all
+BIND versions below 9.x.x, and for resolver libraries such as the one that
+comes with glibc. For BIND 9.x.x and up this behavior can be partly limited
+by setting a global maximum compression pointer limitation. I haven't looked
+very thoroughly through the decompression routine, since it is kinda huge
+(about 250 lines), but I think the default limit is big enough to make use
+of this too, even in BIND 9.x.x nameservers and up.
+
+===============================================================================
+

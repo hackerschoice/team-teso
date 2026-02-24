@@ -1,0 +1,21 @@
+0.62
+----
+
++ Added serialnumber ripper
++ Added VERSION file
+
+0.61
+----
+
++ Minor fixes
+
+0.6
+---
+
++ Added change_name(), now issuer-fake
++ Changes DCA parsing
+
+0.5
+---
+
++ First working DCA version

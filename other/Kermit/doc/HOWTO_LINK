@@ -1,0 +1,15 @@
+HOWTO: LINK
+===========
+
+written by palmers / teso
+short:
+1. add your pointer to function prototypes to "pseudo_link.h"
+2. cd include; make; cd ../lib; make; (do needed updates)
+3. insert "USE_<name>" at the beginning of your function
+   where each <name> is a kernel land function.
+4. compile and dump your code, put it in a Patch object
+   and apply it.
+
+long:
+HUAHAUHAUAHAUHAUHAU!
+

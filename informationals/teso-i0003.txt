@@ -1,0 +1,31 @@
+0003 2000/01/22  Remotely exploitable buffer overflow condition in webfind.exe
+                 part of the WebsitePro Package (cgi-bin)
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Remote buffer overflow
+Date .................: 2000/01/22 19:06
+Author ...............: Bawd
+Publicity level ......: unknown
+Affected .............: All WebsitePro HTTP servers running the webfind cgi
+Type of entity .......: Daemon/Server
+Type of discovery ....: bug
+Severity/Importance ..: interesting
+Found by .............: Bawd
+
+Information ===================================================================
+
+This buffer overflow allows a remote attacker to gain privileged access to
+machines running the WebSite servers.
+
+Filling the "Search For" case with more than 2000 characters will cause the cgi
+to make an exception fault and overwrite the return address, which will
+overwrite EIP.
+
+"webfind.exe" is installed by default in the cgi-bin directory. Exploit is
+coming later.
+
+===============================================================================
+

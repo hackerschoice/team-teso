@@ -1,0 +1,7 @@
+
+	- date, priority, summary
+	- whether it has been fixed or not
+	- complete steps to reproduce the bug
+	- expected behavior
+	- observed (buggy) behavior
+

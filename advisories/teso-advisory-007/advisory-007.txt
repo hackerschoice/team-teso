@@ -1,0 +1,154 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+- ------
+
+TESO Security Advisory
+2000/03/14 
+
+kreatecd local root compromise
+
+
+Summary
+===================
+
+    A vulnerability within the kreatecd application for Linux has been 
+    discovered. An attacker can gain local root-access.
+
+
+Systems Affected
+===================
+
+    Any system which has kreatecd installed as set-UID root.
+    This affects also a configure; make; make install procedure.
+
+    Among the vulnerable distributions (if the package is installed) are the
+    following systems:
+
+      Halloween Linux Version 4
+      SuSE 6.x
+
+
+Tests
+===================
+
+    [stealth@liane stealth]$ stat `which kreatecd`
+      File: "/usr/bin/kreatecd"
+      Size: 229068       Filetype: Regular File
+      Mode: (4755/-rwsr-xr-x)         Uid: (    0/    root)  Gid: (    0/    root)
+    Device:  3,1   Inode: 360053    Links: 1
+    Access: Tue Mar 14 14:48:21 2000(00000.00:00:45)
+    Modify: Tue Mar 14 14:48:21 2000(00000.00:00:45)
+    Change: Tue Mar 14 14:48:21 2000(00000.00:00:45)
+    [stealth@liane stealth]$ id
+    uid=500(stealth) gid=500(stealth) groups=500(stealth)
+    [stealth@liane stealth]$ /tmp/kreatur
+    (... some diagnostic messages ...)
+    Creating suid-maker...
+    Creating boom-shell...
+
+    Execute kreatecd and follow the menus:
+    Configure -> Paths  -- change the path for cdrecord to /tmp/xxx
+    Apply -> OK
+    Configure -> SCSI -> OK
+
+    Execute /tmp/boomsh
+
+    
+    BEHAVE!
+       
+    (poking around with GUI...)
+    [stealth@liane stealth]$ /tmp/boomsh
+    [root@liane stealth]# id
+    uid=0(root) gid=500(stealth) groups=500(stealth)
+    [root@liane stealth]#
+
+
+Impact
+===================
+
+    An attacker may gain local root-access to a system where vulnerable 
+    kreatecd package is installed. It might be difficult for an remote-
+    attacker who gained local user-access due to the GUI-nature of
+    the vulnerable program.
+    I appreciate help with some tips how one can get an instant rootshell
+    without clicking around.
+    
+
+Explanation
+===================
+
+    Kreatecd which runs with the saved user-id of 0 blindly trusts path's to
+    cd-recording software given by unprivileged user.
+    It then invokes this software with EUID of 0 when user just clicks a little
+    bit around with the menus.
+
+
+Solution
+===================
+
+    The author and the distributor has been informed before.
+    Remove the suid bit of kreatecd.
+
+
+Acknowledgments
+================
+
+    The bug-discovery and the demonstration programs are due to S. Krahmer [1].
+    This advisory has been written by S. Krahmer.
+
+
+Contact Information
+===================
+
+    The TESO crew can be reached by mailing to teso@coredump.cx.
+    Our web page is at https://teso.scene.at/
+    
+    C-Skills developers may be reached through [1].
+
+
+References
+===================
+
+    [1] S. Krahmer, C-Skills
+        http://www.cs.uni-potsdam.de/homepages/students/linuxer/
+
+    [2] TESO
+	http://teso.scene.at or https://teso.scene.at/
+	
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be
+    inaccurate or wrong. The supplied exploit is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    link [1] and [2].
+
+
+Exploit
+===================
+
+    We've created a working demonstration program to exploit the vulnerability.
+
+    The exploit is available from
+
+       http://teso.scene.at/ or https://teso.scene.at/
+
+    and
+	
+       http://www.cs.uni-potsdam.de/homepages/students/linuxer
+
+- ------
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.0 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
+iD8DBQE4zpvYcZZ+BjKdwjcRAtukAJwLRMYT1S2FLZriifUmm+vnVznSfQCgk4m9
+9FRbu1gyyI6rbR38XP1F+sk=
+=L5Ak
+-----END PGP SIGNATURE-----

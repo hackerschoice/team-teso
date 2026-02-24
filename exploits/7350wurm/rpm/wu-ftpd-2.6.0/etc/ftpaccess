@@ -1,0 +1,24 @@
+class   all   real,guest,anonymous  *
+
+email root@localhost
+
+loginfails 5
+
+readme  README*    login
+readme  README*    cwd=*
+
+message /welcome.msg            login
+message .message                cwd=*
+
+compress        yes             all
+tar             yes             all
+chmod		no		guest,anonymous
+delete		no		guest,anonymous
+overwrite	no		guest,anonymous
+rename		no		guest,anonymous
+
+log transfers anonymous,real inbound,outbound
+
+shutdown /etc/shutmsg
+
+passwd-check rfc822 warn

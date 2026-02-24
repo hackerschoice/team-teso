@@ -1,0 +1,170 @@
+22-Jul-2000:
+	Bug fixes for environment processing from Olaf Kirch. Also fixes
+	  privacy issue noticed by Steve Bellovin. Also fix a wrong 
+	  assert().
+
+21-May-2000:
+	Fix bug found by Herbert Xu (herbert@gondor.apana.org.au) - telnet
+	  was sending terminal type "(null)" as part of the terminal type
+	  list.
+
+12-Apr-2000:
+	IPPROTO_IP is not a macro in Linux, so don't check it with #ifdef.
+	Also, add initial experimental login wrapper, but don't make it 
+	  part of the default build.
+
+14-Dec-1999:
+	netkit-telnet-0.16 is released.
+
+13-Dec-1999:
+	Per recommendation of the linux-security-audit list, don't bother
+	  (in telnetd) to ask termcap/ncurses if a terminal type is good;
+	assume it is. This means telnetd no longer links against termcap.
+
+12-Dec-1999:
+	Massive buffer cleanup in telnetd; minor cleanup to telnet.
+
+5-Dec-1999:
+	Remove some more bogus #ifdefs in telnet.
+
+29-Oct-1999:
+	Fix latent bug in the array classes used in telnet.
+
+14-Sep-1999:
+	Merge old fix to keep telnet from hanging up when under heavy load
+	  (Olaf Kirch, okir@caldera.de)
+
+19-Aug-1999:
+	Patches for compiling with gcc 2.95. (Jeremy Buhler,
+	  jbuhler@cs.washington.edu)
+
+18-Aug-1999:
+	netkit-telnet-0.14 released.
+
+17-Aug-1999:
+	telnetd patch from Chris Evans to reject termcap entries with 
+	  '/' in them, as libtermcap will treat them as paths and open
+	  them as root, with various interesting consequences...
+	  Issue found by Tymm Twillman (tymm@coe.missouri.edu).
+
+1-Aug-1999:
+	Massive cleanup of telnetd. Changed telnetd to use openpty() from
+	  libutil, so we can let libc deal with changes in pty management.
+
+1-Aug-1999:
+	Did complete y2k and y2038 audit. 
+
+31-Jul-1999:
+	Redid makefiles/config stuff for new confgen version.
+
+15-Jul-1999:
+	Set the process title (visible with ps) to show the remote host name.
+	Also filter control characters from the remote host name, just in case.
+	Set environment variable REMOTEHOST also.
+
+16-Oct-1997:
+	Added OPOST to the terminal stuff a la NCSA telnet fixup
+
+23-Sep-1997:
+	Assorted signed/unsigned character fixes and hacking in telnet.
+	(Martin Mares, mj@mj.gts.cz)
+	Fix various crashes in telnet arising from undefining environment
+	variables.
+	"telnet h" no longer prints a usage message.
+
+12-Jun-1997:
+	netkit-telnet-0.10 released.
+
+08-Jun-1997:
+	More adjustments for glibc.
+	Include kernel patch to fix hang on long input; thanks to Bill
+	  Hawes (whawes@star.net).
+
+19-May-1997:
+	Fix some nonsense with ayt and signals, since glibc has SIGINFO.
+
+13-May-1997:
+	8-bit fix to telnet. (Lukas Wunner, lukas@design.de)
+	Set ut_type correctly in telnetd's logout. (Steve Coile, 
+	  steve@patriot.net)
+
+05-Apr-1997:
+	Added configure script to generate MCONFIG.
+	Better utmp handling in telnetd.
+
+08-Mar-1997: 
+	Split from full NetKit package. 
+	Generated this change log from NetKit's.
+
+29-Dec-1996
+	NetKit-0.09 released.
+	Assorted alpha/glibc patches. (Erik Troan, ewt@redhat.com)
+	Assorted bug fixes from Debian. (Peter Tobias, 
+	  tobias@et-inf.fho-emden.de)
+	Telnetd supports -L option for alternate login program. (Peter Tobias)
+	Hardened programs against DNS h_length spoofing attacks.
+	Use inet_aton() everywhere instead of inet_addr().
+	Fixed crash in telnet caused by ^C or ^Z or ^\ under 
+	  certain circumstances.
+	Rewrote telnet and telnetd man pages.
+
+22-Aug-1996
+	NetKit-B-0.08 released.
+	(almost) everything now compiles with lots of warnings turned on.
+	Massive hacking on telnet.
+	telnet honors the -E flag (was broken in .07, .07A)
+	telnetd intercepts ENV environment variable.
+	Merged libtelnet into telnet and telnetd dirs.
+	telnetd now sets idle tty devices to root.root mode 600.
+
+25-Jul-1996
+	NetKit-B-0.07A released.
+	Fixed a bug in telnet where the escape character was being ignored.
+	Fixed a bug in telnetd; now uses the correct names for the last ptys
+	  (that is, ptya0-ptyef, not ptyA0-ptyEf.)
+
+23-Jul-1996
+	NetKit-B-0.07 released.
+	Integrated a collection of patches that had been lurking on the net,
+	  including the 256-ptys support for telnetd and passive mode ftp.
+	Major security fixes, including to fingerd, lpr, rlogin, rsh, talkd, 
+	  and telnetd. Do *not* use the sliplogin from earlier versions of this
+	  package, either.
+	Much of the code builds without libbsd.a or bsd includes.
+	Massive code cleanup. Almost everything compiles clean with gcc
+	  -Wall now. rusers and rusersd do not; patches to rpcgen to fix
+	  this would be appreciated if anyone feels like it.
+	Kerberos support has been removed. It didn't work anyway, and
+	  proper Kerberos tools come with Kerberos.
+	New maintainer:  David A. Holland, dholland@hcs.harvard.edu
+
+date not known
+	NetKit-B-0.06 released.
+
+date not known
+	NetKit-B-0.05 released.
+	Fixed writing entries to /var/adm/wtmp by ftpd, rlogind and
+	  telnetd. (logwtmp.c) Florian
+	  This is only necessary for the GNU last, not for the one 
+	  in util-linux...
+
+date not known
+	NetKit-B-0.04 released.
+	Did some nasty changes to telnet/extern.h. I should really take
+	  the current version from NetBSD again and make a clean port of
+	  it. (signals).
+
+date not known
+	NetKit-B-0.03 released.
+	telnetd: changed the default 'etc/issue.net' to not output the
+	  hostname and then the domainname (that should be the fqdn, but
+	  is wrong!) Changed also the man page issue.net.5
+	changed telnetd to get the fqdn and not only use what
+	  'gethostname' returns
+	telnetd: changed some code back to original form to properly
+	  enable binary mode negotiation (outgoing data wasn't binary)
+	  Please test this out: do "telnet some_other_not_linux_host" and
+	  then do "vi TEST_FILE" and test some strange characters >127
+	  like ° or §.
+	telnetd: added issue.net.5 to "make install"
+

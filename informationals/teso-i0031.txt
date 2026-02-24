@@ -1,0 +1,68 @@
+0031 2000/12/20  exploitable one-byte overflow in openftpd 1.0 beta28
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: exploitable one-byte overflow in openftpd 1.0 beta28
+Date .................: 2000/12/20 23:00
+Author ...............: scut
+Publicity level ......: unknown before, told to openftpd authors
+Affected .............: openftpd 1.0 beta28 and below
+Type of entity .......: exploitable buffer overflow
+Type of discovery ....: vulnerabilitiy
+Severity/Importance ..: high
+Found by .............: scut
+
+===============================================================================
+
+The OpenFTPd project develops a FTP daemon optimized for warez and mp3 sites,
+with extensive script and maintenance support, far over the FTP RFC standards.
+It introduces a command 'SITE INFO' to let each user set his own 'infoline',
+a describing line, which may not be longer then 50 chars. Often it is used to
+set affiliations to certain warez groups or short mottos or slogans.
+
+However, this 'SITE INFO' is flawed:
+
+int cmd_site_info(char** p, int n)
+{ 
+   char str[128];
+   char infoline[50];
+   int  i;
+
+   if (!n) printf("UIN %s\n", usr.name); 
+   else {
+      snprintf(str, sizeof(str), "%s ", p[0]);   
+      for(i = 1; i < n; i++) {
+	 strncat(str, p[i], sizeof(str) - strlen(str));
+	 strncat(str, " ", sizeof(str) - strlen(str));
+      }
+      str[strlen(str) - 1] = '\0';
+      printf("UIN %s %s\n", usr.name, str);
+   }
+   if (!fgets(str, sizeof(str), stdin)) 
+      strncpy(str, "-!Bpipe error!0", sizeof(str) - 1);
+   return send_reply(*str == '+' ? 200 : 550, str+1);
+}
+
+The two strncat's store a NUL byte right behind the str buffer, if the content
+of str is already long enough. On x86 platforms the least significant byte of
+the framepointer is overwritten and the stack frame of the calling function
+slides down. This is very much similar to the exploitable one-byte overflow
+in the OpenBSD ftpd recently discovered. Here a reasonable target to store the
+real retaddr in is the buffer str[256] in the calling function, which may be
+easily written into by issuing something like:
+
+AAAAAAAAAAAAAAAAAAAA<up to 256 bytes>\n
+SITE INFO a aaaaaaaa<more then 128 bytes>\n
+
+A substantial portion of the str[256] buffer contains 'A' characters and you
+may have luck that your stored retaddr is at the right place. The ftpd is
+respawning, since only a child process segfaults on wrong attempts, so you
+have enough space and time to try all possible combinations (~ 1000 * 4 * 64
+= 256,000).
+
+The authors have been notified, let's see whether it gets fixed.
+
+===============================================================================
+

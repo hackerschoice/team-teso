@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+
+# Takes kernel Ext2 headers and rewrites
+# them to Ecfs headers in separate files.
+# No kernel-headers are touched.
+
+@cp = (
+      "cp ".
+      "/usr/src/linux/include/linux/ext2_fs.h ".
+      "/usr/src/linux/include/linux/ecfs_fs.h",
+	
+      "cp ".
+      "/usr/src/linux/include/linux/ext2_fs_sb.h ".
+      "/usr/src/linux/include/linux/ecfs_fs_sb.h",
+
+      "cp ".
+      "/usr/src/linux/include/linux/ext2_fs_i.h ".
+      "/usr/src/linux/include/linux/ecfs_fs_i.h",
+
+      "cp ".
+      "/usr/src/linux/include/linux/fs.h ".
+      "/usr/src/linux/include/linux/fs_ecfs.h "
+);
+
+
+@sed = (
+      "./repl.pl ".
+      "/usr/src/linux/include/linux/ecfs_fs.h",
+	
+      "./repl.pl ".
+      "/usr/src/linux/include/linux/ecfs_fs_sb.h",
+
+      "./repl.pl ".
+      "/usr/src/linux/include/linux/ecfs_fs_i.h",
+
+      "./repl.pl ".
+      "/usr/src/linux/include/linux/fs_ecfs.h "
+);
+
+
+foreach (@cp) {
+	print "$_\n";
+	system($_);
+}
+
+foreach (@sed) {
+	print "$_\n";
+	system($_);
+}
+
+
+
+     

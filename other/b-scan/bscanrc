@@ -1,0 +1,14 @@
+b-scan: Warning! you are using the sample b-scan config
+b-scan: edit bscanrc to get rid of this message!
+
+SourceAddress		127.0.0.1
+StaticSpoofedMacAddress	true
+MacAddress		ff:ff:ff:ff:ff:ff
+Interface		dummy0
+SpreadScan		Yes
+PacketsPerSecond	31337
+MaxWaitDelay		7350
+Verbose			1
+addModule		modules/mod_ping.so -t time -s 64
+
+b-scan: read config file

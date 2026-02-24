@@ -1,0 +1,148 @@
+/*
+ * This is unpublished proprietary source code.
+ *
+ * The contents of these coded instructions, statements and computer
+ * programs may not be disclosed to third parties, copied or duplicated in
+ * any form, in whole or in part, without the prior written permission of
+ * the author.
+ * (that includes you hack.co.za and other lame kid sites who dont
+ *  get the point what hacking is about. damn kids.)
+ *
+ * (C) COPYRIGHT by me, 2000
+ * All Rights Reserved
+ */
+
+                            Knowledge is of two kinds,
+                            We know a subject ourselves,
+                            or we know where we can find
+                            information upon it.
+                                  Samuel Johnson, 1775
+
+/*
+ * DEVEL RELEASE - CALL FOR IDEAS - DO NOT DISTRIBUTE
+ */
+
+[0] What is bscan?
+
+   A fast, 100% spoofed, raw-mode scanner with module
+   and application layer support.
+
+   100% spoofed means, that both adresses, IP and MAC, are spoofed.
+
+   Raw-Mode in this case means that Bscan uses its own tcp/ip 
+   userland stack to perfom the scans. It doesn't keep track 
+   of the packets and hence does not waste any kernel 
+   structures, memory or filedescriptors. 
+   It will need about 500kb of memory.
+
+   Modules: You can write, load and add your own modules which
+   will perform specific operations.
+   Bscan comes with some generic modules [see MODULES].
+
+   Application layer means that Bscan won't just scan for open
+   TCP-ports. The Module 'mod_banner.so' for example
+   scans for TCP-banners in raw-mode [ which will get up to 5.000+ 
+   hosts per sec].
+   The module 'mod_bind.so' will requests the bind-version
+   from nameservers (version.bind chaos txt scan).
+   The module 'mod_httpd.so' performs http-requests.
+   'HEAD / HTTP/1.0' by default. You can specify other
+   requests like 'GET /cgi-bin/test-cgi HTTP/1.0' on the
+   command-line.
+   Take a look into 'MODULES' for futher informations.
+
+   The scanner is not bound to any kernel/OS limits [like
+   fd-limit, memory, ...].
+   The scan speed only depends on your connection and
+   the bandwidth of the target network. 
+   You can scan with up to 10.000+ hosts/second on a 100mbit
+   connection without any problems [see PROBLEMS].
+
+    
+
+[1] NEW
+
+   -  module support and application layer support
+   -  tcp.seq bugfix, tty-driven, ...
+ '-r' restore.bscan, resume interrupted scans
+   -  'john'-like status line:
+      10.2.2.1/16 time:  0:00:00:05   7% p/s:   1000 [o:1 r:1 c:0 i:7]
+ '-O' Output the ip's only. Don't scan.
+ '-m' Use specified <mac>, add mac to arp-table and remove it when scan
+      is complete.
+ '-M' Use specified <mac>, dont add mac to arp-table. [use arp -s <ip> <mac>].
+ '-l' limit packets per second
+ '-sS,-sF,-sX,-sN,-sP' Syn halfopen, Fin, Xmas, Null, Push scan
+
+
+[2] How to compile
+
+  see INSTALL
+  You also may want to take a look into PROBLEMS and MODULES.
+
+[3] Usage
+
+  bscan needs root privileges. it only works on ethernet (so far).
+
+  bscan -h for help
+
+  bscan -h -L <module1> for help on bscan mainprogramm and the module1.
+
+
+  You MUST specify an unused source-ip from your local network (-s <ip>).
+
+  '00:20:AF:A3:13:37' is the default mac source address.
+  Your can specify your own with the -m/-M option.
+
+  Press 'space' or send SIGUSR1 to the process to get a statusline.
+ 
+  Press ctrl-c once to abort scanning, twice to stop
+  the process [waiting for outstandig packets].
+  Bscan saves the stata of an interrupted scan to 'restore.bscan'
+  that can be continued with the '-r' option.
+  
+
+
+Simple Examples:
+
+# ./bscan -s 10.2.6.6 -L "mod_banner.so" -X 10.3.0.0/16
+scans for ftp-banners [first line only unless '-a' specified] from
+spoofed source address '10.2.6.6' in spreadmode (-X).
+
+# ./bscan -s 10.2.6.6 -i eth2 -L "mod_banner.so -a -p 25 -o 53" 10.2.0.0/16
+scans for smtp-banners [port 25 (-p 25) and all data (-a) with
+sourceport 53 (-o 53)].
+Listen for packets on eth2 and scan 10.2.0.1-10.2.255.254 linear
+(no recommendet. use spreadmode (-X) whenever possible).
+
+# ./bscan -s 10.2.6.6 -i eth2 -L "mod_banner.so -q" -L "mod_bind.so" -l 1800 \
+    -X 212.0.0.0/8 
+Scan 'version.bind' (udp) with 1800 hosts/second in spreadmode (-X).
+
+# ./bscan -s 10.2.6.6 -L "mod_banner.so -a -p 80 -o 1040" \
+           -L "mod_httpd.so -p 80" -l 1200 -X 195.0.0.0/8 
+Scan 'http HEAD / HTTP/1.0' on port 80 from sourceport 1040 with 
+1200 hosts/second in spreadmode (-X).
+
+# ./bscan -s 10.2.6.6 -L "mod_banner.so -a -p 80" \
+     -L "mod_httpd.so -r GET\s/cgi-bin/test-cgi\sHTTP/1.0\r\n\r\n" \
+     -X 210.0.0.0/8
+Scan the 210-ClassA network for vulnerable test-cgi hosts.
+
+
+
+[4] technical details
+  
+   Nothing here. not done yet. 
+   See source.
+   blah blah here.
+   spoofed tcp 3-way handshake [e.g. userland tcp-stack].
+   Sends out syn-packets (as fast as possible) trough raw-device.
+   captures syn-ack and replies with
+   'best known answer' to get the final banner/data.
+   Handels ICMP unreachable-msg'es correctly.
+
+
+*CALL FOR IDEAS*
+anonymous@segfault.net
+

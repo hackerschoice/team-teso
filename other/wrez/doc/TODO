@@ -1,0 +1,40 @@
+
+TODO
+====
+
+short term
+	- record-route option, include timestamp,ip,cwd,uid,uname in the virus
+	  on a change on either of those. make the fingerprinting module more
+	  flexible to include multiple (arbitrary number) of sources for
+	  the fingerprint. make an accumulative api, sort of hashpool
+
+	- ANTI-DEBUG: modify [sl]trace protection to scan for "race" instead
+	  of "trac", to defy subterfugue, too (http://subterfugue.org/)
+
+	- replace/provide small inlined assembly versions of:
+	  memmove, strstr
+
+	- make more use of the per-host fingerprinting functionality (like:
+	  propagation-limitations, mode-change-after-certain-hopcount-reached,
+	  ...)
+
+
+mid term
+	- think of a way to make it strip-save
+
+	- add in-memory infection code. try to infect every running process
+	  through ptrace, by attaching to it, finding malloc(), and copying
+	  itself into the created space. add a special flag into the runtime
+	  infected copy, so that its recognized as a) already infected and
+	  b) runnign only within-memory. try to make the virus as lasting
+	  as possible, even in uid=user environments, where no binary can be
+	  infected. make it resident in victim process by hooking some common
+	  .plt entry, such as read()/write()/select()
+
+
+long term
+	- discuss ssh and generic pty ideas, maybe do evil things through .plt
+
+	- evaluate further propagation methods (active ones)
+
+

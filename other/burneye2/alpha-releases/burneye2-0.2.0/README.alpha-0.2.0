@@ -1,0 +1,62 @@
+
+
+PRELIMINARY ALPHA SOFTWARE
+DO NOT USE FOR PRODUCTION
+DO NOT DISTRIBUTE
+
+
+=============================================================================
+
+loader is a object file execution engine, that does loading of ELF objects,
+relocation and in-memory execution on basic block level. To do this, the
+entire file is broken up into basic block code fragments and the possible
+codeflow between the individual basic blocks is analyzed. Then this
+information is removed from each basic block and the program is executed.
+
+At the end of each basic block, the loader pops in and simulates the control
+flow that would happen.
+
+As for now, it only works on small programs and still has serious trouble
+processing the GNU libc library. But object files linked with dietlibc
+already work.
+
+
+Input object files must be:
+
+	- ELF relocateable object files
+	- with symbol table information
+	- without any .common symbols (STT_COMMON)
+	- without any external references (i.e. completely self-contained)
+	- without complicated manual control flow constructs (i.e. best works
+	  vanilla GCC output)
+
+How to create such an object is shown in the ldistfp/Makefile.
+
+This release is just for you to toy around and maybe test with other small
+programs.
+
+
+Example usage:
+--------------
+
+# print list of possible arguments
+./loader -h
+
+# execute the program as usual "iob -h"
+./loader -3 0 -q ldistfp/ldistfp-final-dietlibc.o main -- -h
+
+# execute the program as usual "iob -u -n test.txt"
+./loader -3 0 -q ldistfp/ldistfp-final-dietlibc.o main -- -u -n test.txt
+
+# press enter to get to the next basic block
+./loader ldistfp/ldistfp-final-dietlibc.o main -- -h
+
+# skip the first 1000 basic blocks, then continue manually
+./loader -Q -s 1000 ldistfp/ldistfp-final-dietlibc.o main -- -u -n test.txt
+
+# generate and show a graph of the getenv function (you need to have
+# the graphviz package and the "gv" postscript viewer installed)
+./loader -v ldistfp/ldistfp-final-dietlibc.o getenv
+
+
+

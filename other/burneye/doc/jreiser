@@ -1,0 +1,182 @@
+From BitWagon.com!jreiser Fri Jul  6 23:10:04 2001
+Return-Path: <BitWagon.com!jreiser>
+Received: by nb.in-berlin.de
+	via rmail with stdio
+	id <m15IcrU-000MUAC@nb.in-berlin.de>
+	for scut@nb.in-berlin.de; Fri, 6 Jul 2001 23:10:04 +0200 (CEST)
+	(Smail-3.2 1996-Jul-4 #1 built 1998-Dec-12)
+Sender: BitWagon.com!jreiser
+Received: from gnu.in-berlin.de (gnu.in-berlin.de [192.109.42.4])
+	by hirsch.in-berlin.de (8.11.1/8.11.1/Debian 8.11.0-6) with ESMTP id f66L4mS24197
+	for <scut@nb.in-berlin.de>; Fri, 6 Jul 2001 23:04:48 +0200
+Received: from spruce.he.net (spruce.he.net [216.218.159.210])
+	by gnu.in-berlin.de (8.10.1/8.10.1) with ESMTP id f66L50q07399
+	for <scut@nb.in-berlin.de>; Fri, 6 Jul 2001 23:05:01 +0200 (CEST)
+	(envelope-from jreiser@BitWagon.com)
+X-Envelope-From: jreiser@BitWagon.com
+X-Envelope-To: <scut@nb.in-berlin.de>
+Received: from BitWagon.com (216-99-213-225.dsl.aracnet.com [216.99.213.225]) by spruce.he.net (8.8.6/8.8.2) with ESMTP id OAA26307 for <scut@nb.in-berlin.de>; Fri, 6 Jul 2001 14:05:03 -0700
+Sender: jreiser@spruce.he.net
+Message-ID: <3B462824.61030F40@BitWagon.com>
+Date: Fri, 06 Jul 2001 14:05:40 -0700
+From: John Reiser <jreiser@BitWagon.com>
+Organization: -
+X-Mailer: Mozilla 4.75 [en] (X11; U; Linux 2.2.19-6.2.1perf i586)
+X-Accept-Language: en
+MIME-Version: 1.0
+To: Sebastian <scut@nb.in-berlin.de>
+Subject: Re: ELF in-memory problems
+References: <20010706203002.A3717@nb.in-berlin.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Status: RO
+X-Status: A
+Content-Length: 6133
+Lines: 145
+
+Hello Sebastian,
+
+I got your note; here are some comments.
+
+> Since I need static and work-data in my loader segment (mapped at
+> 0x05371000), I have two choices to make it writeable. The first is to put
+> read + write + exec flags in the PT_LOAD header already. This was my first
+> decision, but the kernel did not like it and behaved very weird, for example
+> brk() could not shrink, only grow. So I sticked to the common layout of
+> having PF_R + PF_X for the first and PF_R + PF_W for the second segment.
+> Then brk() worked as expected.
+
+My understanding is that in execve() the kernel sets brk(0) as the largest
+(unsigned) value of (p_vaddr + p_memsz) over all PT_LOAD.
+Then there is a special check for subsequently setting brk(x) less than
+the initial value, which in the usual case prevents a program from
+"committing suicide" by unmapping the initial contents.  This special check is
+the reason why brk(0) works at all: if interpreted literally, then brk(0)
+would mean "discard all memory at addresses > 0", which would mean
+discarding the whole address space.
+
+[By the way, in my opinion brk() is a historical relic that should disappear.
+I want to map _several_ ET_EXEC files into my address space (each at
+a different address, of course).  I also want a binary interface to
+/proc/self/maps, much like WinNT's VirtualQuery(), so that I can build
+a user-mode, self-aware, page manager so that malloc(), mmap(), dlopen()
+can co-operate in managing the address space.]
+
+
+> * [004000de] old_mmap(0x8048000, 24151, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXE D|MAP_ANONYMOUS, 4211752, 0) = 0x8048000
+> * [004000de] old_mmap(0x804e000, 4107, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED |MAP_ANONYMOUS, 4211752, 0x5000) = 0x804e000
+> 
+> The lines marked with a '*' are buggy I think, you pass a pointer as a
+> filedescriptor. The kernel ignores it though, but it looks very strange ;)
+
+MAP_ANONYMOUS in the flags takes precedence over fd.  do_xmap() takes advantage
+of this (and sizeof(int)==sizeof(void *)) to reduce code size by merging
+two similar-but-different cases.
+
+
+> Here are my theory why my code generates segfaults, ...
+
+Can you observe the SIGSEGV using gdb?  The values in the pc, registers,
+instuction being executed, and /proc/<pid>/maps at the time of SIGSEGV:
+	(gdb) x/i $pc
+	(gdb) info reg
+	(gdb) bt
+	(gdb) shell
+	$ ps
+	  . . .
+	$ cat /proc/<pid>/maps
+	  . . .
+	$ exit
+	(gdb)
+usually help a lot to figure out what is wrong.  Please supply these
+values if you write about this problem again.
+
+If necessary, then use several
+	__asm__("int3");
+in your C code to get close to the error, then watch using 'stepi'.
+I use a macro
+	(gdb) define g
+	stepi
+	x/i $pc
+	end
+to do this.
+
+> ... why
+> don't you just overwrite the ones already in the array, but append it to the
+> array (so in your code there are actually two vectors for AT_PHDR for
+> example).
+
+I wasn't aware that there are two AT_PHDR; I'll have to check into this.
+
+Look at /usr/src/linux/fs/binfmt_elf.c, function do_load_elf_binary():
+          create_elf_tables((char *)bprm->p,
+                        bprm->argc,
+                        bprm->envc,
+                        (interpreter_type == INTERPRETER_ELF ? &elf_ex : NULL),
+                        load_addr, load_bias,
+                        interp_load_addr,
+                        (interpreter_type == INTERPRETER_AOUT ? 0 : 1));
+then create_elf_tables():
+        if (exec) {
+                sp -= 11*2;
+
+                NEW_AUX_ENT(0, AT_PHDR, load_addr + exec->e_phoff);
+                NEW_AUX_ENT(1, AT_PHENT, sizeof (struct elf_phdr));
+		 . . .
+where 'exec' is the 4th argument.  So, if there is no INTERPRETER_ELF,
+then the kernel supplies only AT_PLATFORM and AT_HWCAP; no AT_PHDR etc.
+
+AHA! this is a clue.  The output from upx has no PT_INTERP for /lib/ld-linux.so.2;
+instead, it uses whatever the user's Elf32_Phdr specifies, and only later
+after decompression, not at kernel execve() time.
+If your program specifies a PT_INTERP to the kernel, then the kernel
+maps it and runs it _first_, before any of the instructions in the a.elf.
+The PT_INTERP maps any shared libraries, then jumps to your e_entry.
+Your code then re-maps /lib/ld-linux.so.2, re-initializing its variables.
+Notice that upx/src/stub/l_lx_elf.c makes two assignments to 'entry':
+    entry = do_xmap((int)f_decompress, ehdr, &xi, av);
+        entry = do_xmap(fdi, ehdr, 0, 0);
+The first is the user entry, the second is the entry to PT_INTERP, if any.
+Thus the entry to PT_INTERP supersedes the user entry, as far as the
+upx decompressor is concerned.  The PT_INTERP later jumps to user e_entry.
+Look at upx/src/stub/*.lds to see how to avoid PT_INTERP.
+
+Run 
+	readelf --program-headers <your_a.elf>
+and see if your program has PT_INTERP requesting /lib/ld-linux.so.2.
+'readelf' is in GNU binutils, and some Linux distributions (RedHat,
+for example):
+-----
+$ readelf --program-headers /bin/date
+
+Elf file type is EXEC (Executable file)
+Entry point 0x8048cd0
+There are 6 program headers, starting at offset 52
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  PHDR           0x000034 0x08048034 0x08048034 0x000c0 0x000c0 R E 0x4
+  INTERP         0x0000f4 0x080480f4 0x080480f4 0x00013 0x00013 R   0x1
+      [Requesting program interpreter: /lib/ld-linux.so.2]
+ . . .
+-----
+
+
+>         - You ommit any static/non-relocateable data from your code and copy
+>           your initialization code to 0x00400000, instead of making your own
+>           segment writeable, why?
+
+The kernel maps the decompressor into memory at 0x00410000 (64KB up from 4MB),
+the code decompresses itself     into memory at 0x00400000 (4MB),
+the user's code gets regenerated into memory at 0x08048000 [or wherever].
+The reason for no .data is to guarantee no absolute addresses in code,
+which makes it easy to execute the code at an address different from
+where it was linked: just move it, and no other adjustments are required.
+Being able to move the code makes it easier to uncompress the compressed
+code of the [rest of the] decompressor.
+
+Best wishes,
+
+-- 
+John Reiser, jreiser@BitWagon.com
+

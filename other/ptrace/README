@@ -1,0 +1,35 @@
+!!!!!!!!!!!!!!!!!!
+
+
+VERY important
+
+don't give infos for ppl out of TESO
+
+
+!!!!!!!!!!!!!!!!!!
+
+It's an example how to make race condition in linux kernel
+It was found by someone and was posted to BQ 
+There was no details about bug
+There was patches... erm... "patches" :)
+Doode which found this idea of exploiting told: "It works on 2.2.18-owl4" so...
+I didn't exploited that vuln. but i'm closer to do it day by day ;)
+
+If you have any ideas for this code give it for me plz
+
+How it works / should work:
+
+if you take a look at code you will se :)
+exec is called with mmaped file as argv[0]
+accessing this file will cause exec to lag
+
+but! we will got lag only when filename is not in disk cache 
+
+status of child should be 'D' (disk sleep) in attach time
+
+have fun with my code...
+
+and one more time: please... don't trade/ditribute it 
+
+tmogg@ags.pl | tmogg@hert.org 
+

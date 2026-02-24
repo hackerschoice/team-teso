@@ -1,0 +1,324 @@
+
+**************************************************************************
+
+                        Reversing the ELF 
+                
+            Stepping with GDB during PLT uses and .GOT fixup
+                
+                     mayhem (mayhem@hert.org)
+
+**************************************************************************
+
+
+This text is a GDB tutorial about runtime process fixup using the Procedure
+Linkage Table section (.plt) and the Global Offset Table section (.got) . 
+If you dont know what is ELF, you should read the ELF ultimate documentation
+you can find here :
+
+        http://www.devhell.org/~mayhem/stuffs/ELF.pdf
+
+Some basic ASM knowledge may be requested . 
+
+This text has not been written for ELF specialists . This tutorial is an
+alternative , interactive way to understand the PLT mechanisms . 
+
+When the executable is mapped into memory, the core code segment _start
+fonction the  executable file is called as soon as the _dl_start function
+of the dynamic linker has returned . I will go step by step in the
+process structures initialization mechanims using objdump, gdb and gcc ;
+
+
+
+
+bash-2.03$ cat test.c
+int     called()
+{
+  puts("toto");
+}
+
+int     main()
+{
+  called();
+}
+bash-2.03$ cc test.c && objdump -D ./a.out | less
+
+<...>
+
+08048318 <_start>:
+ 8048318:       31 ed                   xor    %ebp,%ebp
+ 804831a:       5e                      pop    %esi
+ 804831b:       89 e1                   mov    %esp,%ecx
+ 804831d:       83 e4 f8                and    $0xfffffff8,%esp
+ 8048320:       50                      push   %eax
+ 8048321:       54                      push   %esp
+ 8048322:       52                      push   %edx
+ 8048323:       68 04 84 04 08          push   $0x8048404
+ 8048328:       68 98 82 04 08          push   $0x8048298
+ 804832d:       51                      push   %ecx
+ 804832e:       56                      push   %esi
+ 804832f:       68 c8 83 04 08          push   $0x80483c8
+ 8048334:       e8 cf ff ff ff          call   8048308 <_init+0x70>     <===
+ 8048339:       f4                      hlt    
+ 804833a:       90                      nop    
+ 804833b:       90                      nop    
+
+
+<...>
+
+
+
+
+Even if the dynamic linker creates some basic stuffs before everything, 
+he first core function called is _start .
+
+We can see that this function initialize the stack . Some things we have
+to notice :
+
+$0x8048404              : _fini() function offset in the .fini section 
+$0x8048298              : _init() function offset in the .init section 
+$0x80483c8              :  main() function offset in the .text section 
+
+
+This information is pushed because it's used in the libc in the 
+__libc_start_main function . This libc function has to :
+
+        - call the constructors .
+        - call the main .
+        - call the destructors .
+
+
+The call to the offset 0x8048308 points in the Procedure Linkage Table
+(.plt section) . This section provides a way to transfert inter-object 
+calls . Remember we're trying to call the __libc_start_main function . 
+
+The PLT code for this entry is :
+
+
+080482c8 <.plt>:
+ 80482c8:       ff 35 54 94 04 08       pushl  0x8049454
+ 80482ce:       ff 25 58 94 04 08       jmp    *0x8049458
+ 80482d4:       00 00                   add    %al,(%eax)
+ 80482d6:       00 00                   add    %al,(%eax)
+ 80482d8:       ff 25 5c 94 04 08       jmp    *0x804945c
+ 80482de:       68 00 00 00 00          push   $0x0
+ 80482e3:       e9 e0 ff ff ff          jmp    80482c8 <_init+0x30>
+ 80482e8:       ff 25 60 94 04 08       jmp    *0x8049460
+ 80482ee:       68 08 00 00 00          push   $0x8
+ 80482f3:       e9 d0 ff ff ff          jmp    80482c8 <_init+0x30>
+ 80482f8:       ff 25 64 94 04 08       jmp    *0x8049464
+ 80482fe:       68 10 00 00 00          push   $0x10
+ 8048303:       e9 c0 ff ff ff          jmp    80482c8 <_init+0x30>
+ 8048308:       ff 25 68 94 04 08       jmp    *0x8049468        *YOU ARE HERE*
+ 804830e:       68 18 00 00 00          push   $0x18
+ 8048313:       e9 b0 ff ff ff          jmp    80482c8 <_init+0x30>
+
+
+
+We can see that our call in the PLT is followed by a JMP :
+
+        jmp    *0x8049468
+
+The 0x8049468 offset is in the Global Offset Table (.got section) . The 
+stars means (for non x86 att syntax experts readers) that we are using
+the four byte pointer at 0x8049468 as an offset . This offset in actually
+retreivable from the Global Offset Table (GOT) . 
+
+In the beginning, the GOT offsets points on the following push (offset
+0x804830e : look at the objdump trace above) . At the moment , the GOT
+in our process is said to be "empty", and is going to be filled as long
+as the process calls remote functions (one entry is updated each time the
+program calls this remote function *for the first time*) .
+
+
+
+        .got :
+
+                         [00] 0x8049470                  [01] (nil)
+                         [02] (nil)                      [03] 0x80482de
+                         [04] 0x80482ee                  [05] 0x80482fe
+                         [06] 0x804830e                  [07] (nil)
+
+
+        The GOT is empty : every offsets point on a push instruction in
+        the procedure linkage table (.plt) . 
+
+
+
+We can see that the third first entries in the GOT have special values :
+
+        - The [0] entry contains the offset for the .dynamic section of
+        this object, it's used by the dynamic linker to know some
+        preferences and some very useful informations . Look at the
+        ELF reference for further details . Some stuff are also explained
+        in the dynamic linking related chapter of this tfile .
+
+        - The [1] one is the link_map structure offset associated with
+         this object, it's an internal structure in ld.so describing
+         a lot of interresting stuffs, I wont go in depth with it in this 
+         paper .        
+
+        - The [2] entry contains the runtime process fixup function offset
+        (pointing in the dynamic linking code zone). This pointer is used by
+        the first entry of the plt which is called when you want to launch
+        a remote (undefined) function for the first time .
+
+
+The 2nd and 3rd entries are set to NULL at the beginning and are filled by
+the dynamic linker before the process code segment starting function takes
+control . These are filled in elf_machine_runtime_setup() in 
+sysdeps/i386/dl-machine.h .
+
+With that mechanism, we have to execute three call instructions (if the
+corresponding GOT entry has not been updated yet), or two call instructions
+(if the GOT has been filled) . Remember that the GOT has been filled during
+the first call on the corresponding function . Only external functions need
+that mechanism, since only in-core code segment functions offsets are known 
+before the process start (the executable object base address is known) . 
+
+
+Get back to our code, we can see that this entry jumps to the 3rd offset of
+the GOT entry, it means that the code calls the dynamic linker's resolution
+function dl-resolve() . Some other papers have been describing useful
+information gathering with it (check Nergal's phrack 58 or grugq's subversive
+dynamic linking paper)
+
+
+We can note that these 2 offsets are pushed each time a call is done via 
+the PLT :
+
+  - The first is an offset (in octets) in the .rel.plt section of the
+    program binary . It's used to identify the corresponding symbol for
+    the function we are trying to get the real absolute address .
+  - The second one is the offset contained in the 2nd GOT entry
+    (it's 0x8049454 in our code) .
+
+This information allows us to identify the symbol for which we want to do
+a relocation . Let's discover the runtime .got fixup offset with gdb and 
+the procfs :
+
+
+bash-2.03$ gdb a.out
+
+(gdb) b called
+Breakpoint 1 at 0x80483b7
+
+(gdb) r
+Starting program: /home/mayhem/a.out
+Breakpoint 1, 0x80483b7 in called ()
+
+(gdb) disassemble called
+Dump of assembler code for function called:
+0x80483b4 <called>:     push   %ebp
+0x80483b5 <called+1>:   mov    %esp,%ebp
+0x80483b7 <called+3>:   push   $0x8048428
+0x80483bc <called+8>:   call   0x80482e8 <puts>      <======== LOOK HERE !
+0x80483c1 <called+13>:  add    $0x4,%esp
+0x80483c4 <called+16>:  leave  
+0x80483c5 <called+17>:  ret   
+0x80483c6 <called+18>:  mov    %esi,%esi
+End of assembler dump.
+
+
+What is this routine ?
+
+
+
+(gdb) x/3i 0x80482e8
+0x80482e8 <puts>:       jmp    *0x8049460
+0x80482ee <puts+6>:     push   $0x8
+0x80482f3 <puts+11>:    jmp    0x80482c8 <_init+48>
+
+
+It's the procedure linkage table entry for this function, it uses offset
+in the GOT . As the GOT is not yet filled, the offset is the 32 bits address
+of the following push ("push $0x8") . This entry is going to be modified
+by the dynamic linker as soon as the symbol resolution is done ( see 
+chapter 2) .
+
+
+
+(gdb) x/1x 0x8049460
+0x8049460 <_GLOBAL_OFFSET_TABLE_+16>:   0x080482ee
+
+
+Each first time you call a remote function, the PLT first entry code
+is executed :
+
+
+(gdb) x/3i 0x80482c8
+0x80482c8 <_init+48>:   pushl  0x8049454
+0x80482ce <_init+54>:   jmp    *0x8049458
+0x80482d4 <_init+60>:   add    %al,(%eax)
+
+
+This first entry uses the third entry of the GOT , then the dynamic
+linker takes control :
+
+
+(gdb) x/1x 0x8049458    
+0x8049458 <_GLOBAL_OFFSET_TABLE_+8>:    0x40009a10
+
+(gdb) 
+
+
+Let's see what is the library containing this function at the offset
+0x40009a10 .
+
+
+bash-2.04$ pidof a.out
+7905
+bash-2.04$ cat /proc/7905/maps            
+08048000-08049000 r-xp 00000000 03:01 135375  /home/mayhem/a.out
+08049000-0804a000 rw-p 00000000 03:01 135375  /home/mayhem/a.out
+40000000-40012000 r-xp 00000000 03:01 229408  /lib/ld-2.1.2.so   <== *GOOD*
+40012000-40013000 rw-p 00011000 03:01 229408  /lib/ld-2.1.2.so
+40013000-40014000 rw-p 00000000 00:00 0
+4001a000-400fb000 r-xp 00000000 03:01 229410  /lib/libc-2.1.2.so
+400fb000-400ff000 rw-p 000e0000 03:01 229410  /lib/libc-2.1.2.so
+400ff000-40102000 rw-p 00000000 00:00 0
+bfffe000-c0000000 rwxp fffff000 00:00 0
+bash-2.04$ 
+
+
+The wanted function is in the dynamic linker code segment, more precisely
+in the _dl_runtime_fixup() function, in the sysdeps/i386/dl-machine.h
+file . To be honest, i had difficulties to find it , because I could not
+deduce the symbol giving its virtual address, and this for 2 reasons :
+
+        - The libc and the dynamic linker are stripped (the symbol table
+        and the debug information has been removed) . As a consequence, 
+        I could get the function name from the symbol table .
+
+        - In a shared library, offsets are relative (actually it's
+        calculated from the beginning of the file, so you can't retreive
+        the absolute function addresses from the ld.so symbol table) . 
+        You can do a "objdump -D /lib/libc.so.6" to see it by yourself . 
+
+        Even if I had a symbol table, I could not have got the good offset .
+        I could have compare the first bytes of the function in the debugged
+        process and the library (ld.so) code segment to find some hexadecimal
+        sequences matching, but I prefered to read the sources . ;)
+
+        The solution is to calculate the relocation ourself, most of the 
+        time we have : base_addr + symbol_value = runtime address . You
+        can get the base address from the procfs (if you have read access,
+        this is okay by default) and you can check the symbol's value
+        from the library's .dynsym section (list of exported symbols). 
+        Note that you can retreive it from the symbol table (.symtab)
+        but this section may be removed from the shared library using
+        known basic tools like strip(3) .
+
+
+Shoutouts to silvio and grugq !
+
+
+*EOF*
+
+
+
+
+
+
+
+
+

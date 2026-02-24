@@ -1,0 +1,51 @@
+
+ldistfp - remote linux distribution fingerprinting
+readme file
+
+usage:
+
+  ldistfp [-rsmu] [-n <newfile>] [-U <url>] <host|ip>
+
+  -r              rawmode, read from stdin in format [^ ] (buf$)
+  -n newfile      for all unknown fingerprints write them to 'newfile' for
+                  later analysis
+  -s              only print fingerprint to stdout when 100% sure
+  -m              machine parseable output
+
+  -u              update from http://www.team-teso.net/data/ldistfp-auth-fingerprints
+  -U <url>        update from url
+
+
+The program will attempt to connect to the identd authentification service
+of the host `host' and will try to determine the identd version running. Then
+it will look up the response in a pre-made database and find the appropiate
+version line. This information can be mapped back to the distribution and
+it's version used on this host. Simple but effective, since the identd auth-
+entification service is used almost everywhere and most people don't know about
+it's version capabilities.
+
+The extra output goes on STDERR_FILENO, so just use "2>/dev/null" if you only
+want the host information.
+
+Thanks go out to all the people who supplied us the version information. If
+you found some new version, you would do us a kind favor by sending us the
+information, or just execute:
+
+(cat /etc/issue;(echo VERSION;sleep 2)|telnet localhost 113) | \
+mail scut@nb.in-berlin.de
+
+The '-r' option is to use external scan logs, such as grabbb/bscan logs which
+are properly formatted (see source for details).
+
+the directory structure:
+
+	bin/		where the binary will be stored and the
+			fingerprint file is located
+	contrib/	contributed stuff or helper scripts
+	doc/		readme files and changelog
+	src/		sources
+
+
+thanks & enjoy,
+team teso.
+

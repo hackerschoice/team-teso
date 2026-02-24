@@ -1,0 +1,17 @@
+
+contrib, external utilities and helper programs
+
+
+BIND-distribution.awk
+
+	Takes a version.bind scanlog and counts the occurance of each BIND
+	version. At the end it outputs a machine parseable log of each version
+	number, the log entries counted with this version and the percentage
+	this version makes up in the IPs counted.
+
+
+NETBLOCKS.txt
+
+	A list of most active IPv4 class A networks on the Internet. Maybe
+	should go to doc/ or something.
+

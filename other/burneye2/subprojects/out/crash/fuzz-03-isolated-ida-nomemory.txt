@@ -1,0 +1,7 @@
+
+
+only changes to fuzzvictim:
+
+PT_DYNAMIC: p_filesz = p_memsz + 0x300 (was 0xc8, is 0x3c8 now)
+.dynamic: entsize = 0x0000000c (was 0x00000008)
+

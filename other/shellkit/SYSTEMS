@@ -1,0 +1,134 @@
+# splocoder output database -- team teso
+# add your system here
+#
+# thanks to all the people who send me in fingerprints, you know who you are
+# :-)
+
+# BSD systems
+FreeBSD-4.2-RELEASE-i386         le stackdown    4   4
+      data bss stack env         08049a70 08049c80 bfbffa60 bfbffb64
+   M: zero neg big small tiny    0804c030 00000000 0804d000 0814d000 0804c040
+
+FreeBSD-4.3-RC-i386              le stackdown    4   4
+      data bss stack env         08049a70 08049c80 bfbffa78 bfbffb7c
+   M: zero neg big small tiny    0804c030 00000000 0804d000 0814d000 0804c040
+
+FreeBSD-4.3-RELEASE-i386         le stackdown    4   4
+      data bss stack env         08049a70 08049c80 bfbffba0 bfbffca4
+   M: zero neg big small tiny    0804c030 00000000 0804d000 0814d000 0804c040
+
+NetBSD-1.5-i386                  le stackdown    4   4
+      data bss stack env         08049dd8 08049fe0 bfbfd614 bfbfdb6c
+   M: zero neg big small tiny    0805c030 00000000 0805d000 0815d000 0805c040
+
+OpenBSD-2.6-i386                 le stackdown    4   4
+      data bss stack env         000030e8 0000313c dfbfd958 dfbfdeac
+   M: zero neg big small tiny    00015030 00000000 00016000 00116000 00015040
+
+OpenBSD-2.8-alpha                le stackdown    4   8
+      data bss stack env         12001d0d5 12001dff8 1fffff810 1fffff890
+   M: zero neg big small tiny    120026060 00000000 120028000 120128000 120026070
+
+OpenBSD-2.8-i386                 le stackdown    4   4
+      data bss stack env         000030ec 00003148 dfbfd658 dfbfdbac
+   M: zero neg big small tiny    00015030 00000000 00016000 00116000 00015040
+
+OpenBSD-2.9-i386                 le stackdown    4   4
+      data bss stack env         000030ec 00003148 dfbfd3dc dfbfd930
+   M: zero neg big small tiny    00007030 00000000 00008000 00108000 00007040
+
+OpenBSD-2.9-sparc                be stackdown    4   4
+      data bss stack env         00004110 00004178 f7fff5d8 f7fffb4c
+   M: zero neg big small tiny    00016030 00000000 00017000 00117000 00016040
+
+# HPUX systems
+HP-UX-B.10.20-9000/715           be stackup      4   4
+      data bss stack env         400010c0 40001188 7b03a530 7b03a3ac
+   M: zero neg big small tiny    400031e0 00000000 400031e8 401031f0 40103260
+
+HP-UX-B.10.20-9000/735           be stackup      4   4
+      data bss stack env         400010c0 40001188 7b03a590 7b03a414
+   M: zero neg big small tiny    400031e0 00000000 400031e8 401031f0 40103260
+
+# IRIX systems
+IRIX-6.5-IP20                    be stackdown    4   4
+      data bss stack env         100132f8 10013410 7fff2f00 7fff2f6c
+   M: zero neg big small tiny    10014010 10014020 10014090 10114098 10014030
+
+IRIX64-6.5-IP27                  be stackdown    4   4
+      data bss stack env         100140f8 100141c0 7ffe3e70 7ffe3f1c
+   M: zero neg big small tiny    10015010 10015020 10015090 10115098 10015030
+
+# Linux systems
+Linux-2.2.13-i486                le stackdown    4   4
+      data bss stack env         080499f0 08049b20 bffff7a8 bffff98c
+   M: zero neg big small tiny    08049b90 00000000 40117008 08049ba0 08049c08
+
+Linux-2.2.19-i586                le stackdown    4   4
+      data bss stack env         08049a10 08049b40 bffff3e8 bffff5cc
+   M: zero neg big small tiny    08049d40 00000000 00227008 08049d50 08049db8
+
+Linux-2.2.1-mips                 le stackdown    4   4
+      data bss stack env         10000020 100000d4 7ffffb10 7ffffbdc
+   M: zero neg big small tiny    10000150 00000000 2ac2d008 10000160 100001c8
+
+Linux-2.2.19pre17-i686           le stackdown    4   4
+      data bss stack env         080499d0 08049ae0 bffffbac bffffdac
+   M: zero neg big small tiny    08049b50 00000000 400f3008 08049b60 08049bc8
+
+Linux-2.2.19-sparc64             be stackdown    4   4
+      data bss stack env         00021ef0 000220e4 effffb68 effffdcc
+   M: zero neg big small tiny    00022138 00000000 7012e008 00022148 000221b0
+
+Linux-2.4.6-i686                 le stackdown    4   4
+      data bss stack env         08049d50 08049e60 bffff9ac bffffbac
+   M: zero neg big small tiny    08049ed0 00000000 40142008 08049ee0 08049f48 
+
+Linux-2.4.7-4GB-i686             le stackdown    4   4
+      data bss stack env         08049a4c 08049b60 bfffefac bffff1ac
+   M: zero neg big small tiny    08049bd0 00000000 40143008 08049be0 08049c48
+
+Linux-2.4.4-ppc                  be stackdown    4   4
+      data bss stack env         10010fa8 1001107c 7ffff9d8 7ffffa8c
+   M: zero neg big small tiny    100111a8 00000000 30028008 100111b8 10011220 
+
+Linux-2.4.8-sparc64              be stackdown    4   4
+      data bss stack env         00021ef0 00022100 effff868 effffacc
+   M: zero neg big small tiny    00022150 00000000 70170008
+
+# alpha
+OSF1-V5.0-alpha                  le stackdown    4   8
+      data bss stack env         1400001b8 140000300 11fffbf50 11fffc028
+   M: zero neg big small tiny    00000000 00000000 140004000 140002100 140002180
+
+# Solaris systems
+SunOS-5.6-sun4u                  be stackdown    4   4
+      data bss stack env         00021284 00021470 effff5da effffb54
+   M: zero neg big small tiny    00021488 00000000 00021888 00121890 00021498
+	 
+SunOS-5.7-sun4u                  be stackdown    4   4
+      data bss stack env         00021190 00021350 ffbef3a0 ffbef92c
+   M: zero neg big small tiny    00021368 00000000 00021768 00121770 00021378
+
+SunOS-5.8-sun4d                  be stackdown    4   4
+      data bss stack env         00020d10 00021008 dffff3e0 dffff9dc
+   M: zero neg big small tiny    00021060 00000000 00021460 00121468 00021070
+
+SunOS-5.8-sun4m                  be stackdown    4   4
+      data bss stack env         00021180 00021340 effff808 effffd94
+   M: zero neg big small tiny    00021358 00021368 00021758 00121760 00021378
+
+SunOS-5.8-sun4u                  be stackdown    4   4
+      data bss stack env         00020d00 00020ff4 ffbeefe8 ffbef5e4
+   M: zero neg big small tiny    00021050 00021060 00021450 00121458 00021070
+
+# exotics
+CYGWIN_NT-4.0-1.1.6(0.30/3/2)    le stackdown    4   4
+      data bss stack env         00402004 0040305c 0240fe34 0a010008
+   M: zero neg big small tiny    0a0104c0 0a0104d0 0a0104e0 0a1104e8 0a110550
+
+CYGWIN_NT-5.0-1.3.3s(0.44/3/2)   le stackdown    4   4
+      data bss stack env         00402004 0040305c 0240fe34 0a010008
+   M: zero neg big small tiny    0a0104b8 0a0104c8 0a0104d8 0a1104e0 0a110548
+
+

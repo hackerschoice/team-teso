@@ -1,0 +1,48 @@
+
+TESO Informationals
+Index file
+
+Last update 2001/05/06
+
+===============================================================================
+0001 2000/01/20  Difference in Linux 2.x ARP Request handling 
+0002 2000/01/21  TCP stealth scan "Scan 64"
+0003 2000/01/22  Remotely exploitable buffer overflow condition in webfind.exe
+                 part of the WebsitePro Package (cgi-bin)
+0004 2000/01/22  Conceptual bug in webvoting systems with proxy protection
+0005 2000/01/22  Ascend ISDN Router DoS vulnerability (old UDP echo problem)
+0006 2000/01/23  Nameserver traffic amplify (x 10-30) and NS route discovery
+0007 2000/01/23  Conceptual bug in PHP and also in CGI modules
+0008 2000/01/24  Check for IP spoofing abilities for a local IP address
+0009 2000/01/26  HTTP proxy forwarding
+0010 2000/01/30  Trick for exploiting BIND nameservers
+0011 2000/02/01  Linux keyboard handler tricks
+0012 2000/02/08  Method to stretch DNS packet length
+0013 2000/02/17  Linux blind TCP spoofing methods overview
+0014 2000/02/18  Linux remote DoS overview
+0015 2000/02/19  Possible security weakness in implementation of PHP3 scripts
+0016 2000/02/23  Trick to hide UDP ports, trick to discover this
+0017 2000/02/25  Information on how to exploit Lancity cablemodems
+0018 2000/03/11  Exploiting FTP URL parsing within web browsers
+0019 2000/03/21  Majordomo include inconveniences
+0020 2000/03/29  Writing MIPS/Irix shellcode
+0021 2000/04/15  pidentd VERSION Linux distribution fingerprinting
+0022 2000/03/19  TESO AUDIT summary: netkit-combo-0.16
+0023 2000/04/16  Information on BinTec Router DoS 
+0024 2000/05/06  chroot break possibilities overview
+0025 2000/05/20  some spicy tricks for buffer overflow exploitation
+0026 2000/05/30  file existance check through suid binaries
+0027 2000/06/29  format string supply vulnerabilities and exploitation
+0028 2000/09/17  new format string problems (ntalkd, radiusd, innd, samba)
+0029 2000/10/05  format string: poping the stack faster than with %f
+0030 2000/10/14  exploitable format string problem in cfingerd <= 1.4.2
+0031 2000/12/20  exploitable one-byte overflow in openftpd 1.0 beta28
+0032 2001/02/03  explanations of malloc() overwrite technique
+0033 2001/02/25  (not-so) advanced way to find KERNEL32.DLL base address 
+0034 2001/02/25  advanced way to more reliably exploit NT format bugs remotely
+0035 2001/03/13  safely getting control in fmt bugs if KERNEL32 is known
+0036 2001/04/16  bugs in BIND 8.2.3-REL, ProFTPd, ...
+0037 2001/05/06  System V malloc implementation details for exploitation
+===============================================================================
+
+

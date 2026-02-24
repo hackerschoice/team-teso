@@ -1,0 +1,15 @@
+
+0x804bc29 <error+11849>:        add    $0xfffffffc,%ebx
+0x804bc2c <error+11852>:        cmpl   $0xffffffff,(%ebx)
+0x804bc2f <error+11855>:        jne    0x804bc25 <error+11845>
+0x804bc31 <error+11857>:        pop    %ebx
+0x804bc32 <error+11858>:        leave  
+0x804bc33 <error+11859>:        ret    
+0x804bc34 <error+11860>:        push   %ebp
+0x804bc35 <error+11861>:        mov    %esp,%ebp
+0x804bc37 <error+11863>:        sub    $0x8,%esp
+0x804bc3a <error+11866>:        leave  
+(gdb) x/10b $pc
+0x804bc29 <error+11849>:        0x83    0xc3    0xfc
+
+

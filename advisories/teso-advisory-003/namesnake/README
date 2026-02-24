@@ -1,0 +1,20 @@
+rattlesnake and namesnake
+by team teso
+
+read the advisory in doc/ before asking stupid questions.
+
+namesnake is a tool to check whether a nameserver can be abused as a traffic
+amplifier. it is not fast, in fact it is very slow. i could've done it very
+fast, but since you are only going to check your local servers anyway, you
+shouldn't care, do you ?
+
+rattlesnake is a denial of service attack tool used to produce queries.
+usage should be obvious, if not reread the advisory.
+
+btw, for the compilation, you have to have libnet 1.x installed. the
+compilation errors (random/srandom) are caused by invalid libnet headers,
+i hope they will be fixed soon, so don't bug me about it.
+
+regards,
+scut / teso
+

@@ -1,0 +1,55 @@
+libnet/libpcap
+    Reason:
+        Easier to get bscan running on 'other' systems.
+    Goal/Ideas:
+        Distribute libnet/libpcap-package with bscan-package.
+        ./libnet
+        ./libpcap
+        May install themself into ./lib ?
+
+
+reentrant/thread-safe
+    Reason:
+        We need shared 'garage' and threading is
+        the best solution for this.
+    Goal/Ideas:
+        making bscan threadable.
+
+
+statefull
+    Reason:
+        UDP (and especialy snmp) behaves really bad without statefull
+        capability.
+    Goal/ideas:
+        Retransmit-timeout, retransmit packet x times before giving up.
+        Use mod_garage for this (depends on threaded-bscan).
+
+
+bscand
+    Reason:
+        Making bscan distributed.
+    Goal/Ideas:
+        Making bscan distributed -> faster scanning.
+        One 'master'-host that servers the 'clients' with
+        ip-ranges. 
+        'mod_distri' is the client-site 'd-scan support module'.
+        We can overwrite getnextip() function.
+
+
+mod_rpcinfo
+    Reason:
+        Coz its hot :>
+    Goal/Ideas:
+        Requesting, decoding rpcinfo -p <ip> like informations
+        UDP/TCP request _should_ be possible (many sites only deny 111/tcp). 
+        Source port 53 as  default.
+
+
+autoconf/automake
+    Reason:
+        Better portability
+    Goal/Ideas:
+        Use of 'config.h' and ./configure with known options
+        like --prefix=blah etc.
+
+

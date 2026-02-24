@@ -1,0 +1,2 @@
+objcopy -j .text -O binary wrez
+objdump --target=binary --architecture=i386 -D wrez

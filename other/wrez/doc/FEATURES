@@ -1,0 +1,65 @@
+
+
+wrez infection engine
+
+
+features
+========
+
+basic features
+--------------
+
+	- fully pic code, useable as shellcode, too
+	- no size restriction on virus code (though < ~20kb is good, see
+	  below)
+	- completely modular featureset, most of the code is optional and
+	  can be turned on/off through a simple comment in the Makefile
+	- small size: compressed between 2000 and 6000 bytes
+	- fast infection (~30 binaries per second)
+
+
+advanced features
+-----------------
+
+  anti-debugging
+	- strace and ltrace in-memory detection
+	- gdb stealthing, displaying its own memory as "not mapped"
+	- (disabled by default) ptrace-detection
+
+  anti-virus-detection
+	- polymorph decryptor engine (LiME by zhugejin)
+
+  runtime-related
+	- cleanup code, leaving only very small memory footprint
+	- compression engine, crunching the virus down to roughly %60 of the
+	  original size. the original virus should be smaller than 20kb, for
+	  the decompressor to work properly.
+	- SIGSEGV/SIGILL catching protection around 90% of the virus code.
+	  even in case the virus segfaults, its possible to recover to a sane
+	  state in 99% of the cases.
+
+  infection-related
+	- activation through .ctors redirection at machine-code level, still
+	  leaving the original .ctors section untouched and chaining it
+	- sections/section header table relocation on infection
+	- advanced user-uid infection, locating running processes and their
+	  binaries
+	- ability to infect binaries of running processes (avoiding ETXTBUSY)
+	- as best as possible stat preservement when infecting ([cma]time,
+	  mode, owner). access time (atime) is only preserved when running
+	  as root
+
+  api functionality
+	- call api to any mapped library function (libc and others)
+	- call, hook, chain, modify GOT entries of your host executeable or
+	  any mapped library, (i.e. any GOT table). ability to watch and
+	  redirect multiple GOT entries across multiple shared libraries
+	  at once, watching and re-redirecting them when lazy binding is used.
+	- host fingerprint functionality, change-detection
+
+
+known weaknesses
+================
+
+	- not strip save
+

@@ -1,0 +1,99 @@
+From whawes@star.net Sun May 25 11:17:36 1997
+Received: from venus.star.net (root@venus.star.net [199.232.114.5]) by hcs.harvard.edu (8.8.5/8.8.3) with ESMTP id LAA15293 for <dholland@hcs.harvard.edu>; Sun, 25 May 1997 11:17:35 -0400 (EDT)
+Received: from hawes (bos221p.star.net [199.232.112.221]) by venus.star.net (8.8.5/8.7.3) with ESMTP id LAA29775; Sun, 25 May 1997 11:17:08 -0400
+Message-ID: <33885894.B2043F5E@star.net>
+Date: Sun, 25 May 1997 11:19:48 -0400
+From: Bill Hawes <whawes@star.net>
+X-Mailer: Mozilla 4.0b3 [en] (WinNT; I)
+MIME-Version: 1.0
+To: David Holland <dholland@hcs.harvard.edu>,
+        Alan Cox <net-patches@lxorguk.ukuu.org.uk>,
+        Peter Tobias <tobias@server.et-inf.fho-emden.de>,
+        "Theodore Ts'o" <tytso@MIT.EDU>
+Subject: kernel patch to fix telnetd deadlock
+X-Priority: 3 (Normal)
+Content-Type: multipart/mixed; boundary="------------B47A35BD86775A5D9DA0F308"
+Status: RO
+
+This is a multi-part message in MIME format.
+--------------B47A35BD86775A5D9DA0F308
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+
+Attached is a patch for drivers/char/n_tty.c that fixes the telnetd
+deadlock when more than 256 chars are typed without a newline.  With
+this patch in place, the total of typed-ahead and entered commands is
+still limited to 256 chars, but telnetd comes back to life when the
+buffer is emptied.
+
+Here's what the problem was:
+telnetd does a select() on the master side of a pty to see when it's
+safe to write a character without blocking.
+
+The N_TTY line discipline select() calls the pty driver's
+chars_in_buffer() function to see how many characters are buffered.
+If there are more than 256, the caller has to wait.
+
+The pty driver.chars_in_buffer calls the other side's ldisc
+chars_in_buffer() function.  Here's where the problem arises: the slave
+pty is in canonical mode, so that no characters can be read until a
+newline is entered.  But the n_tty_chars_in_buffer was returning the
+full number of characters entered, even if no newline had been entered. 
+Hence after 256 characters were typed, select() makes telnetd wait, and
+the newline can never arrive.
+
+The patch corrects n_tty_chars_in_buffer() by checking for canonical
+mode and returning 0 if no data is available to be read.
+
+I've tested this on 2.0.30, and it should apply to 2.1.40 as well.
+Please check it out and forward it as you see wish.
+
+I'm working on a patch for pty.c to allow a greater amount of type-ahead
+while still avoiding a deadlock.
+
+Regards,
+Bill Hawes
+--------------B47A35BD86775A5D9DA0F308
+Content-Type: text/plain; charset=us-ascii; name="n_tty-chars-patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline; filename="n_tty-chars-patch"
+
+--- drivers/char/n_tty.c.old	Mon Sep  2 08:18:26 1996
++++ drivers/char/n_tty.c	Sun May 25 10:10:29 1997
+@@ -86,10 +86,31 @@
+ 
+ /*
+  * Return number of characters buffered to be delivered to user
++ *	WSH 05/20/97: Added check for canonical mode
++ *	In canonical mode, no characters are available to be read until 
++ *	the first newline has been entered.  (Any characters in the buffer
++ *	may yet be erased ...)
++ *
++ *	This was causing a deadlock in telnetd: select() thought the buffer
++ *      was already too full, so telnetd couldn't send a newline, but the
++ *      slave PTY couldn't read anything because there was no newline.
+  */
+ int n_tty_chars_in_buffer(struct tty_struct *tty)
+ {
+-	return tty->read_cnt;
++	/* Check first for canonical mode ... */
++	if (tty->icanon) {
++		if (!tty->canon_data) return 0;
++
++		/* Would prefer to just fall through and return the true
++		 * count, but that could still cause deadlocks until some
++		 * other routines are patched.  For now, calculate the
++		 * characters actually available for reading.
++		 */
++		return (tty->canon_head > tty->read_tail) ?
++			tty->canon_head - tty->read_tail :
++			tty->canon_head + (N_TTY_BUF_SIZE - tty->read_tail);
++	}
++	return tty->read_cnt; /* all characters available */ 
+ }
+ 
+ /*
+
+--------------B47A35BD86775A5D9DA0F308--
+
+

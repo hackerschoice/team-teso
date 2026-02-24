@@ -1,0 +1,16 @@
+{
+	net.icmp.sendrate = "25"
+	net.icmp.packetsize = "650"
+
+	net.icmp.send ( forked = "yes" )
+
+	if (net.icmp.packetsize >= "600") {
+		if (net.icmp.sendrate >= "20") {
+		} else {
+			net.msg ( node = "$masternode" content = "too fast" )
+		}
+	} else {
+		net.msg ( node = "$masternode" content = "done" )
+		net.msg ( node = "$self" content = "foo" )
+	}
+}

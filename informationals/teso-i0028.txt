@@ -1,0 +1,90 @@
+0028 2000/09/17  new format string problems (ntalkd, radiusd, innd, samba)
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: new format string problems (ntalkd, radiusd, innd,
+                        samba)
+Date .................: 2000/09/17 12:00
+Author ...............: scut
+Publicity level ......: partly known
+Affected .............: programs containing format string vulnerabilities
+Type of entity .......: exploitable format string vulnerabilities
+Type of discovery ....: useful information
+Severity/Importance ..: high
+Found by .............: various people, scut (using typo's elite tesogcc)
+
+===============================================================================
+
+--[ linux-ftpd source in netstd package of Debian 2.2 potato
+
+ftpd.c, /setproctitle
+
+While this problem is within the source of any Linux distribution, it only
+manifests in Debian because the define that has to be matched
+(HAVE_SETPROCTITLE) is only triggered on Debian. It is exploitable for
+anonymous/ftp logins where the supplied password (which should be the email
+address) is used as part of the format string in the setproctitle call. Though
+this problem was discussed on Bugtraq in Juli 2000, there is still no public
+exploit for this problem. Interestingly the same problem is within the Irix
+ftpd source, though it is not activated, because again the define is missing.
+A similar problem was also found in earlier proftpd sources.
+
+
+--[ linux-ntalkd source in netstd package of Debian 2.2 potato
+
+netkit-ntalk-0.10/talkd/announce.c, /fprintf format string
+
+If some use wants to talk to another user using talk an announce message is
+send to the recipient, notifying of the request. This announce message is
+partly build from user input (from the person requesting the talk), and then
+fed into a fprintf, resulting in a format string vulnerability. This issue
+has been known in the scene I've been told by another person, though there
+is no exploit for it yet, since character filtering and size issues make
+exploitation tricky.
+
+
+--[ lucent/livingston radius daemon 2.1 (radius21.tar.Z)
+
+src/log.c, /syslog(priority, buffer)
+
+This bug shows how careless programming can turn in your worst nightmare.
+The log function itself contains a formating bug: The format string is
+properly printed into a stack buffer, and then this buffer is used as the
+format string to syslog, *ouch*. So every log function that has even parts
+of the input supplied by the user (there are plenty) can be used to exploit
+this hole. This buggy code only manifests if VSYSLOG is defined, this has
+to be checked, when it is the case (which is another bug also, it should
+activate if VSYSLOG is not defined). There may be some better ways to
+exploit it, I've checked for some minutes, one method would be to try
+to authenticate with a username containing a space, but then only 64 bytes
+of format string are available to the attacker. If the users are allowed to
+change their password (in general), then you have 253 of format string if
+you try to change the password for a user that doesn't exist
+(radiusd.c, /not found).
+
+
+--[ innd - internet news daemon 2.3.0
+
+innfeed/misc.c, /^void logOrPrint
+
+Like in the radius daemon there is a bug in the logging routine also. The
+format is properly printed into a 512 byte long buffer and then this buffer
+is carelessly printed as format string using syslog. Haven't checked for
+exploitability.
+
+
+--[ samba 2.0.7
+
+utils/smbpasswd.c:241: warning: TESO: Insufficient Format arguments: fprintf(2/3).
+utils/smbpasswd.c:249: warning: TESO: Insufficient Format arguments: printf(1/2).
+utils/smbpasswd.c:251: warning: TESO: Insufficient Format arguments: fprintf(2/3).
+
+Using smbpasswd and creating an error message you can stuff user supplied
+things into parts of the format strings passed to fprintf/printf. What
+can be gained using this has to be checked.
+
+
+===============================================================================
+

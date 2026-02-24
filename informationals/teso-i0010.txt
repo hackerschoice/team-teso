@@ -1,0 +1,46 @@
+0010 2000/01/30  Trick for exploiting BIND nameservers
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Trick for exploiting BIND nameservers
+Date .................: 2000/01/30 12:00
+Author ...............: scut
+Publicity level ......: unknown
+Affected .............: networks with multiple BIND nameservers
+Type of entity .......: misconfiguration
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: scut, inspired by smilers ideas and his NXT exploit
+
+Information ===================================================================
+
+When exploiting BIND bugs it is often necessary to make the remote nameserver
+issue a query to your nameserver, which is in some cases a pseudo server which
+sends an exploiting packet back on query.
+
+However in some cases DNS queries aren't allowed to the remote server, although
+you know the server is vulnerable you cannot exploit this weakness, because
+you cannot make it to query your exploiting server.
+
+The DNS server may accept queries only from a predefined IP range, for example
+the IP range of that subnetwork. Often other DNS servers can be found in the
+subnetwork. At the same time it is often the case that these servers are
+configured to just relay the queries to another DNS server. By using a "deaf"
+pseudo-nameserver, which just responds to the IP of the nameserver you want
+to exploit (smilers NXT exploit does support this) you can now exploit that
+server by querying the other nameserver, which accepts your queries, which
+then happily relays the question to the main nameserver.
+
+This nameserver may not carry out the query directly if you'd answer the query
+if it is issued by another nameserver (see TESO Informational #0006), but if
+you don't answer it this nameserver will after a few seconds issue that query
+itself, allowing you to exploit it.
+
+Also using nameserver path discovery (also in #0006) you may be able to spoof
+send the reply in between two nameservers, which is not possible in the NXT case
+but maybe required for future exploits.
+
+===============================================================================
+

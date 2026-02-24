@@ -1,0 +1,187 @@
+
+TEAM TESO shellkit - your complete shellcode toolkit
+====================================================
+preliminary README file
+
+
+Conditions and rules to be obeyed by the shellcodes
+===================================================
+
+To construct generic shellcodes one has to state the exact details and
+requirements of each shellcode. The list below is what every shellcode within
+the shellkit has to obey.
+
+Conditions the shellcode encounters:
+
+  - Shellcode memory itself is writeable
+  - No register being properly set except the stack pointer
+
+Requirements to the shellcode:
+
+  - Do not contain NUL (0x00), line-termination (0x0a, 0x0d) and
+    format-directive (0x25 = '%') bytes
+  - Do not expect to be terminated by a NUL ('\0') character
+  - Working on heap and stack (i.e. any writeable and executeable memory)
+
+Suggestions (i.e. should be ...):
+
+  - Well tested on most common systems to be expected on the
+    architecture the shellcode runs on (i.e Solaris 2.[5678] on sparc,
+    IRIX 5.3, 6.[2345] on mips)
+  - Optimized for (in order of importance): stability, size
+
+
+Types of shellcodes to create
+=============================
+
+This is a UNIX listing, since most shellcodes are not doable on Windows, so
+this listing is for Unix derivates only. For the "configureable" values of the
+shellcodes there are setup functions to set the values within the shellcode. 
+
+The listing is split into three different categories: chainables, local and
+remote. The chainable codes work as stubs to prepend other shellcodes with.
+This is done change certain settings in the environment, such as getting rid of
+chroot, certain uid's and the like. The local shellcodes are for use in locally
+exploitable vulnerabilities, while the remote shellcodes are designed to assist
+you with remote exploitation over the network.
+
+
+Chainables (6 codes)
+--------------------
+Chainable shellcodes should not influence the processing of the following
+shellcode in violation to the condition above.
+
+  - chrootbreak, which breaks out of a chroot environment if possible on that
+    architecture (using the best and most promising method)
+  - read(fd, behind-myself, len), which reads len bytes from fd behind itself
+    and executes them. on certain architectures special considerations for
+    cache problems have to be obeyed
+  - setreuid(?,?), which sets the (e)uid to a configureable value
+  - setgid(?), which sets the gid to a configurable value
+  - spset, which sets the stackpointer before the shellcode
+
+  - nop shellcode (see below for description)
+
+The "nop shellcode" is actually a function that will create a variadic amount
+of nop space which is not just one opcode but a mix. This is done to evade IDS
+systems. The generated nop-code should behave the same way a normal chainable
+shellcode would (i.e. not violating the conditions of the shellcode).
+
+
+Local (2 codes)
+---------------
+  - chmod/chown/exit, which chowns and chmods a pathname of your choice, then
+    exits
+  - execve-sh, which executes a /bin/sh
+  - exit, which will just exit with an undetermined exit code
+
+
+Remote (2 codes)
+----------------
+  - portshell-sh, which listens on a defineable port and executes a /bin/sh
+    once a connection is experienced
+  - connect-sh, which connects to a defineable ip and port and executes a
+    /bin/sh once it is connected
+
+
+Architectures
+=============
+
+arch    os              person(s)
+------- --------------- -----------------------------------------
+HPPA    HP-UX           caddis
+MIPS    IRIX            scut
+RS6000  AIX             edi
+SPARC   Solaris         caddis, skyper
+x86     Solaris         plasmoid
+x86     Windows NT      halvar
+x86     Linux           lorian, smiler
+x86     *BSD            dvorak, smiler
+------- --------------- -----------------------------------------
+
+
+Developing
+==========
+
+Please include all custom build utilities, Makefiles (!) and maybe specific
+README files in the appropiate directory, so other people can join the fun or
+modify the codes at source level.
+
+
+Testing
+=======
+
+The shellcodes have to be tested thoroughly and on as much different systems as
+possible.
+
+
+Naming
+======
+
+Code Strings
+
+  <arch>-<os>-<code>
+
+arch is one of:
+
+  hppa
+  mips
+  rs6000
+  sparc
+  x86
+
+os is one of:
+
+  aix
+  bsd
+  hpux
+  irix
+  linux
+  solaris
+  windowsnt
+
+code is one of:
+
+  chmod
+  chroot
+  connectsh
+  execvesh
+  exit
+  portshellsh
+  read
+  setreuid
+  setgid
+  spset
+
+Example: The portshell shellcode for the MIPS architecture under the IRIX
+	 operating system would be identified with "mips-irix-portshellsh"
+
+
+Additional information
+======================
+
+Please use the included 'splocoder' utility to dump important system
+information of the various architectures. There will be a documentation of what
+the fields mean and how they can be used. Soon.
+
+
+Credits
+=======
+
+This shellcode toolkit is the result of the hard work of numerous persons, here
+is a list of the persons involved.
+
+XXX/TODO: update, add missing persons
+
+  acpizer - splocoder
+  lorian - x86 linux/bsd codes
+  palmers - x86 linux codes
+  scut - mips irix, hppa hpux codes, framework and docs
+  smiler - x86 bsd codes
+  stealth - x86 bsd codes
+
+
+==
+vi:fo=tcrq:tw=79:
+
+

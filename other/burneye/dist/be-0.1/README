@@ -1,0 +1,110 @@
+
+
+BURNEYE
+
+preliminary version - readme file
+
+
+WARNING: If you are going to use burneye at all, then read through the entire
+         document. I have kept it short enough to not waste your time, while
+         trying to explain the most important things.
+
+
+
+Burneye is an executeable encryption program, which is suited to protect ELF
+binaries on the Intel x86 Linux operating system. It supports a variety of
+options to wrap an arbitrary executeable with multiple encryption layers.
+
+Foreword: Executeables wrapped with burneye are not necessarily more secure. If
+you use burneye in a wrong way, it takes a few minutes and some custom tools to
+restore the original executeable. If you use the password or fingerprint
+encryption the right way, it can be very difficult, if not impossible, to
+restore the original executeable without access to the password and the host
+fingerprint.
+
+
+CRASH TOUR
+
+There are three layers so far, when encrypting executeables with burneye. The
+simplest layer, the obfuscation layer is a simple insecure ciphers, which just
+scrambles the content. It is enabled every time and is the outer layer. Even
+the burneye functions are scrambled with this layer. All layers are
+independant, you can combine any of the following layers.
+
+The second layer is the password layer, which you can use to protect your
+executeable with a custom password. The password is read in from the current
+pty, so it should work even from within scripts. The password is hashed through
+SHA1, some magic is applied and the layers below are decrypted with RC4. By
+default a check is done to ensure the decryption succeeded. You can disable
+this check by using the '-i' option. It is recommended to use it, because it
+does not expose any key bits but stops from executing junk if you mistyped the
+password. The password layer can be enabled by using the '-p' option, which
+takes the password as parameter (use quotes, as in: -p "mypassword"). 
+
+The third and deepest layer is the fingerprinting layer. A fingerprint is a
+compilation of the characteristics of the host the binary is running on. So far
+a number of different input data is used, just run burneye with the '-l' option
+to see a list. You should be able to see what data it takes, as the behaviour
+is undocumented yet. The default enabled tests should be fine to use. You can
+disable/enable each test using the '-e' and '-d' option, as in '-d sysbase
+-e procmem'. When testing and playing around, try appending the '-l' option as
+last parameter to your commandline to see if your changes took effect. Anyway,
+there are two ways to feed burneye with fingerprints. The most convenient is
+the '-F' option, which creates a fingerprint of the current host (the one
+burneye is running on) and uses that to protect the binary. Another option,
+which can be useful is the '-f' option. This way the fingerprint is read from a
+fingerprint file. This can be used to encrypt a binary for someone whom do you
+not trust. He runs the supplied 'fingerprint' binary on his host and sends you
+the fingerprint file. Then you use burneye locally with the '-f foofile.fp'
+option to create a binary that will only run on his host.
+    The '-t' option can be used to allow a certain tolerance in the
+fingerprint. Say your untrusted friend wants to upgrade his RAM or change his
+partition table. Then use some low value, like '-t 1' or '-t 2'. This way one -
+or two - subtests can fail and the binary will still run. Do not use too high
+values here (burneye will warn if the value is cryptographically unsafe, you
+can rely on that, but if it warns, change your options).
+
+The most simple and non-cryptography related option is the '-B'. You can use it
+to display a banner before all other layers a processed. This could be contact
+information, a copyright display or a warning message as it is in front of
+burneye itself. In any normal case you should favor the '-B' option over the
+'-b' option. '-B' displays the banner on the tty, which will work from within
+scripts. '-b' displays it on stderr (2).
+
+One generic option is the '-o' option, which allows you to specify the name of
+the output file.
+
+
+Examples:
+
+burneye -o ls /bin/ls		# only obfuscation, no protection
+
+burneye -p "secret" -o ls /bin/ls	# encrypt with password 'secret'
+
+burneye -B warning.txt -o ls /bin/ls	# display banner in warning.txt before
+
+burneye -F -t 1 -B warning.txt -o ls /bin/ls	# use fingerprint of local
+	# host, with one test tolerance and display banner from warning.txt
+
+fingerprint -d procpartitions -o foohost.fp
+burneye -f foohost.fp -t 2 -p "hidden" -o ls /bin/ls
+	# use fingerprint from file, two test tolerance and password hidden
+
+
+Anyway, if you have not got what this is by now, I cannot help you. All other
+questions are answered by the FAQ below.
+
+
+-scut
+
+
+FAQ:
+====
+
+[Q]: Can I have the source code ?
+
+  A: No.
+
+
+--
+vi:fo=tcrq:tw=79

@@ -1,0 +1,86 @@
+0029 2000/10/05  format string: poping the stack faster than with %f
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: format string: poping the stack faster than with %f
+Date .................: 2000/10/05 22:00
+Author ...............: lorian
+Publicity level ......: saw noone using this feature
+Affected .............: programs containing format string vulnerabilities
+Type of entity .......: (un)documented features of format strings
+Type of discovery ....: useful information
+Severity/Importance ..: medium
+Found by .............: me? hey cant believe that noone did it so far ;)
+
+===============================================================================
+
+I just discovered a nice thing:
+
+if you deal with format string problems you have often very small buffers 
+to put the string into but a huge stack above. So question is: how do i 
+pop up the stack fast with a small format string. I know that some guys 
+use %f or %.f because that pops 8 byte at once. 
+
+But using a %f is not always possible, because a lot of programs come
+with their own implementation of snprintf. And normaly those versions
+are all without %f cause displaying a floating point number is not so
+easy. (Okay most of those lack %n, too but you can still inspect memory
+without %f %n).
+
+So what is it what i found?
+Kinda simple its the * char inside format strings. It means "read the
+width from the next stack argument".
+So "%*d" pops for example 2 bytes. This is fine and works for all 
+(g)libc implementations. If you think twice this is not really good
+because you dont really know how big the output is (width from unknown
+stack argument) That means you cannot really use it except you know
+exactly what goes on on the stack.
+
+But hey keep cool here are some things that makes it usable for
+your format string attacks. Unfourtunately we must say good bye
+to glibc Os (linux) at this point cause glibc does not have the
+features that come now.
+
+1) Are we in space? Alot of stars attacking me!
+
+lets try it:  printf("%***d\n", 1, 2, 3, 4);
+output: 4
+Hey cool! Isnt it? Multiple stars are accepted! Means with ONE
+single char you can pop up the stack 4 bytes. 
+Here are some OS that supports it:
+
+OpenBSD
+FreeBSD
+NetBSD
+HP-UX B.11.00 U 9000/800
+SunOS 5.7
+Solaris 2.8
+
+Keep in mind:
+NOT LINUX due to glibc
+
+
+2) Hey! You fooled me, that does not kill the above described
+problem with a unknown width argument from stack.
+
+Cool down! The solution is simple:
+
+%****************1d
+
+this pops 17*4 bytes but only gives out a string of width 1
+
+The combinations are endlessly ;) Damn GLIBC ;) I think i must read glibc source.
+Btw nice glibc detection if you can see the output of the format string is:
+%1*1d this stays unchanged under GLIBC. No format string interpretion.
+Remember for BSD this only mean: POP 8 bytes and display 1 char. 
+
+
+
+Hehe Scut I see this giving you a nice...
+
+*** THE END ***
+
+===============================================================================
+

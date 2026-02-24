@@ -1,0 +1,114 @@
+0014 2000/02/18  Linux remote DoS overview
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Linux remote DoS overview
+Date .................: 2000/02/18 21:00
+Author ...............: scut
+Publicity level ......: known
+Affected .............: Linux 1.2.x/2.0.x/2.2.x TCP/IP stack
+Type of entity .......: implementation
+Type of discovery ....: useful information
+Severity/Importance ..: medium
+Found by .............: various people (klepto, humble, horizon)
+
+Information ===================================================================
+
+There are numerous denial of service vulnerabilities in almost every operating
+system in use today. However due to it's broad use Linux has been a focal point
+of interest to search for such vulnerabilities. The results are a number of
+remote denial of service attacks found in the kernel in the past three years.
+While there are a lot of variations to this attacks that work around some
+patches in other operating systems here is a list of all remotely exploitable
+denial of service attacks in the Linux operating systems.
+
+Please feel free to correct me or make additions.
+
+
+<= 2.0.26  Ping of Death
+
+Linux kernels below or equal version 2.0.26 fail to handle oversized IP
+packets, which are send in multiple fragments. This attack has been well known
+and can be exploited as simple as running the "ping" command with certain
+flags. Also several other programs to exploit this vulnerability have been
+written such as ssping.c by vallah. The vulnerability takes place if IP packets
+with a size beyond 2^16 bytes are send to the remote host. The results vary
+from a complete kernel crash to disabled IP functionality.
+
+
+<= 2.0.31  IP fragment overlap bug
+
+This severe bug and first of it's class, followed by many variations was
+discovered by klepto sometime before 1997/11/03 and is based on a bug in the
+Linux kernel IP refragmentation routine. In this routine the kernel reassembles
+all received IP fragments back to one linear data block. While it does some
+basic sanity checks it fails to check for a situation which is unlikely to ever
+happen in normal network conditions. This situation results in way too much
+data (negative integer overflow then casted to unsigned int) copied by the
+kernel, resulting in a system crash or reboot. A public exploit called
+teardrop.c written by route is available.
+
+
+<= 2.0.35  off by one IP header (nestea.c)
+
+While the teardrop vulnerability was unique and quickly being recognized as a
+real threat a fix was developed quickly. There were however a lot of parameters
+to modify in the teardrop sources and people started to play with various
+values resulting in a new teardrop variation called nestea. This exploits a
+similar bug in the IP refragmentation code of the Linux kernel. The public
+exploit is called nestea.c and is written by humble 1998/04/16.
+
+
+2.0.36 (possibly others)  unknown (?)
+
+There exist a remote denial of service attack which effectively disables any
+IP communication and works with lots of packets send to the victim host. No
+further information is known, but it has been successfully used on the CCCamp
+hacker deathmatch by the ADM team to disable team TESO's network functionality.
+Evidence is pretty strong on this.
+
+
+2.1.89 - 2.2.3  zero length fragment bug
+
+This vulnerability within the Linux kernels has been found by horizon on
+1999/03/24. The bug allows an attacker to remotely cripple the IP stack of the
+Linux kernel by filling a kernel-internal list of pending IP fragments, which
+wait for reassembly. While filling this list alone doesn't affect the IP stack
+very much there is a implementation bug that allows the attacker to create a
+IP fragment list entry that is "stranded": the Linux kernel will never free it
+anymore. The list is limited to 4096 entries hence creating that many entries
+will result in completely disabled IP functionality for that computer.
+The actual exploitation requires an attacker to send three packets per created
+entry. The first packet is a fragment at offset zero with a defined length (x)
+and the IP More Fragments flag set. The second packet is a zero length fragment
+at offset zero, where the IP header length is equal to the IP total length and
+the IP More Fragments flag is set too. The third packet is a fragment at offset
+x (length of first fragment data) without having IP More Fragments flag set.
+This creates one stranded fragment. A public exploit called sesquipedalian.c is
+available.
+
+
+<= 2.2.9  bogus IP options
+
+All Linux kernels up to and including 2.2.9 have a implementation bug of the IP
+options parsing. When an IP packet with bogus IP options is experienced the
+Linux kernel erroneously releases the allocated memory two times, which causes
+memory corruption and under worst circumstances system crashes (kernel panics).
+There is a public exploit linux-icmp.c, which sends partly random packets
+resulting in a small percentage of invalid packets that will trigger this
+vulnerability. However, a public exploit which exploits the vulnerability in an
+exact way is not available. The vulnerability was made public around 1999/06/01.
+
+
+2.2.x (possibly others)  unknown, cause kernel hung (?)
+
+There is a remotely exploitable denial of service vulnerability in the latest
+Linux 2.2.x systems. Evidence is strong that TESO's webserver as well as two
+other TESO related boxes have been taken down with this some month ago.
+However, there are no further informations on this.
+
+
+===============================================================================
+

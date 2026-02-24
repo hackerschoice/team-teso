@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ $# != 1 ]; then
+	echo "usage: $0 pathname"
+	echo
+	exit
+fi
+cp $1 victim
+./initial victim
+mv victim $1.infected
+ls -l $1 $1.infected

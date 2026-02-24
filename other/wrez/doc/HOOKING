@@ -1,0 +1,82 @@
+
+
+wrez - GOT hooking
+short readme file
+
+
+The wrez API provides some functionality to hook functions called from the
+host binary. This functions are:
+
+
+Elf32_Word *
+got_funcloc (void *mybase, char *name);
+
+Elf32_Word *
+got_funcloc_dyn (Elf32_Dyn *dyno, Elf32_Addr loadbase, char *name);
+
+
+The first function is a simple wrapper to the second, which provides more
+precise control what functions you want to hook. Every executeable and every
+shared library within the process space has a global offset table associated
+with it (GOT). The 'got_funcloc' function only affects the GOT of the host
+executeable. With it, you can redirect any library function called from the
+host code. So, if the infected file runs system() or some other library call,
+you can hook it by changing its GOT table entry. The use of the 'got_funcloc'
+function is pretty straightforward, you only have to know the name of the
+function you want to hook and the base address of the executeable. The base
+address is the address of first byte of the ELF header, and usually provided
+through the wrconfig structure after a successful infection.
+
+  You can also hook functions called from shared libraries. But this is only
+true for library functions, but then its even possible to hook intra-library
+function calls, for example if libpam calls one of its internal functions, its
+possible to hook this. It is not possible to hook syscalls within libc, for
+example you cannot hook execve calls within libc. You can, however, hook
+inter-library calls of execve, such as if an external library calls execve.
+
+To sum it up:
+
+    Type of call                | Library relation | Hookable
+    ----------------------------+------------------+-------------------------
+    System call                 | none             | no
+    Library system call         | none             | no
+    Executeable to library      | inter            | yes, GOT of executeable
+    Library to another library  | inter            | yes, GOT of calling lib
+    Library to itself           | intra            | yes, GOT of library
+    ----------------------------+------------------+-------------------------
+
+The most common thing to do is to hook calls the executeable makes, for
+example calls to select, execve and other obvious virus targets.
+
+However, you can also hook some internal calls within the libraries, such as
+authentification functions (libpam, libcrypt, ..) to provide backdoor
+functionality.
+
+
+To hook arbitrary GOT entries, you can use this API function:
+
+int
+got_funcloc_array (void *mybase, char *name, Elf32_Word *darr[], int darr_len);
+
+It fills all GOT locations it can obtain for a function symbol into the darr[]
+array, which can keep darr_len bytes. The function returns the number of
+entries filled.
+
+
+For further information look into lookup.h, lookup.c and wrcore.c
+(LIBC_CALLING_EXAMPLE, GOT_REDIRECTION_EXAMPLE, GOT_DEEP_REDIRECTION_EXAMPLE).
+
+
+To see the redirection code in action, uncomment the two DFLAGS lines in the
+Makefile (GOT_*_EXAMPLE), and execute:
+
+$ make release lookuptest
+$ cp lookup-test/* release-*/
+$ cd release-*
+$ source ldpath.sh
+$ ./infect shared-library-use
+$ ./shared-library-use.infected
+
+See wrcore.c how this is accomplished.
+
+

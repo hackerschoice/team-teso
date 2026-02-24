@@ -1,0 +1,33 @@
+0002 2000/01/21  TCP stealth scan "Scan 64"
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: New TCP stealth-scans, aka "Scan 64"
+Date .................: 2000/01/21 15:37
+Author ...............: S. Krahmer
+Publicity level ......: public after 25.1.2000
+Affected .............: lots of network-based IDS's
+Type of entity .......: Protocol-based 
+Type of discovery ....: implementation mistake
+Severity/Importance ..: interesting
+Exploit available ....: Y
+URL ..................: http://www.cs.uni-potsdam.de/homepages/students/linuxer
+Found by .............: S. Krahmer
+
+Information ===================================================================
+
+The general behavior of many IDS is 'black-list' based. You need to specify
+for example the list of bad flags in a TCP-packet to detect so called
+'stealth-scans'.
+
+It is very difficult to get all the types black-listed. Instead one should list
+all 'allowed' flags (i.e. SYN|ACK, RST, PUSH|ACK etc).
+
+After notifying the maintainers of IDS's about the possibility of silent push-
+scans and a fixed scan-detection engine, it was again possible to do un-noticed
+scans by setting flags in TCP-headers that don't appear in usual traffic.
+
+===============================================================================
+

@@ -1,0 +1,279 @@
+0027 2000/06/29  format string supply vulnerabilities and exploitation
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: format string supply vulnerabilities and exploitation
+Date .................: 2000/06/29 22:00
+Author ...............: scut
+Publicity level ......: partly known
+Affected .............: programs containing format string vulnerabilities
+Type of entity .......: exploitation techniques
+Type of discovery ....: useful information
+Severity/Importance ..: medium
+Found by .............: various people, comments by scut and smiler
+
+===============================================================================
+
+Some programs use the printf format strings in a way that let users supply
+either the whole or parts of the format string. This way users may use special
+format characters to write to parts of the memory, resulting in a compromise.
+
+For example, code like this is vulnerable:
+
+void
+func (char *usersupplied)
+{
+	char	buffer[512];
+
+	snprintf (buffer, sizeof (buffer), usersupplied);
+	buffer[sizeof (buffer) - 1] = '\x00';
+}
+
+By using a usersupplied string like "%p" the user may control parts of the
+behaviors of the snprintf function. While most of the format control characters
+only pop data from the stack and display it, like "%d" pulls an integer value
+from the stack and writes the ascii representation of it to the string, the
+"%n" parameter does something special. It writes the number of bytes the
+snprintf function has written already to the (int *) which lies next on the
+stack.
+
+Sometimes this may not be necessary, as in this example:
+
+void
+func (char *usersupplied)
+{
+	char	buffer[512];
+
+	if (strlen (usersupplied) > 200)
+		return;
+
+	sprintf (buffer, usersupplied);
+}
+
+In this case we need to expand our userbuffer from less then 200 bytes to more
+then 512 bytes to create an ordinary stack overflow. This can be done using
+a variety of format controls. You can use "%400d" to create a 400 byte long
+string, then use ordinary data to overwrite the return address. Older GNU
+libc libraries contain a bug when the number of characters exceeds 1000. Then,
+instead of using something like "%2000d", just use "%-2000d", which pads with
+spaces to the right.
+
+But in cases where a limited printf function, such as snprintf, syslog and
+vsnprintf is used, we have to use another method to exploit this. Remember
+the "%n" format control, it stores the number of written characters. Ok,
+we may overwrite memory with it, but how do we overwrite an arbitrary
+address of our choice ?
+
+To do this, we have to make the stack pointer point to the address we want
+to write to. The most favorable situation would be if the stack pointer points
+into our format string, so we can store the address there and then use "%n" to
+write to it. Most of the times the memory layout looks like:
+
+
+1  3                        2
+<  data ...               > < format string ...          >
+lower stack addresses               higher stack addresses
+
+Where the stack pointer points to (1). We have to move it so that it points
+to the (2) position using control characters, such as "%f", and "%d". On the
+x86 architecture an integer takes up four bytes (ILP32 rule), and a %d will
+pop four bytes from the stack, increasing the stack pointer by a value of four.
+This way we have the stack pointer at (3) now. So we use another bunch of
+format parameters to move it upwards until it points to (2). If our format
+string is of limited size we should look at efficiency doing so. Lets
+consider we use "%d" and we have to move it by 256 bytes upward. Then we have
+to use 64 "%d" sequences, which take up 128 bytes. The expansion ratio is
+2:4 = 1:2. Two bytes ("%d") result in four bytes being popped. A more efficient
+solution is the usage of "%f", which pulls 8 bytes from the stack. But there
+is something odd about that, since "%f" is a float, it is evaluated in another
+way then "%d", and while doing so it may cause an arithmetic exception because
+of a division by zero. Since you cannot control the data that is popped from
+the stack, it cannot be used. However, if you use "%.f" instead, an invalid
+float number won't cause an exception, but still it pops eight bytes from the
+stack, so it's exactly what we need. It is more efficient than the "%d" method,
+since three bytes ("%.f") will pop eight, so it's 3:8, and thats greater then
+2:4.
+
+So what to do if by popping you get the stack pointer into the regions of a
+buffer you can supply (2), but it's misaligned ? Is there such things as a
+one-byte-pop control sequence ?
+Fortunately there is no such thing, but you can get rid of that by using a
+special alignment in your buffer, and just use "ppp<buffer>" instead of
+"<buffer>", where 'p' is the padding, which varies from zero to three
+characters. After all, you should get the stack pointer pointing exactly to
+the first byte of <buffer> by using the methods above.
+
+Now, you can store an address to write to in that buffer, so for x86 you'd
+want to store it in little endian order. Say we want to store 0xbfff3407,
+then the buffer would look like "\x07\x34\xff\xbf". Now, the stack pointer
+points to it and the usage of "%n" write the counter of written bytes to
+it. Not very helpful, since we cannot control this counter, at least not
+fully.
+
+So what can we control ? We control the address the counter is written to,
+and we can modify the counter a bit by using some bogus data, that will
+increase it. So here is an example:
+
+	int	i;
+
+	printf ("aaaaaaaa%20d%n\n", 3, &i);
+	printf ("%d\n", i);
+
+Will create an output like:
+
+aaaaaaaa                   3
+28
+
+So we have increased the number of written bytes by 20 with our "%20d". How
+much can we increase it ? So high that we can write, say 0xbfff9210 ?
+In some GNU libc versions we can increase it beyond the number of allowed
+characters, but if it gets too high, the library crashes. So to assume the
+worst, say, we just can increase it in very small boundaries, like no more
+then 0x100. So we can store small numbers, where the least significant byte
+is under our control to a location of our choice. And we can do this more
+then once.
+
+To say it clearer, we can store a byte of our choice to a location of our
+choice. More then once, as often as we want. And an address just consists
+out of four bytes.
+
+So what do we do ?
+
+Say the return address we want to overwrite is located at 0xbfff82e8
+
+0xbfff82e8:	0x44 0x20 0x08 0x08  0x7a 0xb0 0xff 0xbf
+                ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+                return address       data behind it (fp)
+
+
+So to overwrite the return address we overwrite four bytes, we start with
+the least significant, which is the leftmost in little endian notation. So
+say we want to replace the return address with 0xbfff8010, then we have to
+make the four bytes
+
+0xbfff82e8:	0x10 0x80 0xff 0xbf
+
+To do this we have to start with the leftmost, by storing 0x10 to
+0xbfff82e8:
+
+ (a)             (b)
+"\x01\x02\x03\x04\xe8\x82\xff\xbf<stackpop><pad>%n"
+
+Where <stackpop> makes the stack pointer point to the first byte (a) of
+our buffer. Then we use <pad> to increase the counter of written bytes to
+a value where the least significant byte is the one we want to store. So
+if the counter is 0x000000e0, we increase it by 0x30, and hence use "%48d"
+as padding. Now the stack pointer points to (b), where our target address
+is stored, and the counter is 0x00000110. Now we use "%n" to store this
+counter to the address. After that, the memory will look like:
+
+0xbfff82e8:	0x10 0x01 0x00 0x00  0x7a 0xb0 0xff 0xbf
+
+So the leftmost byte is that of our choice, and the counter is 0x0110 now.
+The next byte we want to store is 0x80, which is 0x70 higher then 0x10, so
+we use "%112d" to increase it by that value, and then use "%n" to store it
+to 0xbfff82e9. But we have to reconstruct the format buffer to do this.
+
+                                 (c)             (d)
+"\x01\x02\x03\x04\xe8\x82\xff\xbf\x01\x02\x03\x04\xe9\x82\xff\xbf"
+"<stackpop><pad1>%n<pad2>%n"
+
+After the first write the stack pointer points to (c) now, and we use the
+pad2 ("%112d") with this dummy value to increase the counter so that the
+LSB is 0x80. The stack pointer points to (d) now, and we use "%n" once again
+to store the 32 bit counter to the 0xbfff82e9 address.
+The stack data looks like this now:
+
+                [-----------------]
+                     [------------------]
+0xbfff82e8:	0x10 0x80 0x01 0x00  0x00 0xb0 0xff 0xbf
+                                     ^^^^
+
+Note that we destroyed the byte behind the return address with our second
+write. Now we proceed using the same method for the last two bytes, and the
+final memory looks like:
+
+1rst write      [-----------------]
+2nd                  [------------------]
+3rd                       [------------------]
+4th                            [------------------]
+0xbfff82e8:	0x10 0x80 0xff 0xbf  0x02 0x00 0x00 0xbf
+
+We've replaced the return address with the one of our choice now, using four
+times the "%n" format parameter.
+
+
+PROBLEMS YOU MAY RUN INTO
+
+[1. figuring the distance]
+
+The first problem is to know many bytes the stack pointer is away from your
+buffer. This can be found out easily, if you can see the buffer output. To
+do this, you create a buffer like this:
+
+"iiiioooo<stackpop-fixed><stackpop-vary>|%08x|%08x|"
+
+The stackpop-fixed consists out of the minimum distance you assume, so it
+is just a few dozen times "%.f". The vary-buffer is increased each try from
+"" to as much "%.f"'s as you need. Then two "%08x"'s are used to inspect the
+content where the stack pointer points to. So if you see your "iiiioooo"
+as "|69696969|6f6f6f6f|" or "|..696969|69", "|....6969|6969" or
+"......69|696969", then you can recalculate both the buffer distance to the
+stack pointer and the alignment necessary.
+
+
+[2. buffer address]
+
+One problem may be that you need to know the exact addresses of your buffer
+and of the return address location. This can be solved using two tricks.
+First the distance between this addresses may not vary that much, so if
+you know one address you can most likely make an educated guess about the
+other one. But how do we know the first one ?
+
+First you need to decide what kind of buffer address you want to brute force,
+the format buffer or the target buffer. Because there is not always a simple
+target buffer, such as if you use fprintf, we try with the source buffer here.
+
+The main idea is that we inspect the memory using a pointer we supply. Since
+we already know the distance, we use a buffer like this:
+
+"<p-address><stackpop>|____________________|x|%.20s!"
+
+It works like this: We first pop the stack pointer using the <stackpop> code,
+so that we advance the it by the distance we figured using the [1.] trick.
+Then we write a 20 byte long string containing '_' characters, followed by a
+mark "|x|". Now we use "%.20s" to get no more then 20 bytes of data from the
+address <p-address>. So we can inspect 20 Bytes of memory at a time if we
+can see the output. If we get output such as this,
+
+           [------ n bytes ----](1)         (2)
+"...crap...|____________________|x|___________|x|... crap ..."
+
+we can recalculate the exact buffer location, because we knew the p-address
+pointed to the (1) address in the format string. So by using this formula:
+
+buffer_address = p-address + ((2) - (1)) - n.
+
+To distinguish the source from the destination buffer we use a trick, we store
+a "%%" within the source buffer, which gets evaluated to just "%" in the
+target.
+
+
+[3. getting the return address location]
+
+This may be extrapolated from the buffer address, but there is another nice
+method to get it. Remember the "%s" we used to inspect memory ? Why not
+inspect the target memory where the return address may lie too ? So use
+something like:
+
+"<p-address><stackpop>|%.4s|"
+
+And brute the p-address around where you suspect the return address lies.
+So if you know normally there is an address like 0x0804.... stored there,
+just brute until you find it. This way you avoid segfaults.
+
+
+===============================================================================
+

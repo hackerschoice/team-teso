@@ -1,0 +1,27 @@
+diff -ur NetKit-B-0.06.orig/telnet/defines.h NetKit-B-0.06/telnet/defines.h
+--- NetKit-B-0.06.orig/telnet/defines.h	Fri Dec 17 07:18:16 1993
++++ NetKit-B-0.06/telnet/defines.h	Mon Jun  5 15:34:51 1995
+@@ -34,6 +34,10 @@
+  *	$Id: NetKit-B-0.06-telnet.patch,v 1.1 1996/07/16 05:17:22 dholland Exp $
+  */
+ 
++#define ENV_VAR NEW_ENV_VAR
++#define ENV_VALUE NEW_ENV_VALUE
++#define TELOPT_ENVIRON TELOPT_NEW_ENVIRON
++
+ #define	settimer(x)	clocks.x = clocks.system++
+ 
+ #if	!defined(TN3270)
+diff -ur NetKit-B-0.06.orig/telnetd/defs.h NetKit-B-0.06/telnetd/defs.h
+--- NetKit-B-0.06.orig/telnetd/defs.h	Mon May 23 09:11:57 1994
++++ NetKit-B-0.06/telnetd/defs.h	Mon Jun  5 15:34:39 1995
+@@ -40,6 +40,9 @@
+ #include <sys/types.h>
+ #include <sys/param.h>
+ 
++#define ENV_VAR NEW_ENV_VAR
++#define ENV_VALUE NEW_ENV_VALUE
++#define TELOPT_ENVIRON TELOPT_NEW_ENVIRON
+ 
+ #ifndef	BSD
+ # define	BSD 43

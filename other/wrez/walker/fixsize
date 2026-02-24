@@ -1,0 +1,14 @@
+#!/usr/bin/perl
+
+my $i = shift;
+my $o = shift;
+open I, "<$i" or die "$!";
+open O, ">$o" or die "$!";
+my $size = (stat $i)[7];
+
+while (<I>) {
+	s/9999/$size/;
+	print O;
+}
+close I; close O;
+

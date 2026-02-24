@@ -1,0 +1,287 @@
+/* scut's leet network library ;)
+ * 1999 (c) scut
+ *
+ * networking code 
+ */
+
+#ifndef SCUT_NETWORK_H
+#define SCUT_NETWORK_H
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <stdio.h>
+
+#define NET_READTIMEOUT	180
+#define NET_CONNTIMEOUT	60
+#define	NET_IDENTTIMEOUT 15
+
+
+typedef	struct bound {
+	int			bs;	/* bound socket */
+	unsigned short		port;	/* port we bound to */
+	struct sockaddr		bsa;	/* bs_in */
+} bound;
+
+extern int	net_readtimeout;
+extern int	net_conntimeout;
+extern int	net_identtimeout;
+
+
+/* net_socks_connect
+ *
+ * relays through an open socks 5 server (NO AUTH type)
+ * returns a socket descriptor which is already connected
+ */
+
+int	net_socks_connect (char *socks, unsigned short int sport,
+		char *server, unsigned short int port, int sec);
+
+
+/* net_socks_put_s5info
+ *
+ * insert socks 5 compatible relay information into socket s5s,
+ * used to relay over more then just one socks server
+ */
+
+int	net_socks_put_s5info (int s5s, char *server,
+		unsigned short int port, int sec);
+
+
+/* net_parseip
+ *
+ * read an ip in the format "1.1.1.1:299" or "blabla:481" into
+ * the char pointer *ip and into the port *port
+ *
+ * return 0 on failure
+ * return 1 on success
+ */
+
+int	net_parseip (char *inp, char **ip, unsigned short int *port);
+
+
+/* net_getlocalip
+ *
+ * give back the main IP of the local machine
+ *
+ * return the local IP address as string on success
+ * return NULL on failure
+ */
+
+char	*net_getlocalip (void);
+
+
+/* net_peeraddress
+ *
+ * return a pointer to a string representation of the remote IP address of
+ * the already connected socket `socket'
+ *
+ * return NULL on failure
+ * return string pointer on succes
+ */
+
+char *	net_peeraddress (int socket);
+
+
+/* net_descriptify
+ *
+ * descriptify a socket `socket' ;)
+ *
+ * return -1 on failure
+ * return file descriptor on success
+ */
+
+FILE	*net_descriptify (int socket);
+
+
+/* net_ident
+ *
+ * ident a connection identified by the host:port pairs on both sides,
+ * returning the ident in *ident
+ *
+ * return 1 on success
+ * return -1 on failure
+ */
+
+int	net_ident (char **ident, struct sockaddr_in *locals, unsigned short int localport,
+			struct sockaddr_in *remotes, unsigned short int remoteport);
+
+
+/* net_accept
+ *
+ * accept a connection from socket s, and stores the connection
+ * into cs.
+ * wait a maximum amount of maxsec seconds for connections
+ * maxsec can also be zero (infinite wait, until connection)
+ *
+ * return 0 if no connection has been made within maxsec seconds
+ * return -1 if an error appears
+ * return the socket number if a connection has been made
+ */
+
+int	net_accept (int s, struct sockaddr_in *cs, int maxsec);
+
+
+/* net_bind
+ *
+ * bind a socket to an ip:port on the local machine,
+ * `ip' can be either NULL (bind to all IP's on the host), or a pointer
+ * to a virtual host name, or a real IP, or "*" for any.
+ * `port' can be either 0 (ephemeral port), or any free port.
+ *
+ * return NULL on failure
+ * return pointer to bound structure on success
+ */
+
+bound 	*net_bind (char *ip, unsigned short int port);
+
+
+/* net_boundfree
+ *
+ * free the bound structure pointed to by `bf'
+ *
+ * return in any case
+ */
+
+void	net_boundfree (bound *bf);
+
+
+/* net_resolve
+ *
+ * resolve a hostname pointed to by `host' into a s_addr return value
+ *
+ * return the correct formatted `s_addr' for this host on success
+ * return 0 on failure
+ */
+
+unsigned long int	net_resolve (char *host);
+
+
+/* net_assignaddr
+ *
+ * assign an IP address and port to a socket
+ * sourceip can be an IP or hostname that is available on the local host,
+ * or NULL/"*" to let the kernel choose one, same applies to sourceport,
+ * it can either be zero (ephemeral port choosen by the kernel) or a
+ * valid port number
+ *
+ * return 1 on success
+ * return 0 on failure
+ */
+
+int	net_assignaddr (int sd, char *sourceip, unsigned short int sourceport);
+
+
+/* net_connect
+ *
+ * connect to the given `server' and `port' with a max timeout of `sec'.
+ * initialize the sockaddr_in struct `cs' correctly (ipv4), accept any
+ * ip "123.123.123.123" or hostname "localhost", "www.yahoo.de" as hostname.
+ * create a new socket and return either -1 if failed or
+ * the connected socket if connection has been established within the
+ * timeout limit.
+ *
+ * the routine is still IPv4 biased :-/
+ * with `sourceip'/`sourceportÄ you MAY specify the source IP and source port
+ * to use for the connection, but you can set the ip or port to NULL/0,
+ * to choose the default IP and an ephemeral port. this was added later in
+ * this library, so please update your sources.
+ *
+ * return -1 on failure
+ * return socket if success
+ */
+
+int	net_connect (struct sockaddr_in *cs, char *server, unsigned short int port, char *sourceip,
+		unsigned short int sourceport, int sec);
+
+
+/* net_rtimeout
+ *
+ * waits max `sec' seconds for fd to become readable
+ *
+ * return -1 on error (errno set)
+ * return 1 on readability
+ */
+
+int	net_rtimeout (int fd, int sec);
+
+
+/* net_rbuf
+ *
+ * allocate memory and read socket data to `dst' until the connection
+ * gets closed.
+ *
+ * return n if success (n = number of bytes read)
+ * return -1 if failed
+ */
+
+long int	net_rbuf (int fd, char **dst);
+#define NET_BSIZE  4096		/* blocksize for pre-allocation */
+
+
+/* net_rbuft
+ *
+ * read `dsize' bytes into `dst' from `fd', with timeout
+ *
+ * return 1 on success
+ * return -1 on failure
+ */
+int	net_rbuft (int fd, char *dst, unsigned long int dsize);
+
+
+/* net_rlinet
+ *
+ * read a line from socket descriptor with timeout to buffer
+ * if sec = 0, then only a continuous stream of data is required, not
+ * an overall timeout.
+ *
+ * return -1 on timeout
+ * return 0  on connection close
+ * return length of readen line (including '\n')
+ *
+ * net_rlineta
+ * same as net_rlinet, but allocs the memory itself
+ */
+
+int	net_rlineta (int fd, char **buf, int sec);
+int	net_rlinet (int fd, char *buf, int bufsize, int sec);
+
+
+/* net_tline
+ *
+ * return length if string `buf' with a maximum length of `bufsize'
+ * contains '\n'
+ *
+ * return -1 if no '\n' in string
+ */
+
+int	net_tline (char *buf, int bufsize);
+
+
+/* net_write
+ *
+ * print a formatted string to a socket, see syntax of printf
+ *
+ * return in any case
+ */
+
+void	net_write (int fd, const char *str, ...);
+
+
+/* net_printip
+ *
+ * print an IP address stored in the struct in_addr pointed to by `ia' to a
+ * string `str' with a maximum length of `len'.
+ *
+ * return 0 on success
+ * return 1 on failure
+ *
+ * net_printipa behaves the same way, except it allocates memory and let
+ * `*str' point to the string
+ */
+
+int	net_printip (struct in_addr *ia, char *str, size_t len);
+int	net_printipa (struct in_addr *ia, char **str);
+
+
+#endif
+

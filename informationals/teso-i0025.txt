@@ -1,0 +1,291 @@
+0025 2000/05/20  some spicy tricks for buffer overflow exploitation
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: some spicy tricks for buffer overflow exploitation
+Date .................: 2000/05/20 13:00
+Author ...............: scut
+Publicity level ......: some known, some possibly known, some unknown
+Affected .............: buffer overflow exploits
+Type of entity .......: program behaviour
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: various people, scut, skyper, duke
+
+===============================================================================
+
+Although buffer overflows are kinda old now, there are still a lot of things
+to discover. Here are a few tricks I noticed when playing around with
+exploitation in the last two years.
+
+
+trick I. "enlarging exploitation space"
+
+  This trick is known and although it is very helpful it is seldomly used.
+  Imagine a relativly small buffer of say 128 bytes, followed by the saved
+  framepointer and the return address. In normal remote exploitation you
+  would use a position independant portshell code, which may be around 125
+  bytes for the x86 architecture. Since you have 128+4 (132) bytes before
+  the return address you can prepend the shellcode with some 7 bytes of
+  NOP instructions. So your return address has to hit the NOP space in a
+  7 byte long frame, which requires exact knowledge about the target binary.
+
+  However in case you're allowed to store more data you can use a small trick
+  to enlarge your offset frame. Say you can write 256 bytes at max to the
+  target buffer. Before the trick your target buffer looks like:
+
+  <7 NOP><shellcode><retaddr>
+
+  Using the trick it looks like:
+
+  <130 NOP><jmp-ahead><retaddr><3 NOP><shellcode>
+
+  Now you have a target frame of 133 bytes, and the offset is way more
+  reliable. The <jmp-ahead> is a two byte instruction which does nothing but
+  jumps 4 bytes ahead, so in case you hit the 130 bytes NOP space with your
+  offset you don't "execute" the return address.
+
+
+trick II. "lower stack space page fault"
+
+  Sometimes there is code like this:
+
+  void func (char *foo) {
+      char *    moo = foo;
+      char      buffer[256];
+
+      strcpy (buffer, foo);
+      moo += strlen (foo);
+      if (*moo != '\0')
+          exit (1);
+  }
+
+  Although this code snippet makes no sense it effectivly denies a simple
+  buffer overflow exploitation. However, clever people might overwrite the
+  `moo' pointer with a valid pointer that points to a bunch of NUL bytes.
+  But how to get a large space fully populated by NUL bytes ? On the x86
+  architecture (and most other architectures) you can just use a lower stack
+  page. Since it will be unused when the pointer is first used (by the *moo),
+  this will create a page fault in the kernel, and the kernel will allocate
+  us a new page. Since the kernel ensures you cannot read other processes
+  memory it overwrites the page with NUL bytes. Bingo.
+  Just overwrite this example with:
+
+  <NOP><shellcode><0xbfffd010><retaddr>
+
+  The 0xbfffd010 will be the new moo pointer.
+
+
+trick III. "incremental NUL byte creation"
+
+  On some big endian architectures you're faced with the problem of creating
+  a 64 bit pointer as return address, while there is a no way to insert NUL
+  bytes. This is nasty if the upper bits of the address have to be \x00.
+
+  In most cases this renders a simple exploitation undoable, except for one
+  case, where some special code is used.
+  Imagine something like:
+
+  void func (void) {
+      char  buffer[256];
+
+      while (gets (buffer) != NULL)
+          parseline (buffer);
+  }
+
+  Normally the stack space looks like
+
+  <buffer><framepointer><retaddr>
+
+  We assume that both the framepointer and the retaddr are 64 bit pointers,
+  stored big endian and the upper 32 bits have to be zero'ed out (this is
+  the case on Irix for example). Now we have a problem since we cannot
+  store NUL bytes but are required to in order to overwrite the retaddr with
+  a valid address that points into our code. But we can exploit the
+  incremental behaviour, by using something like this:
+
+  <264 buffer with NOPS and shellcode><4 dummy bytes><lower 32 bits retaddr>
+  <264 buffer with NOPS and shellcode><3 dummy bytes>
+  <264 buffer with NOPS and shellcode><2 dummy bytes>
+  <264 buffer with NOPS and shellcode><1 dummy bytes>
+  <264 buffer with NOPS and shellcode><0 dummy bytes>
+
+  We overflow the buffer five times, the first time we write the correct
+  return address in the lower 32 bits, but set the upper 32 bits to something
+  non-NUL. Then we overflow four times more to store a NUL byte each time,
+  effectivly resulting in a buffer layout like:
+
+  <264 buffer with NOPS and shellcode>0x000000007fff2058
+
+
+trick IV. "type issues and funky long strings"
+
+  No length can be negative. Every physics knows this, but some people, like
+  l0pht don't know this ;-). So all string functions take unsigned arguments
+  if a length is required, as in strncat and strncpy. However, if the user
+  has a way to supply the length argument you can render the length protection
+  unuseable. Though this is normally not the case, there are some very nasty
+  ways this can happen. An example snippet may look like:
+
+  void func(char *dnslabel) {
+      char    buffer[256];
+      char *  indx = dnslabel;
+      int     count;
+
+      count = *indx;
+      buffer[0] = '\x00';
+
+      while (count != 0 && (count + strlen (buffer)) < sizeof (buffer) - 1) {
+         strncat (buffer, indx, count);
+         indx += count;
+         count = *indx;
+      }
+  }
+
+  Although length checking and strn* functions were used this is exploitable,
+  because count can contain negative values. (char) is a signed type and will
+  be sign extended to a larger type, such as (int). Therefore the
+  "count = *indx;" statement can assign count values from -128 to +127. This
+  way the later check can be circumvented. For the strncat function the count
+  value will be used as if it would be assigned to an unsigned int variable,
+  resulting in a very large number (on 32 bit systems -1 will be 2^32-1).
+  This complicated scheme has many little mods, and you can way too fast
+  assume a fix might be just to put unsigned type modifiers in front of the 
+  count variables, but it remains exploitable.
+
+  Every function that takes a size_t argument expects an unsigned value.
+  However if the program can be tricked into supplying a negative (signed)
+  number as size argument this value will be casted to unsigned, hence
+  resulting in a very large number. This is useful for any strn* function,
+  where the source string is user supplied.
+
+
+trick V. "overflow too short"
+
+  Often your reachability is limited when overwriting the target buffer,
+  sometimes it does not even reach the return address or only parts of it.
+  There are several known methods to help you in this situation, most famous
+  the "one byte framepointer overflow". However, in case you can overwrite
+  pointers that are later write-accessed you can possibly write to an arbitrary
+  location in the process memory. This has been well demonstrated by bulba and
+  kiler of lam3rz in their phrack 56 article, however under the scope of
+  circumventing StackShield and StackGuard protections. Also you can utilize
+  heap overflow like techniques in the local variable stack space you can
+  overwrite to jump to your code if possible. Also, if you just can't reach
+  the framepointer or return address, take a look at the local variables
+  inbetween your buffer and the return address. Maybe you can first go for
+  them allowing you to later overwrite the return address.
+
+
+trick VI. "s[n]printf issues"
+
+  Sometimes programmers make a very nasty mistake when dealing with user
+  supplied data and sprintf (or snprintf) type of functions. They directly
+  allow the user to put format characters into the string. This looks like
+
+  void func (char *str, char *password) {
+    char   msg[1024];
+
+    snprintf (msg, sizeof (msg) - 1, str);
+    ...
+  }
+
+  If the user can supply the string pointed to by str he can do some nasty
+  things:
+
+  - it may be possible to obtain otherwise secret information, if the user
+    has the possibility to obtain the msg string later. This can be done by
+    inserting %p and %s format characters, which will pull the stack
+    parameters into the output string. Although a segfault might be the
+    direct result, it may be useful.
+
+  - exploitation ! "how ?" you might ask, and yes, it's really tricky. here
+    is a snippet from the sprintf manpage:
+
+       n      The number of characters written so far  is  stored
+              into  the  integer  indicated  by the ``int *'' (or
+              variant) pointer argument.   No  argument  is  con-
+              verted.
+
+    So you can write a small 32 bit number (or 64 bit, depending on the
+    architecture) to a pointer which is on the stack. So if the stack might
+    look like this (in a suid local application):
+
+         32 bits     (void *) <some pointer>
+         32 bits     (char *) <user supplied string>
+
+    You can use a format string like "0123%n" to write 0x00000004 to the
+    location where <some pointer> points to. This requires a very special
+    context for real exploitation, but it is worth it. Also, if you have
+    somehow the method to set the pointer arbitrarily where the integer
+    is stored you can set it on an uneven boundary to only partially over-
+    write things (like the frame pointer), which may be interesting.
+
+    (update: this can be done very effictivly using the technique described
+    in TESO Informational #27. Also it is very helpful if you can see the
+    printf'd string as response before actually exploiting.)
+
+  - enlarging the exploitation buffer, using something like this:
+    "%8d%8d%8d%8d<buffer>", so you'll get 8*4 = 32 bytes in front of the
+    buffer, only wasting 12 bytes. Though this destroys the stack, but since
+    you're going to destroy it anyway, this doesn't matter :-)
+    Also try "%-200d", which will create a 200 byte long space right-padded
+    string, or "%.100d" which will create up to 100 zero characters. There
+    is an overflow in the libc where "%.1200d" creates a segfault. This isn't
+    the case for the space padding.
+
+
+trick VII. "sizeof (string) and i'm safe, right ?"
+
+  Often people think if they use sizeof() stuff in string functions they are
+  safe. Most of the times this is true, but there are differences among the
+  str*n* functions that a programmer might oversee.
+
+  strncpy (target, source, sizeof (target)) is safe, as we all knew, but
+  what about
+
+    strcpy (target, "");
+    strncat (target, source, sizeof (target));
+
+  This is not safe, since strncat appends sizeof (target) characters plus a
+  trailing NUL character. If you're unsure about whether some string function
+  terminates on the sizeof's byte or at the sizeof's - 1 byte, just write
+  a small test program to check out. Most programmers are unsure about the
+  behaviour of the string functions and may introduce exploitable one byte
+  overflows this way.
+
+
+trick VIII. "adjascent buffers"
+
+  This was known before the article in Phrack 56, but the article offers a
+  great in-depth discussion about this problem. Basically it works like:
+
+  void func (char *foo) {
+    char  buf[32];
+    char  buf1[16];
+    char  buf2[16];
+
+    buf1[0] = buf2[0] = '\x00';
+    strncat (buf2, foo, sizeof (buf2));
+    strcpy (buf1, "blablabla");
+
+    buf[0] = '\x00';
+    strcat (buf, buf1);
+    strcat (buf, buf2);
+  }
+
+  The programmer assumes that proper bound checking has been done before and
+  later uses direct strcat's to construct a string in buffer "buf". But the
+  strcat (buf, buf2) may very well add more then sizeof (buf2) characters,
+  since buf2 can be non-NUL terminated. This is because of the strncat, as
+  explained in trick VII. You can overwrite the lower three bytes of the
+  frame pointer in this example code.
+
+
+If you know some tricks not listed here, please mail them to me
+(scut@nb.in-berlin.de).
+
+===============================================================================
+

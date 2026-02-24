@@ -1,0 +1,27 @@
+\unnumbchapentry{WREZ Introduction}{1}
+\chapentry{Using WREZ}{1}{2}
+\secentry{Building WREZ}{1}{1}{2}
+\subsecentry{Configuring engine features}{1}{1}{1}{2}
+\subsecentry{Building the virus binary}{1}{1}{2}{2}
+\secentry{Infecting executeables using \command {infect}}{1}{2}{3}
+\secentry{Infecting executeables using \command {initial}}{1}{3}{3}
+\subsecentry{\command {initial} command line options}{1}{3}{1}{3}
+\chapentry{WREZ Source distribution files}{2}{4}
+\chapentry{Limitations of viral code}{3}{6}
+\chapentry{WREZ API}{4}{7}
+\secentry{Helper macros}{4}{1}{7}
+\subsecentry{STRINGPTR macro}{4}{1}{1}{7}
+\subsecentry{FUNCPTR macro}{4}{1}{2}{7}
+\secentry{Calling syscalls}{4}{2}{7}
+\secentry{Library calls}{4}{3}{8}
+\chapentry{Disinfection}{5}{9}
+\secentry{Manual disinfection}{5}{1}{9}
+\subsecentry{Step 1. Removing the virus code}{5}{1}{1}{10}
+\subsecentry{Step 2. Restoring \code {.ctors}}{5}{1}{2}{10}
+\subsecentry{Step 3. Fixing \code {PT_LOAD} segment header}{5}{1}{3}{10}
+\subsecentry{Step 4. Fixing \code {eh_shoff} ELF header entry}{5}{1}{4}{10}
+\subsecentry{Step 5. Fixing section header table}{5}{1}{5}{10}
+\secentry{\command {wrezsweep} utility}{5}{2}{11}
+\subsecentry{\command {wrezsweep} command line options}{5}{2}{1}{11}
+\subsecentry{\command {wrezsweep} example use}{5}{2}{2}{11}
+\unnumbchapentry{Index}{13}

@@ -1,0 +1,635 @@
+\input texinfo
+@c %**start of header
+@setfilename wrez
+@settitle WREZ infection engine manual
+@c %**end of header
+
+@ifinfo
+This is the technical documentation and manual to the WREZ infection
+engine.
+
+Copyright @copyright{} 2002 Anonymous.
+@end ifinfo
+
+@titlepage
+@sp 10
+@center @titlefont{WREZ infection engine manual}
+@sp 2
+@center version 0.0
+
+@page
+@vskip 0pt plus 1filll
+Copyright @copyright{} 2002 Anonymous.
+@end titlepage
+
+@contents
+
+@comment node-name, next, previous, up
+@node Top, WREZ Introduction, , (dir)
+
+@menu
+* WREZ Introduction:: A short introduction about the engine
+* Index:: The alphabetical index
+@end menu
+
+
+@unnumbered WREZ Introduction
+
+This introduction will guide you through the rest of the manual and
+explains what its all about.
+
+@cindex about WREZ
+WREZ is a generic virus engine that provides a concise and powerful API to
+provide various functionality for payload code. It can be used to embed
+hostile code into and generally makes the world easier for this type of
+payload. Currently, it is designed to infect ELF executeables on the Linux
+operating system under the Intel IA32 architecture.
+
+@cindex engine code
+Most of the engine is written in position independant C code, while some
+low level parts are written in IA32 assembly. The engine consists of a
+number of independant modules. It is possible to enable and disable those
+modules individually to reduce the overall engine size.
+
+@cindex WREZ toolchain
+A complete toolchain around the engine is provided. It includes tools to
+infect executeable files, check for a possible infection and to disinfect
+binaries which are infected with WREZ. The buildprocess is controlled
+through a central @code{Makefile}, and a testing suite is provided to test
+and demonstrate certain features of the engine using example binaries.
+
+
+@chapter Using WREZ
+
+This chapter describes how to control the WREZ build process. It will show
+you how to enable and disable various features of the engine, how to
+produce an initial infector and how to use it to infect an arbitrary
+executeable.
+
+@cindex building WREZ
+@node Building WREZ,,,Top
+@section Building WREZ
+
+To build the engine from the sources, you need the complete GNU toolchain,
+which includes @command{gcc}, @command{ld}, @command{objdump},
+@command{objcopy}, @command{cpp} and @command{gmake}. Additionally you need
+the have the @command{nasm} assembler and the @command{awk} script language
+installed.
+
+Ensure all of the above tools are properly installed before proceeding.
+
+@cindex engine features, configuration
+@subsection Configuring engine features
+
+Open the @file{Makefile} file in your favorite editor. The first few lines
+are the configuration section of the @file{Makefile}, where you can enable
+and disable the features that will be in the virus produced. To enable
+them, uncomment them. Be aware that some features depend on other features,
+so only enable them in case you have this code enabled, too. To know what
+features you need, determine what functionality of the API you need for
+your payload. @xref{WREZ API}.
+
+@subsection Building the virus binary
+
+To build the virus binary, issue a "@command{make release}" command in the
+top directory. When the build succeeds, a new directory
+"@code{release-}@emph{version}" will be created accordingly and the following
+files are created there:
+@table @code
+@cindex release target, files created
+@item infect
+A simple wrapper to infect a single executeable with vanilla options.
+
+@item initial
+The more detailed infection program, offering a more precise control of the
+initial infection process.
+
+@item wrez.bin.conf
+This is a small configuration file providing some basic info about the
+@file{wrez.bin.out} file, such as certain relative file offsets where
+information can be stored. This file is important and is used by the
+@file{initial} infector.
+
+@item wrez.bin.out
+The central virus image, containing the virus code and additional
+configuration data. This is always the plain image, even when polymorph
+infection is used, hence you can disassemble it without any problems. Note
+that within an infected file this image is prepended with two opcodes:
+@code{pusha} and @code{pushf}. This makes up two extra bytes. The
+@file{initial} infector automatically cares for this, but it is important
+to remember when analyzing the image alone.
+
+@item wrezsweep
+This is the disinfection utility, which is able to disinfect any file
+infected with the version of the virus you just build. Keep this file safe,
+as it offers a reliable way for automatic detection and disinfection.
+@xref{wrezsweep utility}.
+
+@end table
+
+@cindex infect wrapper
+@section Infecting executeables using @command{infect}
+
+In most cases, after having build the virus image, you want to test it by
+infecting a sample executeable. To do this common operation the
+@command{infect} script has been created in the release directory. It is a
+wrapper around the @command{initial} program. Just run @command{infect}
+with the file you want to infect as argument:
+@example
+release % cp /bin/date .
+release % ./infect date | tail -2
+-rwx------    1 anon     anon        22820 Jan 11 18:38 date
+-rwx------    1 anon     anon        26437 Jan 11 18:39 date.infected
+release %
+@end example
+Note that @command{infect} automatically creates a copy of the file by
+appending @file{.infected} to the original filename.
+
+
+@cindex initial infector
+@section Infecting executeables using @command{initial}
+
+While the @command{infect} wrapper is what you commonly use, the background
+work is done by the @command{initial} program. It understands details about
+the virus structure and modifies them accordingly to make the virus work
+within the victim executeable. It provides a number of command line
+options, which are listed below.
+
+@cindex initial, command line options
+@subsection @command{initial} command line options
+
+@command{initial} @code{[-c config] [-i virus-image] <victim>}
+
+@table @code
+@cindex wrez.bin.out, configuration
+@item -c @emph{config}
+Allows to use another configuration file. The default is to use the
+@file{wrez.bin.conf} file which was created at the same time as the virus
+was build.
+
+@item -i @emph{outfile}
+Allows you to specify another virus image to use for infection. The default
+is to use the @file{wrez.bin.out} file created when the virus image was
+build. However, you might want to keep multiple different versions of the
+virus, and this option allows you to select which image file to use.
+
+@item victim
+This is a mandatory option since it tells the program which executeable to
+infect. Note that there are some restrictions on the filename length, so in
+case there is an error, try moving the file you want to infect to the local
+directory and use a shorter pathname as parameter.
+@end table
+
+Note that the @command{initial} program infects the victim executeable
+in-place, without creating a copy first.
+
+@chapter WREZ Source distribution files
+
+This chapter will explain the use of every source file within the wrez source
+distribution. It should provide a rough map where to modify the engine.
+
+@table @code
+@cindex source, files
+
+@item Makefile
+The main build targets Makefile. The most important targets are
+@command{release}, @command{dist}, @command{distclean} and @command{wrez}.
+The individual targets are described in details. @xref{Building WREZ}.
+
+@item common.c
+Provides inlined small assembly versions of the most commonly used memory
+functions, such as @code{strlen}, @code{memset} and similar functions.
+
+@item commontest.c
+A small testbed for the common functions, to ensure they are working
+properly.
+
+@item compress.sh
+This script is called whenever a new virus image is build. It builds the
+compressed virus image from the plain one, by detecting the boundary
+between decompression stub and payload, compressing the payload and then
+merging the decompression stub and compressed payload into the output file.
+While doing this multiple files are created which reflect the certain
+stages of the image. They can be very helpful when debugging the virus,
+especially when polymorphism is enabled.
+
+@item compressor.c
+The LZ compression code resides here. The decompression stub is in
+@file{wrez.asm} though. It is never used on its own, but called from within
+@file{compress.sh} instead.
+
+@item crypto-test.c
+Testbed for the functionality residing in @file{crypto.c}. The make target
+"@command{cryptotest}" drives this file.
+
+@item crypto.c
+@item crypto.h
+Various abstractions to the crypto layers in WREZ. Prototype definitions
+and API description for the functions reside in @file{crypto.h}.
+
+@item debug/
+Every small tool, script or helper application that is used only for the
+purpose of debugging the engine is put here. Each file is independant from
+the engine though, and you have to build them on your own.
+
+@item doc/
+Various piece of documentation, including this one resides here. The files
+@file{CHANGELOG} and @file{TODO} fullfil their usual purpose.
+
+@item fingerprint.c
+@item fingerprint.h
+The per-host fingerprinting code that is used throughout the engine for
+different things is hold here. The prototypes and documentations for the
+API reside in @file{fingerprint.h}.
+
+@item initial.c
+The source for the initial infector which is build into the
+@code{release-}@emph{version}@code{/} directory when building the
+"@code{release}" target.
+
+@item int80-net.h
+@item int80.h
+Inlined versions of syscalls. The @file{int80-net.h} file includes only
+network related socketcalls, while @file{int80.h} is the main syscall
+include file. Add needed syscalls here, but ensure they are behaving as
+documented on the manpage. Especially pay attention to what registers are
+clobbered and ensure correct stack correction.
+
+TODO
+@item isolation/
+@item lime-interface-test.c
+@item lime-interface-test.lds
+@item lime-interface.c
+@item lime-interface.h
+@item lime.asm
+@item lookup-example/
+@item lookup.c
+@item lookup.h
+@item obsolete/
+@item release-@emph{version}/
+@item tmp/
+@item unistd.h
+@item walker/
+@item wrconfig.h
+@item wrcore.c
+@item wrez-link.lds
+@item wrez.asm
+@item wrezdefs.h
+@item wrezdefs.inc
+@item wrezsweep.c
+@item wrutil.c
+
+@end table
+
+
+@chapter Limitations of viral code
+
+@node WREZ API,,,Top
+@chapter WREZ API
+
+The engine provides a helpful API to its payload code, which allows the
+payload to easily accomplish some common tasks. This chapter will explain
+the complete API and shows how to use it by giving small example code
+snippets.
+
+@cindex helper macros
+@section Helper macros
+
+WREZ provides some macros to work around the limitations of viral code,
+such as position indendance.
+
+@cindex STRINGPTR macro
+@subsection STRINGPTR macro
+The @code{STRINGPTR} macro provides a straightforward way to refer to a
+constant string. Note that the escape character '@code{\}' has to be
+escaped itself, as the macro runs through the C string processor twice.
+The macro sets a pointer to the string, as shown in this example:
+@example
+@{
+    char *  strptr;  /* pointer to ASCIIZ string */
+
+    STRINGPTR (strptr, "hello world\\n");
+@}
+@end example
+
+@cindex FUNCPTR macro
+@subsection FUNCPTR macro
+The @code{FUNCPTR} macro circumvents the limitations of obtaining the
+address of a virus function. In non position independant code, such as a
+normal executeable, it is possible to obtain the address to a function by
+simple referring the function name within an @emph{r-value} or by using the
+'@code{&}' operator. Within PIC code this is not possible, since the
+address is not known at link time. However, by use of the @code{FUNCPTR}
+macro a small instruction sequence is inlined into the code, which computes
+the correct address to a function. The following code would resolve the
+address of the @code{wrez_main} function:
+@example
+@{
+    void *  wrfunc;
+
+    FUNCPTR (wrfunc, "wrez_main");
+@}
+@end example
+
+@cindex system calls
+@section Calling syscalls
+
+The file @file{int80.h} provides inlined versions of a large number of
+common Linux system calls. To use them from within your payload code, just
+include the file and use the syscalls as usual. They get inlined into your
+code and behave as you would expect it. When a syscall is missing, copy the
+code of a syscall with the same number of arguments and rename it
+accordingly.
+
+@example
+
+#include "int80.h"
+...
+    /* use the fork syscall, see the fork(2) manpage */
+    while (fork ())
+        ;
+@end example
+
+@cindex library calls
+@section Library calls
+
+WREZ provides an API to resolve any function symbol of any shared object.
+This can be used to call functions from libraries such as @command{libc}.
+In the following example we run the shell command "@command{uname -a}"
+using the @command{system} library function.
+
+@example
+@{
+    char *  systemf;
+    char *  command;
+    int     (* system)(char *);
+
+    STRINGPTR (systemf, "system");
+    STRINGPTR (command, "uname -a");
+
+    system = symbol_resolve ((void *) cfg->elf_base, systemf);
+    if (system != NULL)
+        system (command);
+@}
+@end example
+
+All the symbol resolving is done with the help of the lookup module. The
+module provides the "@code{symbol_resolve}" function, which takes two
+parameters. The first parameter is the "@code{elf_base}", a pointer to the
+first byte of the ELF header. For normal Linux executeables it is usually
+@code{0x08048000}, but you can provide another address if you know it. This
+has some uses which are detailed later, when call hooking is discussed. The
+second parameter is a pointer to an ASCIIZ string with the function name
+you want to resolve. After processing the input parameters the function
+tries to resolve the symbol and upon success returns a pointer to the entry
+point of the function referred by the symbol. On failure, @code{NULL} is
+returned, which is checked for in the example code. After resolving the
+function can be used as if it would be a normal library call, as long as
+you keep the pointer to it.
+
+
+@cindex disinfection
+@chapter Disinfection
+
+When an executeable has been infected by a WREZ virus, nearly no
+information is lost. Hence it is possible to reconstruct a working
+executeable from the infected executeable, which does not include the virus
+code. The @command{wrezsweep} utility provides the functionality to detect
+and optionally remove and extract the viral code from an executeable. This
+chapter provides a description of the tool and advice for manual
+disinfection.
+
+It is not possible to reconstruct the original executeable perfectly, as
+two padding arrays are joined when infecting the file. Upon disinfection it
+is not clear where the original seperation was. It would be possible to
+store this information within the virus itself, but as the padding has no
+function besides aligning the following data, this was not done. As a
+result, the disinfected executeable may be up to 32 bytes longer than the
+original, uninfected executeable was. Every bit of functionality was
+preserved, though, and the binaries behave in exactly the same way. Also,
+the load image is exactly the same, only the dead file image may differ.
+
+@cindex disinfection, manual
+@section Manual disinfection
+
+With some knowledge of the ELF file format and the wrez infection method it
+is possible to disinfect an infected executeable manually. Please do not
+attempt disinfection without knowledge of the ELF format.
+
+First, the virus must be located within the file. Since the file could be
+infected only with section headers in the first place, you can use section
+headers to help you locate it. Infact, it may be the only reliable way to
+do this. To do this, first locate the end of the @code{.bss} section
+(@code{sh_offset} + @code{sh_size}). The @command{ht} and @command{biew}
+tools come in handy at this. Directly after the section ends, there is
+either the section header string table or there is virus code. The virus
+code starts with a fake @code{.ctors} address, so it looks like
+@example
+00006204: 08 F2 04 08 9C 60 E8 3D 00 00 00 C2 A8 04 08 07 01 00 00 98
+@end example
+Where @code{08 F2 04 08}, decoded as little endian 32 bit offset
+@code{0x0804f208} is the entry point of the virus. This is always the
+virtual address directly behind the address itself. So the code at the
+entry point starts with @code{9C 60 E8 3D 00 00 00}, which is a sequence of
+the @command{pusha, pushf, call $+0x3d} instructions. Everything from this
+offset (@code{0x6204}) up to the last byte of the data @code{PT_LOAD}
+segment belongs to the virus. This entire part of the file can be
+removed later and the data behind it has to slide to the front.
+
+But first its important to know the address of the @code{.ctors} section as
+the section header table shows it. As WREZ disguises the real address, and
+the real active @code{.ctors} address is independant from what the section
+header shows, the address of the @code{.ctors} section header is still the
+old original one. Just the one used to activate the @code{.ctors} in the
+code has changed upon infection. We have to change it back, so write the
+address down with the help of either @command{objdump} or @command{ht}.
+@example
+$ objdump -h infected | grep "\.ctors"
+ 17 .ctors        00000008  0804ee94  0804ee94  00005e94  2**2
+@end example
+So the virtual address is @code{0x0804ee94}, and the @code{.ctors} section
+starts at offset @code{0x5e94} within the file.
+
+@cindex removing the virus
+@subsection Step 1. Removing the virus code
+
+Now remove the virus code from the file and slide all the data behind it to
+the front. Slide it forward so that the first byte which was after the
+virus data now starts where the @code{.bss} section starts within the file.
+In the example from above, it would start at file offset @code{0x6204 -
+bss.sh_size}. Calculate the number of bytes you slided the data forward, it
+will be called @emph{displacement} from now on.
+
+Afterwards there are four things remaining that must be changed to repair
+the now damaged file. The next two steps are enough to make the file run
+again, without any virus code, while the last two steps will fixup the
+section headers, so that debug tools work on the file again.
+
+@cindex .ctors address, restoring the
+@subsection Step 2. Restoring @code{.ctors}
+
+To restore the @code{.ctors} activation code, you have to locate it within
+the file. To do this, just search for the virtual address the virus is
+mapped at. This is the same address we decoded above, minus four:
+@code{0x0804f204} (@code{= 0x0804f208 - 4}). This will result in at least
+one hit, which is within an immediate 32 bit register load, most likely
+into the @code{%ebx} register, so a possible hit will look like:
+@example
+00003C17: BB 04 F2 04 08 83 3D 04 F2 04 08 FF 74 0C 8B 03 FF D0 83 C3
+@end example
+Where the address is at @code{0x3c18} and @code{0xbb} is
+"@code{movl ..., %ebx}". Overwrite the address with the original one you
+extracted from the @code{.ctors} section header.
+
+@cindex PT_LOAD segment header, fixing the
+@subsection Step 3. Fixing @code{PT_LOAD} segment header
+
+Now, seek to the program header table and inspect the second @code{PT_LOAD}
+header. Both the @code{p_filesz} and @code{p_memsz} elements of the
+structure must be fixed. The @code{p_filesz} element must be decreased by
+the @emph{displacement}, which is the virus length plus the @code{.bss}
+section length. The @code{p_memsz} element must be decreased by just the
+virus in-memory length. So the entire calculation is this:
+@example
+        vlen_mem = ptl2.p_offset + ptl2.p_memsz;
+        vlen_mem -= bss.sh_offset + bss.sh_size;
+        vlen_file = ptl2.p_offset + ptl2.p_filesz;
+        vlen_file -= bss.sh_offset;
+
+        ptl2.p_filesz -= vlen_file;
+        ptl2.p_memsz -= vlen_mem;
+@end example
+
+@cindex section header table offset, fixing the
+@subsection Step 4. Fixing @code{eh_shoff} ELF header entry
+
+Decrease the @code{eh_shoff} ELF header element by @emph{displacement}.
+Since the section header table usually lies after and @code{PT_LOAD}
+segments, it is moved by removing the virus code from the executeable and
+we have to fix the section header table offset.
+
+@cindex section header table, fixing the
+@subsection Step 5. Fixing section header table
+
+As final step we have to fix any section header that is refering to data
+that was behind the virus, as it was slided to the front by
+@emph{displacement} bytes. Examine every section header at @code{eh_shoff},
+and correct the @code{sh_offset} elements if they lie behind the last byte
+refered by the @code{PT_LOAD} data segment.
+
+@example
+    for (n = 0 ; n < elfhdr.e_shnum ; ++n) @{
+        if (sectionhdr[n].sh_offset > (ptl2.p_offset + ptl2.p_filesz))
+            sectionhdr[n].sh_offset -= displacement;
+    @}
+@end example
+
+@node wrezsweep utility,,,Top
+@cindex wrezsweep utility
+@section @command{wrezsweep} utility
+
+The @command{wrezsweep} utility is very natural to use. In its default mode
+it takes filenames provided on the command line. Each filename is checked
+for infections, after it has been ensured its a @code{ET_EXEC},
+@code{EM_386} executeable. When an infection is found a message is printed
+and details are shown. When disinfection has been enabled, it automatically
+tries to disinfect the file. Enabling the verbose mode is a good idea when
+you know about the internals or you are about to disinfect the file
+manually. The utility will most likely detect other viruses, which use the
+same infection method, such as the
+@cindex VIT virus
+@emph{VIT virus}, written by silvio. Disinfection uses details related to
+the workings of the WREZ engine however, so it is not possible to disinfect
+files which are infected with other viruses.
+
+@subsection @command{wrezsweep} command line options
+@command{wrezsweep} @code{[-hxDv] [-d virus] <file1 [file2 [...]]>}
+
+@table @code
+@cindex wrezsweep help
+@item -h
+Print the usage and exit.
+
+@cindex disinfection, automatic
+@item -x
+Once an infection has been detected, try to disinfect the file in-place.
+
+@cindex polymorph disinfection
+@item -D
+Fall back to extract the correct original @code{.ctors} address from the
+section header table instead of parsing the virus configuration structure.
+This has to be used to deal with binaries that are infected with a
+polymorph version of the virus. Generally has no negative effect.
+
+@cindex wrezsweep verbose mode
+@item -v
+Be more verbose, especially when disinfecting files.
+
+@cindex virus extraction, automatic
+@item -d virus
+Extract the entire virus body from the file and save it to "@file{virus}".
+Note that the @code{.ctors} address is not included in the body. However,
+it is shown when detecting an infected file.
+
+@item file1, file2, @dots{}, file@emph{n}
+Files to scan for infections. Once an infection is noticed, appropiate
+actions are taken, as controlled by the other command line options.
+
+@end table
+
+@cindex wrezsweep example
+@subsection @command{wrezsweep} example use
+
+In the following example we use the @command{wrezsweep} utility to
+disinfect an infected copy of the @file{date} executeable. The infected
+copy is called @file{date.infected}.
+
+@example
+$ ls -l date date.infected ; \
+> ./wrezsweep -x -v date date.infected ; \
+> ls -l date date.infected
+
+-rwx------    1 anon     anon        22820 Apr 10 22:30 date
+-rwx------    1 anon     anon        26962 Apr 10 22:30 date.infected
+
+wrezsweep - version 0.2
+
+scanning 2 files
+disinfection enabled
+====================================================================
+FILE date
+CLEAN: date
+FILE date.infected
+WARNING: file "date.infected", possible infection detected !
+         memory: 8856 bytes at 0x0804f204
+           file: 3638 (+5218 mem) bytes at 0x00006204
+DISINFECTING
+   old   ctors address: 0x0804ee94
+   virus ctors address: 0x0804f204
+   scanning for 0x0804f204 in: [0x0 - 0x5e54]
+   found virus ctors activation code within crt0.o at: 0x00003c18
+   scanning for 0x0804f204 in: [0x3c18 - 0x3c58]
+   found second virus ctors activation code at: 0x00003c1e
+   restored old ctors address
+   disabled virus activation, viral code is still in file, though
+   sliding 0x4d0 bytes at the end of file (0x101a bytes forward)
+   section 24 fixed
+   successfully removed viral code from file
+
+-rwx------    1 anon     anon        22820 Apr 10 22:30 date
+-rwx------    1 anon     anon        22840 Apr 10 22:30 date.infected
+
+$
+@end example
+
+As you can see, the disinfected version of the file is 20 bytes larger than
+the original version. This extra space comes from unused section padding
+and has no effect on how the file behaves.
+
+@node Index,,, Top
+@unnumbered Index
+
+@printindex cp
+
+@bye
+

@@ -1,0 +1,42 @@
+0011 2000/02/01  Linux keyboard handler tricks
+
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: Linux kernel keyboard handling
+Date .................: 2000/02/01 17:00
+Author ...............: Palmers
+Publicity level ......: known
+Affected .............: Linux kernel
+Type of entity .......: kernel module 
+Type of discovery ....: useful information
+Severity/Importance ..: low
+Found by .............: Palmers
+
+Information ===================================================================
+
+It is (in theory) easy to (1) free keyboards IRQ, then (2) install a keylogger, 
+and (3) reinstall the original interrupt handler. It has to be freed first to
+reinstall the first handler to the, then shared, interrupt.
+
+The stuff that deal with this can be found in:
+
+<src-dir>/arch/i386/kernel/irq.c		(free_irq, request_irq)
+<src-dir>/drivers/char/pc_keyb.c		(kbd stuff)
+
+as well as in:
+<src-dir>/include/asm-i386/keyboard.h
+<src-dir>/arch/i386/kernel/irq.h
+<src-dir>/include/linux/interrupt.h
+
+Ok, an interrupt handler has three arguments:
+interrupt_handler (int irq, void *dev_id, struct pt_regs *regs)
+
+Which are - you guess it - interrupt, id and a pt_regs struct (which leads 
+to the need for asm). The logger simply needs to pop the byte, read from the
+keyboard, and write it in a file, the original interrupt handler could be
+restored using pc_keyb.c (with some modifications). 
+
+===============================================================================
+

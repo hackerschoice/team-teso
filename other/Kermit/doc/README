@@ -1,0 +1,128 @@
+README (the other one)
+======================
+
+written by palmers / teso
+
+if you relly want to know what this is all about read the whole file. it
+will (hopefully) explain my approach to this whole thing.
+
+
+
+how to start
+------------
+
+inserting the first function might be a problem. we can not allocate memory for
+it and overwritting a function inside the kernel will result in problems, right?
+wrong.
+there are hundreds of functions which can be overwritten without any negative
+side effects. a example for such a function is init (). it is called only once
+at kernel start (boot).
+if a function is inserted we can write its address into a empty slot in the
+system call table and call the function from userland. This function is prefearably
+a hook to kmalloc. So we are not forced to corrupt the kernel any longer and
+are less likely to be detected. (Since the number of possible entry points is
+limited one could check them, if they were corrupted. But a malloced space in
+memory may contain any data.)
+(see: call_syscall.c and sys_malloc.c)
+
+
+finding the sys_call_table
+--------------------------
+
+how do we find the system call table? if the kernel has module support,
+fine - this symbol was exported. however, if the kernel does not have module
+support we have a problem. No, not really. the system call table is an array
+of addresses. Or, more general, a amount of data we know. We only need to
+find, the first (say) 4 system calls referenced by the table. Their addresses
+are not identical in differnet kernels, but the functions are the same. So
+we search for their patterns in memory.
+These are exit, fork, read and write. As we know now their addresses, we know
+what we need to search for to find the address of the sys_call_table.
+(see: find_sys_call_table.sh)
+
+
+finding the current task_struct
+-------------------------------
+
+as important as the system call table is "current". (If you are not familiar with
+the linux kernel: it carries all runtime information [pid, priority, uid,
+etc..] of the task currently running, see include/linux/sched.h). It is a pointer
+to the the task_struct of the process currently running, right? well, see your
+self. (And note that this is architecture dependant).
+
+:r /usr/include/asm/current.h:
+...
+static inline struct task_struct * get_current(void)
+{
+	struct task_struct *current;
+	__asm__("andl %%esp,%0; ":"=r" (current) : "0" (~8191UL));
+	return current;
+}
+ 
+#define current get_current()
+...
+
+even if you always used it just as a pointer, it is either a function returning
+a pointer or its address is carried in a register. It should be possible to use
+it like in a real module.
+
+|----------------------------------------------------------------
+| use a inlined function:	| carry pointer in a register:	|
+|----------------------------------------------------------------
+| arm				| IA-64				|
+| cris				| sparc, sparc64		|
+| parisc			| mips, mips64			|
+| s390, s390x			| alpha				|
+| i386				| m68000			|
+| sh				| power pc			|
+|----------------------------------------------------------------
+
+
+getting into
+------------
+
+yeah, lets get into play. there is now a new problem. first, let us recall
+which are already solved:
+ - we know where to put our code
+ - we know how to replace a syscall entry (where to put our hook)
+
+this does not help much until this problem is solved:
+ - how to link our code into the kernel
+
+An object file is full of symbols. so we can not just read the file out and
+write it into memory.  A symbol is a placeholder for a address (e.g. to a
+function). It has to be looked up on loadtime. This is half of the work done
+by "insmod". We dont want/can not afford that.
+We avoid the presence of symbols by not using a (global) function. Instead
+we insert (local) pointers to functions inside our function. As this pointer
+can only be accesses inside of the function and is therefore not exported,
+no symbol is created if we compile our code.
+
+The disadvantages of this approach are:
+  - it is slow
+  - increases code size
+
+other approaches to insert & link the code could be:
+  - writing a real linker (hehe)
+  - taking a look into insmod source code
+
+Since we might not be aware of the real addresses of kernel intern symbols
+(e.g. if we have no System.map file of the system we want to attack) we choose
+dummy values for the addresses of our pointers. We can replace them with
+the real values after we looked them up.
+
+
+Finding a Symbol
+----------------
+
+These are our four possiblities:
+ - look at System.map file
+ - if was exported and we can query it
+ - we looked it up earlier and recall its address right
+ - we know how it "looks" and can search it
+
+the first three are equally simple: if it is know where the symbol lives there
+is no need to search. the fourth means to search a pattern, know to match the
+symbol in question, inside kernel memory. yes, it works.
+
+

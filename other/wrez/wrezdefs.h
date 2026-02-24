@@ -1,0 +1,2 @@
+#define WREZ_CFG_START 0x00000005
+#define WREZ_SIZE 5808

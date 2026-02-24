@@ -1,0 +1,65 @@
+
+urgent:
+
+	- objobf: register dependancy of junk inserted instructions
+	- objobf: command line option: "order string", like S=split, J=junk:
+		-O JSJ
+
+	- ssh-final-dietlibc.o, xstrdup called from main with NULL argument
+	- signal-related syscall skipping: emulate system call success (eax)
+
+	- check switch cases with say, 1024-1300 given, but not 0-1023
+
+
+design wise (i.e. think about it early):
+
+	- think about whether its possible to split .rodata and .data into
+	  single objects by extracting the size/place info from symbol table,
+	  doing the necessary relocations on the fly (we have to do them
+	  anyway). for .rodata we can inline an object multiple times, for
+	  .data we have to keep flagging whether its already in memory
+	  somewhere. so maybe organise .data as stack, too. whenever the first
+	  .data object is needed, put it on the stack, flag it to stick there
+	  forever. (completely lazy evaluation, use hashtable based on hash
+	  build from current branch-id). (will things such as gettext clash
+	  with .rodata randomization?).
+	- construct trampolines for .text function pointer relocations
+	  happening in non-branch-ends in .text or in another section at all.
+	  the trampoline has to modify burneye's own stack and page in the
+	  real function. only construct trampolines for required functions,
+	  else its trivial to walk all trampolines.
+
+
+before release:
+
+	- maybe migrate wrez code to burneye, maybe optionally include the
+	  LiME engine.
+	- look for ways to randomize map function more.
+	- check sigmasking in sigaction (see TODO in loader.c)
+	- check whether we can put ourselves in as PT_INTERP and never let the
+	  real program execute but do everything inside the program interpreter
+	- implement a generic "data bucket" store facility that uses
+	  kernel-driven options for a process (i.e. addresses of signal
+	  handlers, signal masks, ulimits, (pid?), (stack base?), number of
+	  open fd's, ...). use it for important data burneye cannot live
+	  without, such as active-branch-id, burneye stack pointer and the
+	  like.
+	- fuzz IDA's ELF loader to construct ELF files that are perfectly
+	  executeable in Linux, but will make trouble with IDA
+		1. create n ELF executeable
+		2. sort out which work as expected (i.e. return errorlevel 126)
+		3. load those into IDA
+	- find ways to clash with libbfd based tools even more (i.e. maybe
+	  bogus section header table). maybe audit libbfd ELF part
+	- test whether its possible to cross-ptrace two processes (each
+	  ptracing the other) and use running-line code. maybe make a small
+	  generator function to running-line any burneye code, when it is
+	  PIC in itself.
+
+
+general:
+	- maybe think of whether .so virus infection is possible with patched
+	  relocation entries (or even virus code in relocations)
+
+
+

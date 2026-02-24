@@ -1,0 +1,159 @@
+graph: { title: "control flow graph of 'quicksort'"
+	layoutalgorithm: minbackward
+	display_edge_labels: yes
+	manhatten_edges: yes
+	layout_nearfactor: 0
+	xspace: 25
+
+	node.color: white
+	node.textcolor: black
+	edge.color: black
+	edge.arrowsize: 15
+	edge.thickness: 4
+
+node: { title: "0x00000018"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x00000018  push       ebp                                      ----s--- ----sp-- ---bsp12 ---bs-12
+0x00000019  mov        ebp, esp                                 -----p-- ----s--- ---bs-12 ---bsp12
+0x0000001b  sub        esp, (8)0x00000018                       ----s--- ----s--- ---bsp12 ---bsp12
+0x0000001e  mov        eax, dword [ebp + (8)0x00000010]         a------- -----p-- ---bsp12 a--bsp12
+0x00000021  cmp        eax, dword [ebp + (8)0x0000000c]         -------- a----p-- a--bsp12 a--bsp12
+0x00000024  j(nle,g)   dword (8)0x00000005                      -------- -------- a--bsp12 a--bsp12
+" }
+node: { title: "0x00000026"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x00000026  jmp        dword (32)0x000000d1                     -------- -------- a--b-p12 a--b-p12
+" }
+node: { title: "0x000000fc"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x000000fc  leave                                               ----sp-- -----p-- a--b-p12 a--bsp12
+0x000000fd  ret                                                 ----s--- a--bsp12 a--bsp12 --------
+" }
+node: { title: "0x0000002b"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x0000002b  mov        eax, dword [ebp + (8)0x0000000c]         a------- -----p-- ---bsp12 a--bsp12
+0x0000002e  dec        eax                                      a------- a------- a--bsp12 a--bsp12
+0x0000002f  mov        dword [ebp + (8)0xfffffffc], eax         -------- a----p-- a--bsp12 ---bsp12
+0x00000032  mov        eax, dword [ebp + (8)0x00000010]         a------- -----p-- ---bsp12 a--bsp12
+0x00000035  mov        dword [ebp + (8)0xfffffff8], eax         -------- a----p-- a--bsp12 ---bsp12
+0x00000038  mov        eax, dword [ebp + (8)0x00000010]         a------- -----p-- ---bsp12 a--bsp12
+0x0000003b  add        eax, dword [ebp + (8)0x00000008]         a------- a----p-- a--bsp12 a--bsp12
+0x0000003e  movzx      eax, byte [eax]                          a------- a------- a--bsp12 a--bsp12
+0x00000041  mov        dword [ebp + (8)0xfffffff4], eax         -------- a----p-- a--bsp12 ---bsp12
+" }
+node: { title: "0x00000044"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x00000044  lea        eax, dword [ebp + (8)0xfffffffc]         a------- -----p-- ---bsp12 a--bsp12
+0x00000047  inc        dword [eax]                              -------- a------- a--bsp12 ---bsp12
+0x00000049  mov        eax, dword [ebp + (8)0xfffffffc]         a------- -----p-- ---bsp12 a--bsp12
+0x0000004c  add        eax, dword [ebp + (8)0x00000008]         a------- a----p-- a--bsp12 a--bsp12
+0x0000004f  movzx      eax, byte [eax]                          a------- a------- a--bsp12 a--bsp12
+0x00000052  cmp        eax, dword [ebp + (8)0xfffffff4]         -------- a----p-- a--bsp12 ---bsp12
+0x00000055  j(l,nge)   dword (8)0xffffffed                      -------- -------- ---bsp12 ---bsp12
+" }
+node: { title: "0x00000057"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x00000057  nop                                                 -------- -------- ---bsp12 ---bsp12
+" }
+node: { title: "0x00000058"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x00000058  lea        eax, dword [ebp + (8)0xfffffff8]         a------- -----p-- ---bsp12 a--bsp12
+0x0000005b  dec        dword [eax]                              -------- a------- a--bsp12 ---bsp12
+0x0000005d  mov        eax, dword [ebp + (8)0xfffffff8]         a------- -----p-- ---bsp12 a--bsp12
+0x00000060  add        eax, dword [ebp + (8)0x00000008]         a------- a----p-- a--bsp12 a--bsp12
+0x00000063  movzx      eax, byte [eax]                          a------- a------- a--bsp12 a--bsp12
+0x00000066  cmp        eax, dword [ebp + (8)0xfffffff4]         -------- a----p-- a--bsp12 ---bsp12
+0x00000069  j(nle,g)   dword (8)0xffffffed                      -------- -------- ---bsp12 ---bsp12
+" }
+node: { title: "0x0000006b"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x0000006b  mov        eax, dword [ebp + (8)0xfffffffc]         a------- -----p-- ---bsp12 a--bsp12
+0x0000006e  cmp        eax, dword [ebp + (8)0xfffffff8]         -------- a----p-- a--bsp12 ---bsp12
+0x00000071  j(l,nge)   dword (8)0x00000002                      -------- -------- ---bsp12 ---bsp12
+" }
+node: { title: "0x00000073"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x00000073  jmp        dword (8)0x0000002d                      -------- -------- ---bsp12 ---bsp12
+" }
+node: { title: "0x000000a2"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x000000a2  mov        eax, dword [ebp + (8)0xfffffffc]         a------- -----p-- ---bsp12 a--bsp12
+0x000000a5  add        eax, dword [ebp + (8)0x00000008]         a------- a----p-- a--bsp12 a--bsp12
+0x000000a8  movzx      eax, byte [eax]                          a------- a------- a--bsp12 a--bsp12
+0x000000ab  mov        dword [ebp + (8)0xfffffff0], eax         -------- a----p-- a--bsp12 ---bsp12
+0x000000ae  mov        eax, dword [ebp + (8)0xfffffffc]         a------- -----p-- ---bsp12 a--bsp12
+0x000000b1  mov        edx, dword [ebp + (8)0x00000008]         --d----- -----p-- a--bsp12 a-dbsp12
+0x000000b4  add        edx, eax                                 --d----- a-d----- a-dbsp12 --dbsp12
+0x000000b6  mov        eax, dword [ebp + (8)0x00000010]         a------- -----p-- --dbsp12 a-dbsp12
+0x000000b9  add        eax, dword [ebp + (8)0x00000008]         a------- a----p-- a-dbsp12 a-dbsp12
+0x000000bc  mov        al, byte [eax]                           a------- a------- a-dbsp12 a-dbsp12
+0x000000be  mov        byte [edx], al                           -------- a-d----- a-dbsp12 ---bsp12
+0x000000c0  mov        eax, dword [ebp + (8)0x00000010]         a------- -----p-- ---bsp12 a--bsp12
+0x000000c3  mov        edx, dword [ebp + (8)0x00000008]         --d----- -----p-- a--bsp12 a-dbsp12
+0x000000c6  add        edx, eax                                 --d----- a-d----- a-dbsp12 --dbsp12
+0x000000c8  mov        al, byte [ebp + (8)0xfffffff0]           a------- -----p-- --dbsp12 a-dbsp12
+0x000000cb  mov        byte [edx], al                           -------- a-d----- a-dbsp12 ---bsp12
+0x000000cd  call       dword (32)0xfffffffc                     ----s--- ----s--- ---bsp12 ---bsp12
+" }
+node: { title: "0x000000d2"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x000000d2  sub        esp, (8)0x00000004                       ----s--- ----s--- ---bsp12 ---bsp12
+0x000000d5  push       dword [ebp + (8)0xfffffff8]              ----s--- ----sp-- ---bsp12 ---bsp12
+0x000000d8  push       dword [ebp + (8)0x0000000c]              ----s--- ----sp-- ---bsp12 ---bsp12
+0x000000db  push       dword [ebp + (8)0x00000008]              ----s--- ----sp-- ---bsp12 ---bsp12
+0x000000de  call       dword (32)0xfffffffc                     ----s--- ----s--- ---bsp12 ---bsp12
+" }
+node: { title: "0x000000e3"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x000000e3  add        esp, (8)0x00000010                       ----s--- ----s--- ---bsp12 ---bsp12
+0x000000e6  sub        esp, (8)0x00000004                       ----s--- ----s--- ---bsp12 ---bsp12
+0x000000e9  push       dword [ebp + (8)0x00000010]              ----s--- ----sp-- ---bsp12 ---bsp12
+0x000000ec  mov        eax, dword [ebp + (8)0xfffffffc]         a------- -----p-- ---bsp12 a--bsp12
+0x000000ef  inc        eax                                      a------- a------- a--bsp12 a--bsp12
+0x000000f0  push       eax                                      ----s--- a---s--- a--bsp12 a--bsp12
+0x000000f1  push       dword [ebp + (8)0x00000008]              ----s--- ----sp-- a--bsp12 a--bsp12
+0x000000f4  call       dword (32)0xfffffffc                     ----s--- ----s--- a--bsp12 a--bsp12
+" }
+node: { title: "0x000000f9"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x000000f9  add        esp, (8)0x00000010                       ----s--- ----s--- a--bsp12 a--b-p12
+" }
+node: { title: "0x00000075"
+	label: "\fu   address\fn  \fuinstruction                                        \fn \fudef     \fn \fuuse     \fn \fuin      \fn \fuout     \fn
+0x00000075  mov        eax, dword [ebp + (8)0xfffffffc]         a------- -----p-- ---bsp12 a--bsp12
+0x00000078  add        eax, dword [ebp + (8)0x00000008]         a------- a----p-- a--bsp12 a--bsp12
+0x0000007b  movzx      eax, byte [eax]                          a------- a------- a--bsp12 a--bsp12
+0x0000007e  mov        dword [ebp + (8)0xfffffff0], eax         -------- a----p-- a--bsp12 ---bsp12
+0x00000081  mov        eax, dword [ebp + (8)0xfffffffc]         a------- -----p-- ---bsp12 a--bsp12
+0x00000084  mov        edx, dword [ebp + (8)0x00000008]         --d----- -----p-- a--bsp12 a-dbsp12
+0x00000087  add        edx, eax                                 --d----- a-d----- a-dbsp12 --dbsp12
+0x00000089  mov        eax, dword [ebp + (8)0xfffffff8]         a------- -----p-- --dbsp12 a-dbsp12
+0x0000008c  add        eax, dword [ebp + (8)0x00000008]         a------- a----p-- a-dbsp12 a-dbsp12
+0x0000008f  mov        al, byte [eax]                           a------- a------- a-dbsp12 a-dbsp12
+0x00000091  mov        byte [edx], al                           -------- a-d----- a-dbsp12 ---bsp12
+0x00000093  mov        eax, dword [ebp + (8)0xfffffff8]         a------- -----p-- ---bsp12 a--bsp12
+0x00000096  mov        edx, dword [ebp + (8)0x00000008]         --d----- -----p-- a--bsp12 a-dbsp12
+0x00000099  add        edx, eax                                 --d----- a-d----- a-dbsp12 --dbsp12
+0x0000009b  mov        al, byte [ebp + (8)0xfffffff0]           a------- -----p-- --dbsp12 a-dbsp12
+0x0000009e  mov        byte [edx], al                           -------- a-d----- a-dbsp12 ---bsp12
+0x000000a0  jmp        dword (8)0xffffffa2                      -------- -------- ---bsp12 ---bsp12
+" }
+
+edge: { sourcename: "0x00000018" targetname: "0x00000026"label: "false" color: darkred }
+edge: { sourcename: "0x00000018" targetname: "0x0000002b"label: "true" color: darkgreen }
+edge: { sourcename: "0x00000026" targetname: "0x000000fc"}
+edge: { sourcename: "0x0000002b" targetname: "0x00000044"label: "pass" }
+edge: { sourcename: "0x00000044" targetname: "0x00000057"label: "false" color: darkred }
+edge: { sourcename: "0x00000044" targetname: "0x00000044"label: "true" color: darkgreen }
+edge: { sourcename: "0x00000057" targetname: "0x00000058"label: "pass" }
+edge: { sourcename: "0x00000058" targetname: "0x0000006b"label: "false" color: darkred }
+edge: { sourcename: "0x00000058" targetname: "0x00000058"label: "true" color: darkgreen }
+edge: { sourcename: "0x0000006b" targetname: "0x00000073"label: "false" color: darkred }
+edge: { sourcename: "0x0000006b" targetname: "0x00000075"label: "true" color: darkgreen }
+edge: { sourcename: "0x00000073" targetname: "0x000000a2"}
+edge: { sourcename: "0x000000a2" targetname: "0x000000d2"}
+edge: { sourcename: "0x000000d2" targetname: "0x000000e3"}
+edge: { sourcename: "0x000000e3" targetname: "0x000000f9"}
+edge: { sourcename: "0x000000f9" targetname: "0x000000fc"label: "pass" }
+edge: { sourcename: "0x00000075" targetname: "0x00000044"}
+}

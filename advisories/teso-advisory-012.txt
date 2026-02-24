@@ -1,0 +1,84 @@
+
+
+TESO Security Advisory
+01/01/2002
+
+LIDS Linux Intrusion Detection System vulnerability
+
+
+Summary
+===================
+
+    The "Linux Intrusion Detection System" security patches create a security
+    vulnerability. Exploitation is easy and local users may be able to gain
+    unrestricted root priviledges.
+
+
+Systems Affected
+===================
+
+    Almost any Linux system that uses the LIDS kernel patches.
+
+
+Impact
+===================
+
+    Through crafting a LD_PRELOAD library that runs without capability
+    restrictions and executing an unrestricted binary an attacker is able
+    to inherit the restrictions of the executed binary. On most systems
+    where the necessary binaries are provided, he can get rid of all his
+    restrictions.
+
+
+Explanation
+===================
+
+
+
+Solution
+===================
+
+    The vendors have been notified of the problem at the same time as the
+    general public, vendor patches that fix the bug should be available soon.
+
+
+
+Acknowledgements
+===================
+
+    The bug has been discovered by stealth.
+
+    The tests and further analysis were done by stealth.
+
+
+Contact Information
+===================
+
+    The TESO crew can be reached by mailing to teso@team-teso.net
+    Our web page is at http://www.team-teso.net/
+
+
+References
+===================
+
+    [1] TESO
+        http://www.team-teso.net/
+
+
+Disclaimer
+===================
+
+    This advisory does not claim to be complete or to be usable for any
+    purpose. Especially information on the vulnerable systems may be inaccurate
+    or wrong. Possibly supplied exploit code is not to be used for malicious
+    purposes, but for educational purposes only.
+
+    This advisory is free for open distribution in unmodified form.
+    Articles that are based on information from this advisory should include
+    link [1].
+
+
+Exploit
+===================
+
+
