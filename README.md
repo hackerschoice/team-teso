@@ -4,6 +4,15 @@ The TESO-CVS was giften to [THC](https://www.thc.org) at THC's 10th anniversary 
 
 It is published here for educational purposes only. ENJOY.
 
+Some artifacts were never hosted on the CVS and are lost in time:
+- TESO's ssh exploit
+- Many (ohh so many!) OpenBSD exploits (including the world's first remote 0day against OpenBSD)
+- Stacheldraht & Blitzkrieg
+- Adore LKM
+- So many pictures (_evidence, **cought cough**_) have been tossed into the ocean.
+- So many stories that haven't been told.
+- ..._(please send a PR if you have any of the "lost" artifacts)_
+
 [https://www.team-teso.net](https://www.team-teso.net)  
 [https://en.wikipedia.org/wiki/TESO_(Austrian_hacker_group)](https://en.wikipedia.org/wiki/TESO_(Austrian_hacker_group))
 
