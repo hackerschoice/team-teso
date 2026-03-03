@@ -1,6 +1,6 @@
 # team-teso
 
-The TESO-CVS was giften to [THC](https://www.thc.org) at THC's 10th anniversary party in 2005 (Berlin).  
+The TESO-CVS was giften to [THC](https://www.thc.org) at [THC's 10th anniversary party](extra/thc-10-year-bday.jpg) in 2005 (Berlin).  
 
 It is published here for educational purposes only. ENJOY.
 
@@ -14,7 +14,8 @@ Some artifacts were never hosted on the CVS and are lost in time:
 - ..._(please send a PR if you have any of the "lost" artifacts)_
 
 [https://www.team-teso.net](https://www.team-teso.net)  
-[https://en.wikipedia.org/wiki/TESO_(Austrian_hacker_group)](https://en.wikipedia.org/wiki/TESO_(Austrian_hacker_group))
+[https://en.wikipedia.org/wiki/TESO_(Austrian_hacker_group)](https://en.wikipedia.org/wiki/TESO_(Austrian_hacker_group))   
+[https://packetstorm.news/groups/teso](https://packetstorm.news/groups/teso)
 
 ---
 *Original*
