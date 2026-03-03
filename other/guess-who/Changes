@@ -1,0 +1,37 @@
+0.44
+---
+
+- Hah. Incorrectly did not check return of packet_read()
+  everywhere. Could lead to hangs.
+
+0.43
+----
+
+- idiotically, I made the tcp_connect() non-blocking for
+  the bruter too. fixed. Only pubscan needs nonblocking
+  connect
+
+0.42
+----
+
+- fetch pending error after select() so we properly
+  handly closed ports etc
+
+0.41
+---
+
+- added pubkey scan
+
+
+0.35
+----
+
+- added "-n" switch
+- added keygen debugging tool
+
+
+0.34
+----
+
+- first public version
+

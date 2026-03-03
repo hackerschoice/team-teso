@@ -1,0 +1,22 @@
+telnetfp0.1.2 by Palmers / teso
+
+what is this anyway?
+this neat program determins a given hosts OS via telnet do/dont negotiation.
+of course, it is only prove of concept code and the intellectual property of
+team teso (http://www.team-teso.org|http://www.team-teso.net). 
+
+how does it work?
+if a telnet connection is established options are exchanged. this can be used
+to fingerprint a host, because of the options themself and the order of the
+options.
+this program connects to a hosts telnet daemon and reads the first set of
+options (do's in most cases). to these the proper answer is send. now a second
+round of negotiation takes place. options (dont's this time) are recived and
+the fingerprint is completely recived.
+
+installation:
+type 'make' and be happy (or see Makefile or write me a mail, with a bug report).
+
+misc:
+my greets go to my true friends, you know who you are.
+pa1mers@gmx.de (for feedback, flames & fingerprints).

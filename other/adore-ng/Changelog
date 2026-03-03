@@ -1,0 +1,174 @@
+1.41
+----
+
++ Wed Mar 3 2004
++ 2.6.3 tests, getting to know that some declarations are different
+  on 2.6.3
+
+1.40
+----
+
++ Sun Feb 29 2004
++ Ported all of the adore for 2.4 kernel to 2.6 kernel
+  (including socket hiding, syslog filtering and xtmp clearing)
+
+1.32
+----
+
++ Sun Feb  8 2004
++ Added fix in tcp_new_size() so it wont crash if lot
+  of TCP connections exist
+
+1.31
+----
+
++ Sat Jan  3 2004
++ Changed socket hijacking to work with 2.4.18 and below
++ SMP tests
+
+1.30 
+----
+
++ Sun Dec 21 2003
++ Added syslog filtering
++ Added wtmp/utmp/lastlog filtering
++ Restrict ADORE_KEY to 16 bytes max
++ Added relink script
++ Added symsed
++ Added startadore
++ Added LKM infection for reboot residency
+
+
+1.26
+----
+
++ heh, forgot to update $current_adore before tagging
+  to version 0.26 :)
+
+1.25
+----
+
++ Hidden 'ps' (started from hidden shell) must be able
+  to see itself on /proc. Otherwise some distros make
+  probs. Fixed!
++ Added 'I' switch to ava
+
+
+1.23
+----
+
++ 2.6 port
++ added visible-start
+
+1.12
+----
+
++ fixed adore_atoi() respect to /proc misbehaivior
+  a PID of 672 has the string "672üA" so make atoi()
+  handle this
++ fixed adore_init() which did not checked ssuid
+  correctly
+
+
+1.11
+----
+
++ rewrote most parts (using VFS etc)
+  -> adore-ng
+
+0.53
+----
+
++ #define PID_MAX if not found
+
+
+0.52
+----
++ support 16 and 32 bit UID/GID
++ using spin-locks
++ hooking lookup in proc_root, so many adore-testers
+  fail now
++ much better tcp-connection hiding, also via proc
++ removed file redirection
++ added elite_gid, so its now impossible to detect adore by
+  chown()+getdents() bruteforce
++ elite_uid/elite_gid are randomly choosen by "configure"
++ close() should return EBADF when
+  user is not authenticated. It does so now.
+
+0.42
+----
+
++ Added devpts fix.
+
+0.41
+----
+
++ fixed is_secret64() to properly hide files.
++ removed memleak
+
+0.40
+----
+
++ fixed some typo in cleanup_module()
+
+
+0.39b
+-----
+
++ open()/stat() redirection
++ no more exec redir
++ Added possiblility to hide more than one service
+  (netstat -an vs. -al)
++ This is a Beta version! It is for testing purposes,
+  whether open/stat redir works properly.
+
+0.38
+----
+
++ Nothing. CVS-internally thing.
+ 
+
+0.36
+----
+
++ Added rename.c as generic way to rename/rmmod protection
+  modules such as StMichael.
++ Fixed libinvisble: Dont follow links on chown() ->
+  now properly hides symlinks
+
+0.35
+----
+
++ Added 64 bit FS support, for 2.4 plus new glibc
+
+
+0.33
+----
+
++ Added auth via mkdir(2) to defeat scanners
++ setuid() -> close() change since 2.4 kernel uses setuid32()
+
+
+0.32
+----
+
++ added kgcc check in configure
++ added exec-redirection
++ made 'R' switch stable (now official feature)
+
+
+0.31
+----
++ empty module-list doesn't crash anymore :)
++ removed syslog dis/enabling coz a lot of ppl told me its not of much use
+  and it only costs porting time and robustness
++ added removing of procs
++ no chkroot defat anymore. there are too many ways to detect rootkits
+
+
+...
+sowhere below
+
++ Added 'cant be killed from normal processes'
+

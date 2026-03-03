@@ -1,0 +1,51 @@
+# entropy gathering commands
+
+# Format is: "program-name args" path rate
+
+# The "rate" represents the number of bits of usuable entropy per 
+# byte of command output. Be conservative.
+
+"ls -alni /var/log"				0.02
+"ls -alni /var/adm"				0.02
+"ls -alni /var/mail"				0.02
+"ls -alni /var/spool/mail"			0.02
+"ls -alni /proc"				0.02
+"ls -alni /tmp"					0.02
+
+"netstat -an"					0.05
+"netstat -in"					0.05
+"netstat -rn"					0.02
+"netstat -pn"					0.02
+"netstat -s"					0.02
+
+"arp -a -n"					0.02
+
+"ifconfig -a"					0.02
+
+"ps laxww"					0.03
+"ps -al"					0.03
+"ps -efl"					0.03
+
+"w"						0.05
+
+"who -i"					0.01
+
+"last"						0.01
+
+"lastlog"					0.01
+
+"df"						0.01
+"df -i"						0.01
+
+"vmstat"					0.01
+"uptime"					0.01
+
+"ipcs -a"					0.01
+
+"tail -200 /var/log/messages"			0.01
+"tail -200 /var/log/syslog"			0.01
+"tail -200 /var/adm/messages"			0.01
+"tail -200 /var/adm/syslog"			0.01
+"tail -200 /var/adm/syslog/syslog.log"		0.01
+"tail -200 /var/log/maillog"			0.01
+"tail -200 /var/adm/maillog"			0.01
