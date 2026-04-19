@@ -1,0 +1,148 @@
+
+
+zodiac - advanced dns spoofer
+
+readme file
+
+
+
+ 0. content
+
+    compilation ......................................................  1
+    features and description .........................................  2
+    overview of weak points in the domain name service ...............  3
+    spoofing descriptions ............................................  4
+    hints for effective spoofing .....................................  5
+
+    about ............................................................  6
+    greetings ........................................................  7
+
+    legal stuff / disclaimer .........................................  8
+
+
+
+ 1. compilation
+
+    read "INSTALL"
+
+ 2. features and description
+
+    basic features include:
+
+DONE  - sniffing of dns datagrams on an ethernet device
+DONE  - decoding of all types of dns packets, including safe decompression
+?     - nice display and gui
+DONE  - always interactive in all situations
+DONE  - threaded and flexible design
+
+    advanced features include:
+
+DONE? - local dns spoof
+      - jizz dns spoof, exploiting a weakness in some named's implementations
+      - determines jizz-weakness, id-prediction and resolver type remotely
+      - id spoofing, exploiting a weakness in the dns protocol itself
+      - implements some advanced dns denial of service attacks, including
+        flood, label compression and unres attack, advanced dns smurf
+
+
+ 3. overview of weak points in the domain name service
+
+    - connectionless, udp based, independent protocol
+
+      the dns protocol can utilize tcp and udp as transportation protocols.
+      however, nearly all domain name servers use udp, because it has two
+      great advantages over tcp: it has little overhead and it doesn't need
+      time to establish a connection, it can just send data directly.
+
+      this is one of the reasons why the dns protocol is attackable, because
+      it uses a stateless protocol to deliver it's data, and extends this with
+      just some weak state variables inside the dns header.
+
+      stateless protocols can be spoofed easily, this is true for udp also. so
+      the spoof-security has to be guaranteed by the protocol on top of it, in
+      this case the dns protocol.
+
+    - broad usage, compatibility over security
+
+      since the dns protocol is very popular it has to be compatible with as
+      much servers as possible. the dns standard is written down in two
+      technical documents, the so called rfc's, for dns it is rfc 1034 and
+      1035.
+      a dns server often has to handle hundrets of requests from hundrets of
+      different machines at the same time, to understand them they have to fit
+      the format defined in the rfc's, any violation may render the request
+      to be dropped. this makes it nearly impossible to extend the dns protocol
+      within the tight borders given by the rfc.
+
+    - old, ineffective
+
+      the dns protocol we use today has been established 1987. at this time
+      the internet was not as popular as today, and although there has been
+      incidents in which protocol security has been compromised there was no
+      real sense of security when the protocol was designed.
+
+      therefore the protocol is functional and obviously working but is
+      lacking any security implementation. the dns id was never intended to be
+      used for security, just to sort the answers of the remote dns server
+      more quickly (the same applies to the isn of a tcp connection, they were
+      never intended to stop ip/tcp spoofing).
+
+      also dns turned out to be a quite ineffective protocol in large net-
+      works. there are estimations that 20% of all internet traffic are dns
+      traffic. dns caching is used to avoid too much traffic, therefore
+      exposing another way to compromise dns security.
+
+      also the dns protocol is centralized, which means there are more
+      important computers than others in dns design, therefore it's clearly
+      obvious which computers are subject to attacks (those that cache for
+      many computers).
+
+
+ 4. spoofing descriptions
+
+    not yet
+
+ 5. hints for effective spoofing
+
+    not yet
+
+ 6. about
+
+    the program has been written by members of team teso and smiler.
+    a helpful patch has been submitted by noah williamsson <tm@ns2.crw.se>.
+
+    the vulnerabilities the program exploits have been discovered by other
+    persons, the adm crew deserves credit for the dns id spoofing technique.
+
+    the dozends of mindful people from the bugtraq mailing list that messed
+    with dns also deserve credits :)
+
+
+ 7. greetings
+
+    (from scut)
+
+      in alphabetical order :-D
+
+      acpizer, avoozl, axhate, blackb, blow, bigblue, crestor, davy, domnar,
+      edi, focht, foxfire, fungus, garry, hendy, hoopy, js, kafka, lorian,
+      mindtrip, moc, overhead, oxigen, packwahn, plasmoid, random, route,
+      smiler, spy, tb303, tis, toniq, typo, vax, waterloo, wildandi, wilkins,
+      yks, yodler, zap. 
+
+      special greetings to
+
+        smiler, :-)
+        the adm crew, for finding the id vulnerability, but lack a good coding
+          style ;-)
+        foxfire, for giving me some nice packet dumps to play with
+        oxigen, for giving me some hints about dns spoofing
+        rfc1035, for giving me any information about any dns packet
+        ken williams, for just being so cool B-)
+
+
+ 8. legal stuff / disclaimer
+
+    know what you do before you do it, be able to face it's consequences.
+
+

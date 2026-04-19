@@ -1,0 +1,30 @@
+
+brute_blind/
+
+blind format string brute force attack demonstration
+by scut / teso
+
+
+ 1. how this works
+	-> read the (well documented) source
+
+ 2. if it doesn't work
+	-> it was tested on a Debian 2.2 potato box, with LibC 6
+
+	i've heard from some people that it does NOT work on their system
+	at all. this is a problem of libc5 behaviour, where this technique
+	does not work at all. if you run libc6, but it does not work, i am
+	sorry, this is only a demonstration source. but try this:
+		- get the system load down (ie stop cpu intense tasks)
+		- compare the success- and the failure time. they should
+		  differ noticeable, the success time being a lot bigger.
+		- play with the factor in the fmtbrute.c source file
+		  (ie increase or decrease it, to something between 30 and 2)
+		- debug it
+
+ 3. credits
+	-> the basic timing idea of this technique was developed by tf8 of
+	   security.is.
+	-> i extended the timing idea to offsets and buffer address
+
+

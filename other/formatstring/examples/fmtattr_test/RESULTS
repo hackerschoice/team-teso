@@ -1,0 +1,86 @@
+
+
+IRIX 6.5
+IRIX C Library version ?
+
+has_n yes
+has_star yes
+has_nstar yes
+has_star_ow yes
+has_dollar yes
+has_float yes
+has_dot_float yes
+size_snprintf ok
+size_non_write_count exceeds
+
+
+Linux i386 SuSE 6.0
+GNU C Library 2.0.7
+
+has_n yes
+has_star yes
+has_nstar no
+has_star_ow no
+has_dollar yes
+has_float yes
+has_dot_float yes
+size_snprintf ok
+size_non_write_count remains
+
+
+Linux i386 Debian 2.2
+GNU C Library 2.1.3
+
+has_n yes
+has_star yes
+has_nstar no
+has_star_ow no
+has_dollar yes
+has_float yes
+has_dot_float yes
+size_snprintf ok
+size_non_write_count exceeds
+
+
+Linux i386 RedHat 6.2
+GNU C Library 2.1.3
+
+has_n yes
+has_star yes
+has_nstar no
+has_star_ow no
+has_dollar yes
+has_float yes
+has_dot_float yes
+size_snprintf ok
+size_non_write_count exceeds
+
+
+Linux i386 RedHat 7.0
+GNU C Library 2.1.92
+
+has_n yes
+has_star yes
+has_nstar no
+has_star_ow no
+has_dollar yes
+has_float yes
+has_dot_float yes
+size_snprintf ok
+size_non_write_counts exceeds
+
+
+Solaris 7 sparc (sun4m):
+default Solaris 7 C library
+
+has_n yes
+has_star yes
+has_nstar yes
+has_star_ow no
+has_dollar yes
+has_float yes
+has_dot_float yes
+size_snprintf ok
+size_non_write_counts exceeds
+
+

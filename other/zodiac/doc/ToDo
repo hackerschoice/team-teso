@@ -1,0 +1,17 @@
+short time:
+	- implement all TY_* for dns_build_rr
+	- jizz dns spoof
+
+global goals:
+	- first release
+	- gui cleanup, docs
+	- dns denial of service attacks
+	- tool functions: finding nameserver, getting info about it (HWARE)
+	- implement SOA rdata decoding + rest of rdata-types
+	- implement dns packet compression within dns_packet_send ()
+	- verbosity levels
+
+done:
+	- gui
+
+

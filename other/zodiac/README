@@ -1,0 +1,71 @@
+
+zodiac - development releases
+
+readme file
+
+
+ 1. intention
+
+    in the current version zodiac is not useable for any real dns spoofing,
+    it is just a developing release, to get it more portable and to improve
+    it's code base. please don't ask us how to spoof this or that.
+
+    the functionality isn't even documented, so you'd have to dig into the
+    code to actually get something out of it :-) (which should be fun, since
+    i tried to at least document the code hehe)
+
+    but please contact us in any case of the follows:
+
+        1. you got it compiled on any of the non listed plattforms
+           -> email us, and tell us how you did it
+
+        2. you found a reproduceable bug
+           -> email us, and tell us how to reproduce it
+
+        3. you wrote a patchfile
+           -> email it to us, telling is what it does
+
+        4. you have general suggestions
+           -> email us
+
+
+ 2. compilation, portability
+
+    i'm sorry i cannot assist you in building zodiac on your platform in the
+    current development state, please don't mail us about this, except you
+    got it compiled or ported to another platform and you can supply us a
+    patchfile.
+
+
+ 3. for developers: getting started
+
+    if you want to participate with quality code or patches, you're welcome.
+    here are some little steps how to start exploring the sources:
+
+    first compile zodiac, and run it as superuser. then try some dns stuff
+    on another console while having zodiac running (dig, nslookup). watch how
+    nicely it decodes (screen) and dumps (file "packets-rawdns") all the dns
+    packets on the local network.
+
+    next you may try to explore the sources either from bottom up (packet.c,
+    dns.c, dns-build.c and dns-spoof.c in this order), or top down,
+    which is the same order reversed.
+    if you find the sources interesting, start coding :) (if you aren't into
+    dns and tcp/ip and such, recode the ugly gui to some fance oldskewl ansi
+    bbs style menue ;-).
+
+    thanks for your interest into zodiac.
+
+
+ 4. contact information
+
+    scut
+      irc, efnet, nick: sacbuctd
+      email: scut@nb.in-berlin.de
+      web: http://teso.scene.at/ (teso is a new and skilled security group, just
+             visit our page :-)
+
+    smiler
+      email: smiler@tasam.com
+
+

@@ -1,0 +1,124 @@
+
+
+                          INSTALLATION INSTRUCTIONS
+
+                                     for
+
+                        zodiac - advanced dns spoofer
+                            (not finished yet !)
+
+
+ 0. INTRODUCTION
+
+    this document describes how to install zodiac on unix based systems.
+    zodiac is a low level analyzation and spoof tool for the dns protocol.
+
+    zodiac has been compiled successfully on following systems:
+
+      linux 2.0.x with libc5, gcc and the linuxthread thread library
+      linux 2.2.x with glibc, egcs
+      linux 2.3.x with glibc, egcs
+      freebsd 4.0-stable
+      ...
+
+    if you managed to compile zodiac without any modifications on another
+    system, please tell us. for our email address refer to the readme file.
+
+
+ 1. COMPILATION - REQUIREMENTS
+
+    zodiac is provided at source code level, under a certain license. you have
+    to compile it before you can use it. to compile it successfully you need
+    to have following libraries installed.
+
+    libncurses       >= 4.0    http://www.freshmeat.net/
+    libnet           >= 0.99   http://www.packetfactory.net/libnet/
+    libpcap          >= 0.4    ftp://ftp.ee.lbl.gov/
+    thread library    = POSIX  http://www.freshmeat.net/
+      (libpthread)
+
+    the thread library has to conform to the POSIX IPC standard. you won't
+    have any difficulties if you use a libc6 system, for libc5 linux systems
+    i recommend the linuxthreads library. if you use more exotic systems,
+    like bsd or irix or aix, there is still a way to compile zodiac by using
+    a usermode thread library such as the excellent GNU Pth (portable threads)
+    library, which is available from freshmeat also.
+
+    the pcap library is a platform independant packet capturing library, that
+    is used by many network programs. don't miss to install the man pages and
+    the header files also (make install won't do, read the Makefile of
+    the libpcap package)
+
+    libnet is a low level, platform independant packet construction library
+    that is used by many programs to comfortably create raw packets. read the
+    included README file in the libnet package for further instructions how
+    to install this library. thanks to route for this piece, but the asn1
+    stuff in it is useless ;)
+
+    libncurses is a very portable terminal library that is used within zodiac
+    to provide a text based graphical user interface. the ability of ncurses
+    to provide virtual terminal windows is used to split the screen into sub-
+    windows. libncurses should compile well on any platform, but in most cases
+    you don't have to install it, it ships with almost any unix operating
+    system.
+
+    you also need a working c library, networking support and a ansi-c conform
+    c compiler (gcc/egcs recommended).
+
+
+ 2. COMPILATION - LET'S GO
+
+    first, a point on portability. zodiac was developed on linux only systems.
+    we (scut, especially smiler) tried up to be as portable as possible, but
+    this haven't been tested on any big endian or bsd system yet, so we
+    encourage any user support.
+
+/*  FOR THE FINAL VERSION ONLY
+    since zodiac takes advantage of the GNU autoconf/automake packages, you
+    normaly just have to start the configure script:
+
+    ./configure
+
+    if it fails, please resolv the problem and run it again. after having
+    created a Makefile from the Makefile.in, run the make program:
+ */
+
+    make
+
+    if it fails to compile successfully on your system try to resolve the
+    problem and tell me why it failed and how you solved it.
+    don't come crying that it doesn't compile, just come smiling with a patch
+    or a description ;)
+
+/*  NOT YET FINISHED
+
+    after compilation there will be a "zodiac" binary in the current di-
+    rectory. if you are the system administrator of the unix system and you
+    want to have the program installed system wide you may also want to run:
+
+    make install
+
+    if it's your local hack-shellbox you may want to set the binary suid by
+    doing an
+
+    make sinstall
+*/
+
+ 3. USAGE
+
+    you are not required to have superuser privileges to compile zodiac, but
+    you are required superuser privileges to use it. if you don't know what
+    this means, please get informed about the whole topic, and then carefully
+    ask your system administrator to get kicked out of your cs course =).
+
+
+ 4. CONTACT
+
+    for powerusers, who did a porting patchfile to let zodiac run on a plat-
+    form it didn't run before, here is our contact address to send the file
+    to:
+
+    scut@nb.in-berlin.de, subject: "zodiac: (<version>) patch - <description"
+
+
+

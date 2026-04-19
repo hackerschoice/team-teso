@@ -1,0 +1,284 @@
+
+0.4.9 (20000518) - noah williamsson <tm@ns2.crw.se>, scut
+	- added usage and mini help (zodiac -h)
+	- compatible with FreeBSD now, other BSD's should work aswell
+
+0.4.8 (20000518) - noah williamsson <tm@ns2.crw.se>
+	- changed Makefile to enable Open- and FreeBSD systems to compile
+	  zodiac with the pthread libary (-pthread)
+	- fixed make clean in Makefile
+	- fixed missing include file in dns-spoof-int.c
+	- fixed include order in network.c
+	- removed netinet/ip.h include file from io-udp.c, it is unneeded
+	  and causes errors when compiling under FreeBSD
+	- removed const qualifiers from m_print* functions
+	- include fix in packet.c
+	- include fix in sniff.c
+
+0.4.7 (20000428) - scut
+	- fixed missing header definition in packet.h (pq_destroy)
+	- fixed small c stylistic errors
+
+0.4.6 (19991220) - scut
+	- added command line option "-q" for quite mode (won't print out
+	  packets in long form, use two times to avoid printing packets
+	  at all)
+
+0.4.5 (19991130) - scut, smiler
+	- added relay option to spoof proxy (whoever will need it ?), with
+	  reencryption support *woaw* :)
+	- fixed some minor things in the spoof proxy
+	- fixed dns-build.c, was not synced
+
+0.4.4 (19991129) - scut
+	- fixed broken daemon mode in spoof proxy
+	- added help option to spoof proxy
+	- fixed some minor things in error handling stuff in spoof proxy
+
+0.4.3 (19991129) - smiler, scut
+	- added ptr and a+ptr id spoofing
+	- added id spoofing for windows nameservers
+	- changed dns_build_ptr a bit
+	- fixed menu_idspoof
+	- improved id spoofing (spoof_dnsid)
+	- removed gui-config.*, they are not needed anymore because of
+	  the different spoofing interface
+	- tested dns id spoofing, works el8ly gr8 :-]
+
+0.4.2 (19991129) - scut
+	- fixed minor descriptive bug in usage of zsp
+
+0.4.1 (19991128) - scut
+	- added "set" command to set spoof proxy and show mode
+
+0.4.0 (19991127) - scut
+	- added encryption support
+	- added spoof proxy option
+	- fixed minor bugs in udp routines (length handling on encrypted
+	  frames were sometimes invalid, causing some extra bytes being
+	  sent)
+	- fixed a severe bug in the dns id queue routines, where own
+	  datagrams were added as legal id's
+	- improved makefiles a bit
+
+0.3.12 (19991107) - smiler, scut
+	- several small additions to the spoofing interface
+	- begun a spoof proxy to split the spoofing from the sniffing =)
+	  it is in the src/zsp/ directory :)
+	- hey, we broke the 7000 lines barrier, currently at 7373 lines =)
+
+0.3.11 (19991104) - smiler
+	- beefed up the OO spoofing interface a lot, although the code is
+	  still inactive it will provide a comfortable spoofing interface
+
+0.3.10 (19991104) - scut
+	- fixed a minor bug in dns-tag.c, where we squashed some references
+
+0.3.9 (19991103) - scut
+	- hey welcome random to team teso :-D
+	- added "did i send that packet that i just see"-checking to avoid
+	  confusing filter rules we keep a list of packets we send ourself
+	  for 5 seconds and shield incoming packets that match them from
+	  the dns queue comparing routines (dq_match called from dns.c)
+	- the "test spoof" function works very properly now (thanks to the
+	  checking routines above
+	- fixed some minor bugs
+
+0.3.8 (19991101) - smiler, scut
+	- added "test spoof" function (see "help"), that will test whether
+	  you can ip spoof from your current ip :-) (nice, ehh ? ;)
+	- improved id spoofing even further
+	- fixed some minor bugs in dnsq.c
+
+0.3.7 (19991101) - scut
+	- linted the sources a bit and got rid of some unneccesary include
+	  files :-)
+	- tweaked the random hostname generation routine a bit (hostnames
+	  of 50 characters aren't so common, ehh ? ;)
+	- easified the id_* interface
+
+0.3.6 (19991029) - smiler
+	- worked out dns id spoofing, working for type a entries, yeah :-)
+	- we're at > 6000 lines now, btw =)
+
+0.3.5 (19991028) - scut
+	- made zodiac libnet 1.0 compliant (pff... how many times will this
+	  interface change ? think once, think well)
+
+0.3.4 (19991028) - smiler
+	- some small bugs squashed, oh yeah =)
+
+0.3.3 (19991028) - smiler, scut
+	- added a better generic query interface
+	- added a "ns version <ip>" command line ehm... command :-D
+
+0.3.2 (19991026) - smiler
+	- added a generic dns query handler to ease high-level dns coding
+	- improved packet parsing routines
+
+0.3.1 (19991025) - smiler, scut
+	- fixed an ugly bug in dnsq.c, which was pure c'ish bug (yea, face it
+	  guys, c sux ;-)
+	- fixed minor things within dns-tools.c
+
+0.3.0 (19991014) - smiler, scut
+	- fixed some broken things in dns.c, the dns routines can be considered
+	  quite good now :]
+
+0.2.31 (19991008) - smiler, scut
+	- changed the way the local ip is detected from the device, being more
+	  portable now
+	- minor fixes
+
+0.2.30 (19990927) - smiler
+	- fixed dns spoofing routines that got broken in 0.2.29, works perfectly
+	  now :)
+
+0.2.29 (19990926) - smiler
+	- fixed threading bugs (broken cancelation)
+	- improved dns query and spoofing routines to work with proxy dns servers
+	  too
+
+0.2.28 (19990924) - smiler
+	- fixed randomization order
+
+0.2.27 (19990923) - smiler
+	- fixed spoof_query function
+	- fixed reentrancy
+
+0.2.26 (19990920) - smiler
+	- added IP ID randomization within the dns-build routines
+
+0.2.25 (19990919) - smiler
+	- added support for various link layer types (ppp, eth, ...)
+
+0.2.24 (19990914) - smiler
+	- fixed another byte order bug in dns-tools.c
+
+0.2.23 (19990914) - smiler
+	- the switch from own definitions to nameser.h ones caused further
+	  problems at byte order conversions within the dns build routines,
+	  jielding them unuseable, fixed.
+
+0.2.22 (19990914) - scut
+	- general tidy-up
+
+0.2.21 (19990913) - scut, smiler
+	- fixed wrong network/host-byte-order in dns_packet_send
+	  (found by smiler)
+	- fixed correct ip/udp/dns segmentation, using ip header length
+	  instead of fixed ip minimum header length
+	- added correct error handling on non superuser privileges
+
+0.2.20 (19990913) - scut, smiler
+	- use of PUTSHORT and GETSHORT now within the dns packet processing,
+	  to preserve endianess and be more compatible in general
+	  (suggested by smiler)
+	- used arpa/nameser.h instead of own dns definitions
+	  (suggested by smiler)
+	- switched from own header definitions to the one libnet supplies
+	  (suggested by smiler)
+	- replaced dns_build_domain with an optimized version from smiler
+	- cleaned up packet.c to reuse it's own code
+	- beefed up sources at whole, shorting some unnecessary parts
+	- minor changes within the Makefile, to be more portable
+
+0.2.19 (19990912) - scut
+	- fixed minor bugs within dnsq.c
+
+0.2.18 (19990907)
+	- fixed segfaulting bug in sniffing routines, where an error value
+	  wasn't checked appropiatly (possible failure of pcap_open)
+
+0.2.17 (19990907)
+	- added type txt encoding in dns-build.c
+	- fixed missing mutex unlocking within dq_filter_uninstall, which
+	  caused only the first filter set working
+
+0.2.16 (19990805)
+	- added passive threading for spoofing functions
+	- finished jizz and local spoof
+	- added rudimentary id spoof function
+	- added console, with prompt and multilevel input
+
+0.2.15 (19990731)
+	- fixed windows id detection for only one-packet situations, where
+	  zodiac didn't detected windows id's
+
+0.2.14 (19990727)
+	- added dt_bind_version routine (not yet finished)
+	- added dns-tools.c subset
+	- cleaned dns_packet_send a bit
+
+0.2.13 (19990718)
+	- extended dns_jizz spoof with the logs from foxfire
+	- fixed minor bugs in dns-build.c
+
+0.2.12 (19990718)
+	- added dns_build_random, m_random
+	- extended dns_build_* for more comfortability
+	- analyzed jizz logs from foxfire
+	- started rewrote of spoof_jizz, to be tested
+	- simplified configset structure
+
+0.2.11 (19990714)
+	- rewrote local dns spoof function from scratch
+	- fixed serious bug in dns_build_q
+
+0.2.10 (19990714)
+	- modified dns_build_* to accept always char hostname/ip addresses,
+	  that will be converted according to type values (new: dns_build_ptr)
+	- modified dns_build_* functions to accept plaintext char parameters
+	  for all kind of dns labels/rdata/*, to make it more comfortable to
+	  create packets
+	- code cleanup within dns*.c
+	- minor updates in packet.c
+	- minor bugfixes, especially in dns*.c
+
+0.2.9
+	- modified packet dump to dump the whole ip packet
+	- cleaned up, improved and testing the local spoof routines
+	- tested virtual dns queue routines, working perfectly :)
+	- proofread great parts of the code, to ensure quality
+
+0.2.8
+	- improved/rewritten dns packet construction routines
+	- researched on dns flags acceptance
+	- ran first successful local dns spoof, error response problem though
+
+0.2.7
+	- first local dns spoof testing
+	- wrote many company routines for dns packet creation
+	- successfully tested dns packet filter
+	- started with local spoof routine
+
+0.2.6
+	- fixed small bugs within all dns*.c files
+	- added network primitives (network.c)
+	- extended packet filter routines, added select like waiting methods
+	- fixed minor bugs in dns queue
+	- hopefully fixed this weird timeval bug in dnsid.c, _GNU_SOURCE doesn't
+	  seem to be reliable (most likely it is fixed, but it was difficult to
+	  reproduce, though)
+	- improved sequential prediction
+
+0.2.5beta
+	- added windows dns resolver library detection
+	- fixed some minor bugs, code cleanups within dns*.c
+
+0.2.5alpha
+	- fixed a id queue bug in dnsid.c
+	- started with a comfortable dns packet filter (dnsq.h)
+
+0.2.4
+	- implemented rdata decoding
+	- fixed all bugs detected
+
+0.2.3
+	- added decompression, recursive, rewrote large parts of the dns
+	  routines
+
+0.2.2
+	- added/fixed real dns packet decoder
+	- fixed dozends of segfaults
+
