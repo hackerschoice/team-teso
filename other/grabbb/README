@@ -1,0 +1,19 @@
+grabbb
+readme file
+
+ 1. description
+
+    grabbb is a very fast banner grabbing program, which will test an entire
+    range of ip addresses on a single or multiple ports, and if successful
+    it will capture the first line the remote daemon sends.
+
+    this can be useful for statistical purposes.
+
+    note this can be used for protocols such as ssh, ftp, smtp, nntp, ...
+    but not for things such as telnet, which is not as "simple" as you
+    may have thought.
+
+
+    have fun,
+      scut of teso
+

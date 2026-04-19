@@ -1,0 +1,16 @@
+01/11/2001:
+	-added more fingerprints (thanks again to submitters).
+	-added interactive modes and connect attemp timeout.
+	-finaly found some ev1l typo in README. (hang me!).
+	-fixed some minor bugs. (0.1.2)
+
+09/07/2000:
+	-added fingerprint (thanks to anyone who submitted).
+	-modified compare_do_dont_line () (fingerdb.cpp) a
+	 little to do (pseudo-) fuzzy matching.
+	-fixed a stupid bug in find_in_db () (fingerdb.cpp),
+	 the logical maximum for a line in the fingerprint db
+	 is 126 characters. (0.1.1)
+
+09/04/2000:
+	first public release (0.1.0)

@@ -1,0 +1,198 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+libexecdir=@libexecdir@
+mandir=@mandir@
+mansubdir=@mansubdir@
+sysconfdir=@sysconfdir@
+piddir=@piddir@
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+
+DESTDIR=
+
+VPATH=@srcdir@
+
+SSH_PROGRAM=@bindir@/ssh
+ASKPASS_LOCATION=@libexecdir@/ssh
+ASKPASS_PROGRAM=$(ASKPASS_LOCATION)/ssh-askpass
+
+CC=@CC@
+LD=@LD@
+PATHS=-DETCDIR=\"$(sysconfdir)\" -DSSH_PROGRAM=\"$(SSH_PROGRAM)\" -DSSH_ASKPASS_DEFAULT=\"$(ASKPASS_PROGRAM)\"
+CFLAGS=@CFLAGS@ $(PATHS) @DEFS@
+LIBS=@LIBS@
+AR=@AR@
+RANLIB=@RANLIB@
+INSTALL=@INSTALL@
+PERL=@PERL@
+ENT=@ENT@
+LDFLAGS=-L. @LDFLAGS@
+
+INSTALL_SSH_PRNG_CMDS=@INSTALL_SSH_PRNG_CMDS@
+
+TARGETS=ssh sshd ssh-add ssh-keygen ssh-agent scp $(EXTRA_TARGETS)
+
+LIBSSH_OBJS=atomicio.o authfd.o authfile.o aux.o bufaux.o buffer.o canohost.o channels.o cipher.o compat.o compress.o crc32.o deattack.o dispatch.o dsa.o fingerprint.o hmac.o hostfile.o key.o kex.o log.o match.o mpaux.o nchan.o packet.o radix.o entropy.o readpass.o rsa.o tildexpand.o ttymodes.o uidswap.o uuencode.o xmalloc.o 
+
+LIBOPENBSD_COMPAT_OBJS=bsd-base64.o bsd-bindresvport.o bsd-daemon.o bsd-inet_aton.o bsd-misc.o bsd-mktemp.o bsd-rresvport.o bsd-setenv.o bsd-sigaction.o bsd-snprintf.o bsd-strlcat.o bsd-strlcpy.o bsd-strsep.o fake-getaddrinfo.o fake-getnameinfo.o next-posix.o
+
+SSHOBJS= ssh.o sshconnect.o sshconnect1.o sshconnect2.o log-client.o readconf.o clientloop.o
+
+SSHDOBJS= sshd.o auth.o auth1.o auth2.o auth-rhosts.o auth-options.o auth-krb4.o auth-pam.o auth-passwd.o auth-rsa.o auth-rh-rsa.o pty.o log-server.o login.o loginrec.o servconf.o serverloop.o md5crypt.o session.o
+
+TROFFMAN	= scp.1 ssh-add.1 ssh-agent.1 ssh-keygen.1 ssh.1 sshd.8
+CATMAN		= scp.0 ssh-add.0 ssh-agent.0 ssh-keygen.0 ssh.0 sshd.0
+MANPAGES	= @MANTYPE@
+
+CONFIGFILES=sshd_config ssh_config
+
+PATHSUBS	= -D/etc/ssh_config=$(sysconfdir)/ssh_config -D/etc/known_hosts=$(sysconfdir)/ssh_known_hosts -D/etc/sshd_config=$(sysconfdir)/sshd_config -D/etc/shosts.equiv=$(sysconfdir)/shosts.equiv -D/etc/ssh_host_key=$(sysconfdir)/ssh_host_key -D/var/run/sshd.pid=$(piddir)/sshd.pid
+
+FIXPATHSCMD	= $(PERL) $(srcdir)/fixpaths $(PATHSUBS)
+
+all: $(TARGETS) $(CONFIGFILES)
+
+manpages: $(MANPAGES)
+
+$(LIBSSH_OBJS): config.h
+
+$(LIBOPENBSD_COMPAT_OBJS): config.h
+
+libopenbsd-compat.a: $(LIBOPENBSD_COMPAT_OBJS)
+	$(AR) rv $@ $(LIBOPENBSD_COMPAT_OBJS)
+	$(RANLIB) $@
+
+libssh.a: $(LIBSSH_OBJS)
+	$(AR) rv $@ $(LIBSSH_OBJS)
+	$(RANLIB) $@
+
+ssh: libopenbsd-compat.a libssh.a $(SSHOBJS)
+	$(LD) -o $@ $(SSHOBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS)
+
+sshd: libssh.a	libopenbsd-compat.a $(SSHDOBJS)
+	$(LD) -o $@ $(SSHDOBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS)
+
+scp: libopenbsd-compat.a libssh.a scp.o
+	$(LD) -o $@ scp.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) 
+
+ssh-add: libopenbsd-compat.a libssh.a ssh-add.o log-client.o
+	$(LD) -o $@ ssh-add.o log-client.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) 
+
+ssh-agent: libopenbsd-compat.a libssh.a ssh-agent.o log-client.o
+	$(LD) -o $@ ssh-agent.o log-client.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) 
+
+ssh-keygen: libopenbsd-compat.a libssh.a ssh-keygen.o log-client.o
+	$(LD) -o $@ ssh-keygen.o log-client.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) 
+
+# test driver for the loginrec code - not built by default
+logintest: logintest.o libopenbsd-compat.a libssh.a log-client.o loginrec.o
+	$(LD) -o $@ logintest.o $(LDFLAGS) loginrec.o -lopenbsd-compat -lssh log-client.o $(LIBS)
+
+$(MANPAGES) $(CONFIGFILES)::
+	$(FIXPATHSCMD) $(srcdir)/$@
+
+clean:
+	rm -f *.o *.a $(TARGETS) logintest config.cache config.log 
+	rm -f *.out core
+
+distclean: clean
+	rm -f Makefile config.h config.status ssh_prng_cmds *~
+
+mrproper: distclean
+
+veryclean: distclean
+	rm -f configure config.h.in *.0
+
+catman-do:
+	@for f in $(TROFFMAN) ; do \
+		echo "$$f -> $${f%%.[18]}.0" ; \
+		nroff -mandoc $$f | cat -v | sed -e 's/.\^H//g' \
+			>$${f%%.[18]}.0 ; \
+	done
+
+distprep: catman-do
+	autoreconf
+
+install: manpages $(TARGETS) install-files host-key
+
+install-files:
+	./mkinstalldirs $(DESTDIR)$(bindir)
+	./mkinstalldirs $(DESTDIR)$(sbindir)
+	./mkinstalldirs $(DESTDIR)$(mandir)
+	./mkinstalldirs $(DESTDIR)$(mandir)/$(mansubdir)1
+	./mkinstalldirs $(DESTDIR)$(mandir)/$(mansubdir)8
+	$(INSTALL) -m 4755 -s ssh $(DESTDIR)$(bindir)/ssh
+	$(INSTALL) -s scp $(DESTDIR)$(bindir)/scp
+	$(INSTALL) -s ssh-add $(DESTDIR)$(bindir)/ssh-add
+	$(INSTALL) -s ssh-agent $(DESTDIR)$(bindir)/ssh-agent
+	$(INSTALL) -s ssh-keygen $(DESTDIR)$(bindir)/ssh-keygen
+	$(INSTALL) -s sshd $(DESTDIR)$(sbindir)/sshd
+	$(INSTALL) -m 644 ssh.[01].out $(DESTDIR)$(mandir)/$(mansubdir)1/ssh.1
+	$(INSTALL) -m 644 scp.[01].out $(DESTDIR)$(mandir)/$(mansubdir)1/scp.1
+	$(INSTALL) -m 644 ssh-add.[01].out $(DESTDIR)$(mandir)/$(mansubdir)1/ssh-add.1
+	$(INSTALL) -m 644 ssh-agent.[01].out $(DESTDIR)$(mandir)/$(mansubdir)1/ssh-agent.1
+	$(INSTALL) -m 644 ssh-keygen.[01].out $(DESTDIR)$(mandir)/$(mansubdir)1/ssh-keygen.1
+	$(INSTALL) -m 644 sshd.[08].out $(DESTDIR)$(mandir)/$(mansubdir)8/sshd.8
+	-rm -f $(DESTDIR)$(bindir)/slogin
+	ln -s ssh $(DESTDIR)$(bindir)/slogin
+	-rm -f $(DESTDIR)$(mandir)/$(mansubdir)1/slogin.1
+	ln -s ssh.1 $(DESTDIR)$(mandir)/$(mansubdir)1/slogin.1
+	if [ ! -f $(DESTDIR)$(sysconfdir)/ssh_config -a ! -f $(DESTDIR)$(sysconfdir)/sshd_config ]; then \
+		./mkinstalldirs $(DESTDIR)$(sysconfdir); \
+		$(INSTALL) -m 644 ssh_config.out $(DESTDIR)$(sysconfdir)/ssh_config; \
+		$(INSTALL) -m 644 sshd_config.out $(DESTDIR)$(sysconfdir)/sshd_config; \
+	fi
+	if [ -f ssh_prng_cmds -a ! -z "$(INSTALL_SSH_PRNG_CMDS)" ]; then \
+		$(PERL) fixprogs ssh_prng_cmds $(ENT); \
+		$(INSTALL) -m 644 ssh_prng_cmds.out $(DESTDIR)$(sysconfdir)/ssh_prng_cmds; \
+	fi
+
+host-key: ssh-keygen
+	if [ -z "$(DESTDIR)" ] ; then \
+		if [ -f "$(DESTDIR)$(sysconfdir)/ssh_host_key" ] ; then \
+			echo "$(DESTDIR)$(sysconfdir)/ssh_host_key already exists, skipping." ; \
+		else \
+			./ssh-keygen -b 1024 -f $(DESTDIR)$(sysconfdir)/ssh_host_key -N "" ; \
+		fi ; \
+		if [ -f $(DESTDIR)$(sysconfdir)/ssh_host_dsa_key ] ; then \
+			echo "$(DESTDIR)$(sysconfdir)/ssh_host_dsa_key already exists, skipping." ; \
+		else \
+			./ssh-keygen -d -f $(DESTDIR)$(sysconfdir)/ssh_host_dsa_key -N "" ; \
+		fi ; \
+	fi ;
+
+host-key-force: ssh-keygen
+	./ssh-keygen -b 1024 -f $(DESTDIR)$(sysconfdir)/ssh_host_key -N ""
+	./ssh-keygen -d -f $(DESTDIR)$(sysconfdir)/ssh_host_dsa_key -N ""
+
+uninstallall:	uninstall
+	-rm -f $(DESTDIR)$(sysconfdir)/ssh_config
+	-rm -f $(DESTDIR)$(sysconfdir)/sshd_config
+	-rm -f $(DESTDIR)$(sysconfdir)/ssh_prng_cmds
+	-rmdir $(DESTDIR)$(sysconfdir)
+	-rmdir $(DESTDIR)$(bindir)
+	-rmdir $(DESTDIR)$(sbindir)
+	-rmdir $(DESTDIR)$(mandir)/$(mansubdir)1
+	-rmdir $(DESTDIR)$(mandir)/$(mansubdir)8
+	-rmdir $(DESTDIR)$(mandir)
+	-rmdir $(DESTDIR)$(libexecdir)
+
+uninstall: 
+	-rm -f $(DESTDIR)$(bindir)/ssh
+	-rm -f $(DESTDIR)$(bindir)/scp
+	-rm -f $(DESTDIR)$(bindir)/ssh-add
+	-rm -f $(DESTDIR)$(bindir)/ssh-agent
+	-rm -f $(DESTDIR)$(bindir)/ssh-keygen
+	-rm -f $(DESTDIR)$(sbindir)/sshd
+	-rm -f $(DESTDIR)$(mandir)/$(mansubdir)1/ssh.1
+	-rm -f $(DESTDIR)$(mandir)/$(mansubdir)1/scp.1
+	-rm -f $(DESTDIR)$(mandir)/$(mansubdir)1/ssh-add.1
+	-rm -f $(DESTDIR)$(mandir)/$(mansubdir)1/ssh-agent.1
+	-rm -f $(DESTDIR)$(mandir)/$(mansubdir)1/ssh-keygen.1
+	-rm -f $(DESTDIR)$(mandir)/$(mansubdir)8/sshd.8
+	-rm -f $(DESTDIR)$(bindir)/slogin
+	-rm -f $(DESTDIR)$(mandir)/$(mansubdir)1/slogin.1
+	-rm -f $(DESTDIR)${ASKPASS_PROGRAM}
+	-rmdir $(DESTDIR)$(libexecdir)/ssh ;

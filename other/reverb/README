@@ -1,0 +1,116 @@
+
+reverb - connection adapter
+
+by team teso
+
+
+
+ 1. motivation / description
+
+    ehm... imagine two cables that are both male (meaning that the pins look
+    out of it at the plug). imagine putting them together.
+    now imagine the same for both two female plugs of a cable, you will fail
+    also. what you need is a cable adapter with both female or male plugs.
+
+    the same is true for tcp connections (wow, what a parallelism, i'm cool,
+    am i ? :o)=, you can have active (male, yeah) and passive (female, :-)
+    ports, ehm... sockets hehe. normally a connection has one active (male)
+    and one passive (female) socket, and normally the male socket connects
+    into^H^H^H^Hto the female socket. but what if you want to create a link
+    between two sockets of the same type (male + male, female + female).
+    although this is only needed few times (irl this is more often i think ;),
+    it may be helpful. this is what reverb does.
+
+
+
+ 2. usage
+
+    case a)
+
+      normal tcp connection relay, from sourceport to an ip and remote port.
+
+      reverb 2929 193.32.74.203:80
+
+      will relay one (1) connection experienced on port 2929 to the ip and
+      port specified.
+
+
+    case b)
+
+      accepting two connections relaying content.
+
+      reverb 2992 2991
+
+      will accept one (1) connection each on the ports and relay all content
+      between them. it doesn't matter (tm) what port the first connection is
+      established on.
+
+
+    case c)
+
+      establishing two connections, relaying content.
+
+      reverb 193.32.74.203:80 210.167.178.38:80
+
+      establishes two connections to each socketpair and relays the connection
+      data among them.
+
+
+ 3. what for then ehm ?
+
+    you can reverse (reverb ;) a connection establishing order this way. this
+    is useful for a lot of things, such as firewall tunneling for internal
+    connections or whatever.
+    also you can see quickly what is send to a port, or you can link two char-
+    gen ports via tcp, hey cool ehh ?
+
+    conclusion: the ideal addition to tacten err.. netcat.
+
+ 4. new options
+
+
+    times are given in formats like "10", "10s", "2m20s", "1d8h", ...
+
+
+    -c time
+
+    limits the connection timeout on every outgoing connection. once it is
+    reached, reverb terminates.
+
+
+    -l time
+
+    same for the female part, the listening socket.
+
+
+    -d
+
+    daemon mode, go to background. also causes quiet mode.
+
+
+    -q
+
+    quiet mode, don't print all that nasty infos.
+
+
+    -i time
+
+    for active<->active setups you can instance a new connection with it
+    every once a 'time'. for example you can use it to connect every five
+    minutes to a host outside a firewalled network to allow yourself to
+    ssh into the network from the outside
+    (./reverb -d -q -i 5m ownedhost-in-local-network:22 my-home-host:9090
+    on the owned host, and
+     ./reverb -d -q -l 9090 2020;ssh -p 2020 root@localhost
+    on my-home-host).
+
+
+
+  visit us at teso.scene.at.
+
+  team teso
+
+
+  oh, and please send us feedback at teso@teso.scene.at.
+
+

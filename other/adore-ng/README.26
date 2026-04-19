@@ -1,0 +1,29 @@
+adore-ng works on kernel 2.6!
+
+2.6.0-test1 and 2.6.3 UP tested! SMP has not been tested.
+
+You need the module-init-tools for the new insmod, rmmod etc,
+the old ones don't work anymore.
+
+To build a adore for 2.6, use the "Makefile.2.6.gen" makefile
+after you customized the elite UID etc (or you did not,
+I dont care at all).
+
+The 2.6.0-test1 kernel has a different declaration for
+the unix_dgram_recvmg() function than the 2.6.3 kernel. Thats
+why you may get some warning on 2.6.0 builds. You can ignore them.
+
+With the 2.6 kernel, a version magic is build into the kernel
+module (which are now .ko files carrying more info than
+the old .o files for 2.4) which is even checked at loading time.
+So, if the kernel is build with a different compiler than the
+one used for building the module, you get an error like:
+
+adore: version magic '2.6.3 586 gcc-3.2' should be '2.6.3 586 gcc-3.3'
+
+To circumvent this you can set an own version magic in the
+adore-ng.mod.c file (makes sense to use '2.6.3 586 gcc-3.3'
+in this case.)
+
+S.
+

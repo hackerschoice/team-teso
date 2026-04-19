@@ -1,0 +1,22 @@
+SSH2 password bruteforcing
+==========================
+
+
+You can use "b" binary to bruteforce passwords (from stdin)
+on a SSH2 server. Threaded. :-) In my LAN I got like
+30 tries/sec. Some systems use config-options for sshd that
+slows down the rate very much :/
+
+I tested it with a OpenSSH server and it worked.
+"pubscan" is a tool you can use to scan a IP range for valid
+public RSA keys used in authorization.
+
+You can use it under the terms of LICENSE file, and please
+do not abuse the code.
+
+"guess-who" uses code from the OpenSSH project. Thanks.
+
+Please report any problems to krahmer@cs.uni-potsdam.de
+
+;-)
+

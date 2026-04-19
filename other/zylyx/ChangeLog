@@ -1,0 +1,21 @@
+
+0.1.1 (990824)
+	- added minor output explanations
+	- added anti-flood mechanism
+	- fixed processing of results, where a result may have been overwritten
+	- fixed print functions
+
+0.1.0 (990824)
+	- first working version
+
+0.0.2 (990824)
+	- fixed thread resource freeing
+	- synchronized screen functions in an ugly way <g>
+	- implemented proxy checks, working
+
+0.0.1 (990822)
+	- wrote core structure, event modell
+	- proxy functions in proxy.c
+	- slang utilizing gui in fancy colors, oldskewl
+
+

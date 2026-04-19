@@ -1,0 +1,75 @@
+
+zylyx - file find
+by team teso
+
+readme file (don't blame me for my english)
+
+
+1. introduction
+
+   zylyx is a multiple purpose http url locator, which is able to find files
+   that would be otherwise lost. it tries to find files within the caches of
+   http proxies that are  no longer existent on  their original location. to
+   do this it spawns a number of  subprocesses which each connect to a proxy
+   server and  try to retrieve  the original url.  if the proxy doesn't have
+   the file it fails, else the subprocess returns the file location.
+
+
+2. requirements for compilation
+
+   you need:
+
+     - a ansi conform c compiler (gcc/egcs)        -> www.gnu.org
+     - installed posix thread library (libpthread) -> www.freshmeat.net
+     - installed s-lang library (libslang)         -> www.s-lang.org
+
+   after installing these, just run
+
+     cd src
+     make
+
+   if you still don't get it compiled,  this program wasn't intended for you
+   to use.
+
+
+3. usage
+
+   to use this program you need a list of public http proxy servers, if you
+   don't have one, you  may want to get some  from the web.  (hint: you may
+   easily find some if you enter  like "public http proxy :3128 :8080" into
+   good searching engines like google.com).
+   you may want to  validate the list  before you start  using it, by using
+   proxy scanners (like "numby", another fine release from teso).
+
+   the proxy  list has  to be  named  "proxy-list"  and has  to be  in your
+   current working  directory as you  start zylyx. the format  of the proxy
+   list is very simple, i even think carolyn meinel is able to use it:
+
+   <host|ip>:<port>
+
+   mhh... no, she cannot use it.
+
+   now, after prepared the fine list (or just use the included one), try it
+   by surfing to one of this lame mp3  chart pages, with this broken links.
+   choose a popular  one, and copy the  exact url of the  broken link. then
+   run:
+
+   ./zylyx <url>
+
+   enjoy the show of the dots ;-).
+
+
+4. information
+
+   greets from scut:
+
+    acpizer, avoozl, axhate, blackb, blow, bigblue, crestor, davy, domnar,
+    edi, focht, foxfire, fungus, garry, hendy, hoopy, js, kafka, lorian,
+    mindtrip, moc, overhead, oxigen, packwahn, plasmoid, random, spy, tb303,
+    tis, toniq, typo, vax, waterloo, wilkins, yks, yodler, zap. 
+
+
+   dream team teso is edi, hendy, oxigen, scut, typo and zap.
+
+   visit us at http://teso.scene.at/
+
