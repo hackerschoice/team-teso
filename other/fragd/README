@@ -1,0 +1,60 @@
+An Intranet Explorer :)
+=======================
+
+Fragd may be used to fragment streams of IP packets.
+You must set up a proper environment before. I assume you know
+how to set up a router on linux or BSD. Disable routing
+(i.e. echo 0 > /proc/sys/net/ipv4/ip_forward on linux) and start
+fragd with apropriate devices. Modify offsets[] array
+in fragd.cc for your needs. Default is that packets
+are splitted into 16-byte plus rest packet. Resulting datagram
+is then sent in two framgments in 'right' order. You maybe want
+to send second first, then turn on '-r' switch.
+
+The syntax for offsets[] is as follows:
+
+{OFFSET[1], LENGTH[1], OFFSET[2], LENGTH[2], ..., OFFSET[N], -2, -1}
+
+where OFFSET[X] means that data in reassembly starts at 8*OFFSET[X]
+(as 'fragmentation offset' is defined in the RFC). LENGTH[X] is
+the length of the data-portion. '-2' is a special length which
+tells fragd to choose the rest of the length. '-1' means that
+there is no more data. In general we have that 
+
+LENGTH[N-1] = 8*OFFSET[N]
+
+If your array doesn't fit into this formula there's something
+wrong and the result isn't defined (or you generate overlapping fragments:)
+Note that all sane firewalls forbid tiny-fragments (offset 0, length 8),
+so you'd need to patch kernel to fire this one through.
+Also you need to set the constant of 'maxoff' which is just the maximum
+offset that can occur during iterate through offsets[]. This allows fragmentation
+routine to discard fragmentation of packets which can't.
+Intranet explorer was tested on Linux. BSD should work too.
+
+Fragd maybe also used to test IDS or to bypass 'em.
+When IDS check for common overflow attacks, they use patterns recorded
+in their rule-files. However some IDS think that TCP-segments must have PUSH flag
+enabled. This is not true. Fragd allows you to clear this flag before forwarding and
+thus not triggering the IDS.
+
+fraggle
+-------
+
+Fraggle is the FreeBSD version which can be used with even just one normal
+computer (not GW). That is you set up special firewall rule via
+
+ipfw add divert 10000 ip from <my-host-ip> to any
+
+which will redirect raw packets to "fraggle". Start fraggle on this port, and all
+outgoing traffic will be scrambled (as by fragd).
+
+fraggle -p 10000
+
+Make sure that you enabled DIVERT etc in your kernel.
+Also make sure that this rule is applied first (before any other rules).
+
+I want to point out that dugsong wrote "fragrouter" which maybe
+fits better into your needs. Check out www.monkey.org/~dugsong.
+
+Sebastian

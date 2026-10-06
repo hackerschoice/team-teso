@@ -1,0 +1,10 @@
+Uh.
+Copy driver, data2text and hellkit and your samplecode to this dir
+and do
+
+$ ./driver x.c
+
+to get hellcode.c
+
+S.
+

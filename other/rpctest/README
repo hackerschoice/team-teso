@@ -1,0 +1,24 @@
+RPC-test by smiler of teso
+
+This a simple interface to the RPC protocol designed to make it easy to 
+'exercise' any service running on top of RPC by sending arbitrary strings, 
+integers and opaque data etc. it is also a handy way of using pmap_dump over 
+udp :>
+
+If you don't know anything about the RPC or XDR protocol I suggest you read 
+the RFCs before you try this...
+
+try typing 'help' at any point if you don't know the usage, or even 
+better read the source :>
+
+Note I've only really tryed this on linux (well actually only rpc.mountd ;).
+
+If you can't think of a use for this program cast your minds back a year or so 
+when the rpc.mountd vulnerability was first reported. It was really quite a 
+simple bug, just attempt to mount a rather long directory and boom, a stack 
+overflow.  Probably the only reason it wasnt discovered earlier was that it 
+was buried beneath the rpc protocol which is pretty inaccessible from the 
+command line (and the C API is shite too). Hopefully rpctest will make it
+easier to findbugs of this kind...
+
+-smiler

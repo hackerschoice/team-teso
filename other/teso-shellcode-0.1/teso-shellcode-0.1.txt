@@ -1,0 +1,13 @@
+
+teso-shellcode-0.1, do not spread
+
+hi, these are simple i386/linux-shellcodes, which we all need once
+in a while. they are very easy to expand, modify & use in the
+form provided.
+
+have fun,
+zap
+
+note: nasm & ndisasm is needed
+
+march 8th, 2000

@@ -1,0 +1,27 @@
+kkfun - kernel based key logger for linux
+=========================================
+
+what is this?
+-------------
+keyboard fun!
+features:
+ +keylogging
+ +switch keyboard off/on
+
+install
+-------
+type:
+./configure
+vi options.h
+make
+insmod kklog.o
+
+play
+----
+depending on you configuration; use rmdir <magic><action> for something to happen.
+after the procfile is read once it is cleared. if it is full logging stops until it
+is read.
+
+contact
+-------
+pa1mers@gmx.de | finger palmers@teso.scene.at

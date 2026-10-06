@@ -1,0 +1,4 @@
+this tftpd is slightly patched:
+requests with a leading / are allowed (/ is stripped).
+
+zap^teso

@@ -1,0 +1,143 @@
+Hellkit README
+--------------
+
+Hello shellcode-writers ;-)
+
+I know it's a hard job, writing shellcodes, to extract
+the opcodes, to have a look at 0-bytes etc.
+But that's past now!
+With hellkit you write your shellcodes in C, as shown in
+the 4 examples shipped with that package. You then run
+'driver' over it and it's done!
+You get the output-file hellcode.c which contains the
+shellcode without null-bytes.
+Hellkit generates shellcodes with a lenght of up to
+65535 (2^16 - 1) bytes. 
+
+0. Internals
+------------
+
+Hellkit was designed for linux/x86 machines.
+
+The hellkit is really simple. It provides a set of system-calls
+to you:
+
+	o open
+	o close
+	o execve
+	o chroot
+	o chdir
+	o dup
+	  ...
+	(look at lib/int80.h; it can easily be expanded)
+that are inline, PIC-conform (Position Independent Code) functions.
+You can use these functions to access the system, and you can use your pointers,
+variables and so on as you know it from normal programs.
+You can't write own-functions and have sth. like
+
+    int foo() 
+    {
+	...
+    }
+    int main()
+    {
+	return foo();
+    }	
+      
+because hellkit would only extract 'main' without 'foo'. But this is not really
+a pain, because shellcodes should be simple and hellkit should only
+prevent you from getting headaches from counting opcodes.
+Some more complex shellcodes as from the wu-ftpd exploit could easily
+written that way. 
+The 'driver' takes care of compilig your code with PIC and inline'ing
+the syscalls.
+Then it calls data2text b/c string-constants are putten into .data section
+by the compiler. This won't work with shellcodes:
+
+
+incorrect ;-) , compiler-generated asmfile:
+
+
+	.file	"sample1.c"
+	.version	"01.01"
+gcc2_compiled.:
+.section	.rodata			<--- !!!
+.LC0:
+	.string	"/bin/sh"
+.LC1:
+	.string	"Shell!\n"
+.text					<--- !!!
+	.align 4
+.globl main
+	.type	 main,@function
+main:
+	pushl %ebp
+	...
+	
+So we have to correct it:
+
+
+	.file	"sample1.c"
+	.version	"01.01"
+gcc2_compiled.:
+.text				<--- !!!
+.align 4
+main: jmp .L666
+
+.LC0:
+	.string	"/bin/sh"
+.LC1:
+	.string	"Shell!\n"
+.L666:
+
+	.align 4
+.globl main
+	.type	 main,@function
+	...
+	
+That is basicly what data2text does.
+It is then compiled to an executable which is disassembled
+by objdump.
+The objdump output contains the opcodes which are collected by
+hellkit. That's all. As you see, you can even write your asm-code
+and optimize it by hand. Hellkit than also will generate
+your shellcode. What do you want more?
+
+
+abs(-1). LICENSE
+----------------
+
+Hellkit is (C) by Stealth.
+
+It was written for EDUCATIONAL PURPOSES ONLY.
+SO YOU USE IT AT YOUR OWN RISK.
+You can use it under the terms of the GPL.
+A file containing the full license can be found	on my homepage.
+
+abs(-2). CONTACTS/GREETS
+------------------------
+
+Actual exploit-code and other skilled stuff can be found
+on 
+    www.kalug.lug.net/stealth or 
+    www.kalug.lug.net/coding
+    
+Here some greetings in no order for ppl that i want to thank for
+accounts, skills, sources and so on:
+
+    + CyberPsychotic
+    + lcamtuf and his friends
+    + team teso and
+      Scut
+    + 29A and
+      Darkman
+    + Mike
+    + Michael -- where are you ???
+    + pragmatic and
+      van Hauser
+    
+OK. Hopefully i have'nt forgot some1. If you feel so anyway,
+mail me.
+
+Stealth.
+

@@ -1,0 +1,29 @@
+0.33
+----
+
++ Added auth via mkdir(2) to defeat scanners
++ setuid() -> close() change since 2.4 kernel uses setuid32()
+
+
+0.32
+----
+
++ added kgcc check in configure
++ added exec-redirection
++ made 'R' switch stable (now official feature)
+
+
+0.31
+----
++ empty module-list doesn't crash anymore :)
++ removed syslog dis/enabling coz a lot of ppl told me its not of much use
+  and it only costs porting time and robustness
++ added removing of procs
++ no chkroot defat anymore. there are too many ways to detect rootkits
+
+
+...
+sowhere below
+
++ Added 'cant be killed from normal processes'
+

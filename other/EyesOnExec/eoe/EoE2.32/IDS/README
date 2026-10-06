@@ -1,0 +1,121 @@
+IDS with EoE
+============
+
+Shortcut
+--------
+
+IDS are used to detect intruders. They can be hostbased,
+like EoE, or network-based (something similar to sniffers).
+There are freely available net-based IDS like 'Snort'.
+Hostbased IDS usually look what activities are done by local users,
+such as logfile-analyzation etc. 
+With EoE it is posible for you to do this in 'real-time'.
+
+
+EoE now is a set of tools and scripts which
+you can use to _build _your_ own IDS_.
+
+
+Information that EoE provides
+-----------------------------
+
+The basic output-string from EoE looks like:
+
+    <UID>:<EUID>:<PID>:<P_PROG>:<PROGRAM> 	where
+    
+	* UID is the programs UID
+	* EUID it's EUID
+	* PID  it's PID
+	* P_PROG it's parent's short-programname, 'inetd' for example
+	* PROGRAM the full pathname and arguments of the executed programs
+	
+It is up to you to use these information properly to build an IDS.
+It is clear for what to use EUID and UID.
+
+Weak Pathes (WP)
+----------------
+
+Now something new. A WP is a way (a path)
+how programs are executed that they shouldn't.
+    For example a /bin/sh started with EUID 0 from the pop3 daemon
+is something strange, isn't it? So i would call the 'path' this
+shell was executed 'weak'. Such WP now can be detected with EoE.
+
+(It's maybe not a 100% secure solution, but the EoE IDS is a
+try to do bring some scientific and analyzation into 
+security-concepts and programs.)
+
+So a WP-string maybe looks like
+
+    1000:0:666:portmap:/bin/sh
+    
+that is a /bin/sh executed with EUID 0, from 'within' the
+portmap-daemon. Would you call this a normal way? No. :-)
+
+Rather it is an (sucessfull) attempt to break into your system, that
+you have detected. Specifieng a rule that says
+
+    "Kill all shells that are originated from portmap."
+
+would terminate the intruders session. But how's this rule written down
+in code? Remeber the PID ...
+
+
+Using regular expressions (re)
+------------------------------
+
+I assume you know what re are.
+Handling strings with regular expressions is simple in perl,
+so i chose to use a perl-script to specify some rules for
+the IDS. For example:
+
+...
+%bad_progz = (
+
+    # warn on a rootshell
+	WARN => ["[0-9]+:0:[0-9]+:.+:.+sh"],
+
+    # kill rootshells executed by inetd directly,
+    # this is rather an overflow
+	KILL => ["[0-9]+:0:[0-9]+:inetd:.+sh"]
+);
+...
+
+This is part of eoe.pl, and says nothing but:
+
+	"WARN me whenever someone executes a rootshell on my box and"
+	"KILL all rootshells that are executed from inetd."
+
+
+Actually eoe.pl provides 3 levels:
+
+    WARN, KILL and NOTICE (see eoe.pl).
+
+It is up to you to give the script the rigth set of rules
+to protect your system, eoe.pl is just a template for you.
+I think you are very flexible then, you can even write
+your total own scripts. 
+Please note that i'm not a perl-hacker, so some things
+maybe looks i use perl like C. :-)
+
+
+Conclusion
+----------
+
+So, i think it is enuff said to make you able to write
+down your own protection-scripts if you only know
+a little bit about perl.
+Please send feedback to me (krahmer@cs.uni-potsdam.de),
+own scripts and interesting thoughts about EoE.
+
+
+
+
+
+
+ 
+
+
+
+
+

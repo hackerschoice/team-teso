@@ -1,0 +1,144 @@
+--- Makefile	Sat Jul 10 12:06:46 1999
++++ Makefile-p	Mon Jan  1 00:00:01 2000
+@@ -1,5 +1,5 @@
+ CC=gcc
+-CFLAGS=-Wall
++CFLAGS=-Wall -ffast-math -funroll-loops -DCRYPTO
+ 
+ all: it
+ 
+@@ -7,4 +7,4 @@
+ 	rm -f it
+ 
+ %:	%.c
+-	$(CC) $(CFLAGS) -o $@ $<
++	$(CC) $(CFLAGS) -o $@ $< mars.c
+
+--- it.c	Sat Jul 10 12:06:46 1999
++++ it-p.c	Mon Jan  1 00:00:01 2000
+@@ -7,6 +7,8 @@
+  * (default: 7530). uses stdin and stdout
+  * and needs to run as root.
+  *
++ * hey, this is Palmers / teso:
++ * added crypto support, using mars / cfb
+  */
+ 
+ #include <stdio.h>
+@@ -21,6 +23,9 @@
+ #include <netinet/ip.h>
+ #include <arpa/inet.h>
+ #include <netdb.h>
++#ifdef CRYPTO
++#include "mars.h"
++#endif
+ 
+ struct icmp
+ {
+@@ -42,7 +47,7 @@
+ u_int16_t id - ...
+ */
+ 
+-int icmp_tunnel(int sock, struct sockaddr_in *target, int infd, int outfd, int packetsize, u_int16_t id) {
++int icmp_tunnel(int sock, struct sockaddr_in *target, int infd, int outfd, int packetsize, u_int16_t id, char *key) {
+ 
+ 	char* packet;
+ 	struct icmp *icmp, *icmpr;
+@@ -53,7 +58,17 @@
+ 	struct sockaddr_in from;
+ 	int fromlen;
+ 	int num;
+-
++#ifdef CRYPTO
++	char fb1[15], fb2[15], tmp[15];
++	int x, y;
++	if (key != NULL) {
++		set_key (key, 256);
++		free (key);
++		bzero (fb1, 16);
++		bzero (fb2, 16);
++		bzero (tmp, 16);
++	}
++#endif
+ 	len = sizeof (struct icmp);
+ 
+ 	packet = malloc (len+packetsize);
+@@ -61,7 +76,6 @@
+ 
+ 	icmp = (struct icmp*)(packet);
+ 	icmpr = (struct icmp*)(packet+sizeof(struct ip));
+-
+ 	while (1) {
+ 		FD_ZERO (&fs);
+ 		FD_SET (infd, &fs);
+@@ -77,6 +91,20 @@
+ 				perror ("read");
+ 				return -1;
+ 			}
++#ifdef CRYPTO
++			/* encrypt */
++			if (key != NULL) {
++				bzero (fb1, 16);
++				for (x = 0; x < result; x++) {
++					encrypt ((char *) fb1, (char *) tmp);
++					packet[x + len] ^= tmp[0];
++					for (y = 0; y < 15; y++) {
++						fb1[y] = fb1[y + 1];
++					}
++					fb1[15] = packet[x + len];
++				}
++			}
++#endif
+ 			icmp->type = 0;
+ 			icmp->code = 0;
+ 			icmp->id = id;
+@@ -93,6 +121,20 @@
+ 			fromlen = sizeof (struct sockaddr_in);
+ 			num = recvfrom (sock, packet, len+packetsize, 0, (struct sockaddr*)&from, &fromlen);
+ 			if (icmpr->id == id) {
++#ifdef CRYPTO
++			/* decrypt */
++			if (key != NULL) {
++				bzero (fb2, 16);
++				for (x = 0; x < num; x++) {
++					encrypt ((char *) fb2, (char *) tmp);
++					for (y = 0; y < 15; y++) {
++						fb2[y] = fb2[y + 1];
++					}
++					fb2[15] = packet[x + len+sizeof(struct ip)];
++					packet[x + len+sizeof(struct ip)] ^= tmp[0];
++				}
++			}
++#endif
+ 				write (outfd, packet+sizeof(struct ip)+sizeof(struct icmp), num-sizeof(struct ip)-sizeof(struct icmp));
+ 			}
+ 		}
+@@ -107,7 +149,7 @@
+ 	int s;
+ 
+ 	int packetsize = 100;
+-	char* desthost = NULL;
++	char* desthost = NULL, *key = NULL;
+ 	u_int16_t id = 7530;
+ 
+ 	argv++;
+@@ -128,6 +170,10 @@
+ 			}
+ 			argv++;
+ 			packetsize = atoi(*argv++);
++#ifdef CRYPTO
++		} else if (!strcmp(*argv, "-e")) {
++			key = getpass ("enter exact 32 characters: ");	
++#endif
+ 		} else desthost = *argv++;
+ 	}
+ 
+@@ -151,7 +197,7 @@
+ 		return -1;
+ 	}
+ 
+-	icmp_tunnel(s, &target, STDIN_FILENO, STDOUT_FILENO, packetsize, id);
++	icmp_tunnel(s, &target, STDIN_FILENO, STDOUT_FILENO, packetsize, id, key);
+ 
+ 	close(s);
+ 

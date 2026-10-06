@@ -1,0 +1,162 @@
+# Note the flags have to be in the correct order - XAUPRSF
+* AIX 3.2
+F0>Flags{AS} Window{3F25} Options{M} ACK{S++}
+F1>No Response
+F2>Flags{A} Window{3F25} Options{} ACK{O}
+F3>Flags{R} Window{4000} Options{} ACK{O}
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} ACK{O}
+F6>Flags{AR} Window{0} Options{} ACK{S}
+
+* AIX 4.1
+F0>Flags{AS} Window{3E43} Options{MNWNNT} ACK{S++} 
+F1>No Response
+F2>No Response
+F3>Flags{R} Window{4000} Options{} ACK{O}
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} ACK{O}
+F6>Flags{AR} Window{0} Options{} ACK{S}
+
+* AIX 4.1
+F0>Flags{AS} Window{FFAF} Options{M} ACK{S++} DF{0}
+F1>No Response
+F2>No Response
+F3>Flags{R} Window{0} Options{} ACK{O} DF{0}
+F4>Flags{AR} Window{0} Options{} ACK{S++} DF{0}
+F5>Flags{R} Window{0} Options{} ACK{0} DF{0}
+F6>Flags{AR} Window{0} Options{} ACK{S} DF{0}
+
+* BSDI BSD/OS 2.1
+F0>Flags{AS} Window{2017,805C} Options{MNWNNT} ACK{S++}
+F1>Flags{AR} Window{0} Options{} ACK{S}
+F2>Flags{A} Window{2017,805C} Options{NNT} ACK{O}
+F3>Flags{R} Window{2000,0} Options{} ACK{O}
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} ACK{O}
+F6>Flags{AR} Window{0} Options{} ACK{S}
+
+* BSDI BSD/OS 3.0
+F0>Flags{AS} Window{2017} Options{MNWNNT} ACK{S++} DF{1}
+F1>Flags{AR} Window{0} Options{} ACK{S}
+F2>Flags{A} Window{2017} Options{NNT} ACK{O}
+F3>Flags{R} Window{0} Options{} ACK{O} DF{1}
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} ACK{O}
+F6>Flags{AR} Window{0} Options{} ACK{S}
+
+* BSDI 4.0
+F0>Flags{AS} Window{2017} Options{MNWNNT} ACK{S++} DF{1}
+F1>Flags{AR} Window{0} Options{} ACK{S}
+F2>Flags{AS} Window{2017} Options{} ACK{S++} DF{1}
+F3>Flags{R} Window{0} Options{} ACK{O}
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} ACK{O}
+F6>Flags{AR} Window{0} Options{} ACK{S}
+
+* Cray Unicos 9.0 - 10.0
+F0>Flags{AS} Window{FFFF} Options{MWNTL} ACK{S++} DF{1}
+F1>No Response
+F2>Flags{A} Window{100} Options{NNT} ACK{O} DF{1}
+F3>Flags{R} Window{FFFF} Options{} ACK{O}
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} ACK{O}
+F6>Flags{AR} Window{0} Options{} ACK{S}
+
+* FreeBSD 2.1.0 - 2.1.5
+F0>Flags{AS,A} Window{402E,403D} Options{M,NNT,MNWNNT} ACK{S++,O}
+F1>No Response
+F2>Flags{AS,A} Window{402E,403D} Options{M,NNT,MNWNNT} ACK{S++,O}
+F3>Flags{R} Window{4000} Options{} ACK{O} DF{0}
+F4>Flags{AR} Window{0} Options{} ACK{S++} DF{0}
+F5>Flags{R} Window{0} Options{} ACK{O} DF{0}
+F6>Flags{AR} Window{0} Options{} ACK{S} DF{0}
+
+* FreeBSD 2.2.1 - 3.0
+F0>Flags{AS} Window{C08A,FFFF,402E} Options{M} ACK{S++}
+F1>No Response
+F2>Flags{AS} Window{402E,C08A,FFFF} Options{M} ACK{S++}
+F3>Flags{R} Window{4000,0} Options{} ACK{O} DF{0}
+F4>Flags{AR} Window{0} Options{} ACK{S++} DF{0}
+F5>Flags{R} Window{0} Options{} ACK{O} DF{0}
+F6>Flags{AR} Window{0} Options{} ACK{S} DF{0}
+
+* Linux 2.0.27 - 2.0.30
+F0>Flags{XAS} Window{7C00,3C00} Options{ME} ACK{S++}
+F1>No Response
+F2>Flags{ASF} Window{7C00,3C00} Options{ME} ACK{S++}
+F3>Flags{R} Window{0} Options{} ACK{O}
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} ACK{O}
+F6>Flags{AR} Window{0} Options{} ACK{S}
+
+* Linux 2.0.32-34
+F0>Flags{XAS} Window{7FE0,3FE0,3FF0} Options{ME} ACK{S++}
+F1>No Response
+F2>Flags{ASF} Window{7FE0,3FE0,3FF0} Options{ME} ACK{S++}
+F3>Flags{R} Window{0} Options{} ACK{O}
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} ACK{O}
+F6>Flags{AR} Window{0} Options{} ACK{S}
+
+* Linux >= 2.0.35
+F0>Flags{AS} Window{7FE0,7FF0,3FE0,3FF0,2200} Options{ME} ACK{S++}
+F1>No Response
+F2>Flags{ASF} Window{7FE0,7FF0,3FE0,3FF0,2200} Options{ME} ACK{S++}
+F3>Flags{R} Window{0} Options{} ACK{O}
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} ACK{O}
+F6>Flags{AR} Window{0} Options{} ACK{S}
+
+* Solaris 2.3 - 2.4
+F0>Flags{AS} Window{2332,FFAF} Options{ME} ACK{S++} DF{1}
+F1>No Response
+F2>Flags{AS} Window{2332,FFAF} Options{ME} ACK{S++} DF:1
+F3>Flags{R} Window{0} Options{} ACK{O} DF{1}
+F4>Flags{AR} Window{0} Options{} ACK{S++} DF{1}
+F5>Flags{R} Window{0} Options{} ACK{O} DF{1}
+F6>Flags{AR} Window{0} Options{} ACK{S} DF{1}
+
+* Solaris 2.5, 2.51
+F0>Flags{AS} Window{2332,4452,FFAF,8377,879B} Options{ME} ACK{S++} DF{1}
+F1>No Response
+F2>No Response
+F3>Flags{R} Window{0} Options{} ACK{O} DF{1}
+F4>Flags{AR} Window{0} Options{} ACK{S++} DF{1}
+F5>Flags{R} Window{0} Options{} ACK{O} DF{1}
+F6>Flags{AR} Window{0} Options{} ACK{S} DF{1}
+
+* Solaris 2.6 - 2.7
+F0>Flags{AS} Window{2297} Options{NNTNWME} ACK{S++} DF{1}
+F1>No Response
+F2>No Response
+F3>Flags{R} Window{0} Options{} ACK{O} DF{1}
+F4>Flags{AR} Window{0} Options{} ACK{S++} DF{1}
+F5>Flags{R} Window{0} Options{} ACK{O} DF{1}
+F6>Flags{AR} Window{0} Options{} ACK{S} DF{1}
+
+* Windows NT 4 / Win 95 / Win 98
+F0>Flags{AS} Window{2017,16D0,860,869F} Options{M,MNWNNT} ACK{S++} DF{1}
+F1>Flags{AR} Window{0} Options{} ACK{S}
+F2>Flags{AS} Window{2017,16D0,860,869F} Options{M,MNWNNT} ACK{S++} DF{1}
+F3>Flags{R} Window{0} Options{} 
+F4>Flags{AR} Window{0} Options{} ACK{S++}
+F5>Flags{R} Window{0} Options{} 
+F6>Flags{AR} Window{0} Options{} ACK{S++}
+
+* OpenBSD 2.4
+F0>Flags{AS} Window{403D} Options{MNWNNT} ACK{S++} DF{0}
+F1>No Response
+F2>Flags{AS} Window{403D} Options{MNWNNT} ACK{S++} DF{0}
+F3>Flags{R} Window{4000} Options{} ACK{O} DF{0}
+F4>Flags{AR} Window{0} Options{} ACK{S++} DF{0}
+F5>Flags{R} Window{0} Options{} ACK{O} DF{0}
+F6>Flags{AR} Window{0} Options{} ACK{S} DF{0}
+
+* Linux 2.2.x
+F0>Flags{AS} Window{7F53} Options{MENNTNW} ACK{S++} DF{1}
+F1>No Response
+F2>Flags{AS} Window{7F53} Options{MENNTNW} ACK{S++} DF{1}
+F3>Flags{R} Window{0} Options{} ACK{O} DF{0}
+F4>Flags{AR} Window{0} Options{} ACK{S++} DF{0}
+F5>Flags{R} Window{0} Options{} ACK{O} DF{0}
+F6>Flags{AR} Window{0} Options{} ACK{S} DF{0}

@@ -1,0 +1,91 @@
+Please read this! It is important. Otherwise you maybe crash your kernel!
+=========================================================================
+
+News until last version
+.......................
+
++ empty module-list doesn't crash anymore :)
++ removed syslog dis/enabling coz a lot of ppl told me its not of much use
+  and it only costs porting time and robustness
++ added removing of procs
++ no chkroot defat anymore. there are too many ways to detect rootkits
+
+
+1. Install by hand
+------------------
+Edit Makefile and set proper values.
+
+Everyone should choose a own ELITE_CMD to make it impossible to scan
+for installed adore. Also HIDDEN_PORT should be changed.
+When commenting in the MODVERSIONS-switch, adore will be compiled
+for modversioned kernels. Modversioned kernels have a /proc/ksyms file
+that looks like
+
+...
+foo_barR12345678
+...
+
+where normal kernels would look like
+
+...
+foo_bar
+...
+
+
+Hidden ports go decimal, i.e. ":22" would hide ssh-service, but also every other service 
+that begins with 22, i.e. port 2278. Choose a unique one, i.e.
+28912.
+
+Make sure SMP is enabled when it is in kernel.
+Don't forget to recompile when you changed Makefile.
+Two 'makes' may produce two different adore's that maybe can't
+interact (i.e. further hidden-files are visible now due to UID-change).
+For this reason, the Makefiles are backed-up to allow a restore.
+
+
+2. Install by script
+--------------------
+
+Run configure-script.
+Script should give you some messages which uid's are used etc.
+View Makefile to see if everything is fine.
+Do 'make'.
+
+When ava responds, there is no adore, but you are sure there is,
+then you maybe compiled adore.o and ava with different ELITE_CMD's.
+Do 'make clean; make' to put it in sync.
+
+
+3. libinvisible
+---------------
+
+libinvisible was written to have a layer between adore and ava.
+Since there are other OS's which may be targeted by adore-like modules,
+ava.c could easily ported, if one writes the proper library-calls.
+libinvisible maybe also used from within sysop-written hidden logdeamons
+as easy API to adore.
+
+
+Adore was written for EDUCATIONAL PURPOSES, for testing on honeypot 
+boxens (watching suspicious "broken" accounts) and intrusion testings.
+If you need more help watching broken accounts, you may also use
+EoE to watch what is executed.
+
+
+4. Use 'R' with care
+--------------------
+
+'R' switch of ava isnt well researched. It may crash your machine.
+'R'emoving current shell isn't good idea.
+
+5. A word on detecting rootkits
+-------------------------------
+
+As with any rootkits, adore IS detectable. It is just a question
+how good the cracker on your honey-pot box is.
+However, I added some kind of authorization to avoid detection
+by scanners. You will be asked for a password which is compiled
+into the programs which automagically (ava) auths itself
+against adore. So, do not delete ava!
+
+Stealth

@@ -1,0 +1,18 @@
+#!/bin/bash
+SYSTEM_MAP=asd/System.map
+
+test -f $SYSTEM_MAP
+while [ $? == "1" ]; do
+  echo -n "File" $SYSTEM_MAP "does not exist, enter alternate file: "
+  read SYSTEM_MAP
+  test -f $SYSTEM_MAP
+done
+
+echo "Getting addresses from" $SYSTEM_MAP "..."
+awk '{if ($3 == "handle_kbd_event") print "#define\tHANDLE_KBD_EVENT_ADD\t0x" $1; \
+	else if ($3 == "handle_mouse_event") print "#define\tHANDLE_MOUSE_EVENT_ADD\t0x" $1; \
+	else if ($3 == "handle_scancode") print "#define\tHANDLE_SCANCODE_ADD\t0x" $1; \
+	else if ($3 == "do_acknowledge") print "#define\tDO_ACKNOWLEDGE_ADD\t0x" $1; \
+	}' $SYSTEM_MAP > addresses.h
+
+echo "See \"options.h\" for options!"

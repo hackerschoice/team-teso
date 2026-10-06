@@ -1,0 +1,42 @@
+# /etc/bootptab: database for bootp server (/usr/sbin/bootpd)
+#
+# Blank lines and lines beginning with '#' are ignored.
+#
+# Legend:	(see bootptab.5)
+#	first field -- hostname (not indented)
+#	bf -- bootfile
+#	bs -- bootfile size in 512-octet blocks
+#	cs -- cookie servers
+#	df -- dump file name
+#	dn -- domain name
+#	ds -- domain name servers
+#	ef -- extension file
+#	gw -- gateways
+#	ha -- hardware address
+#	hd -- home directory for bootfiles
+#	hn -- host name set for client
+#	ht -- hardware type
+#	im -- impress servers
+#	ip -- host IP address
+#	lg -- log servers
+#	lp -- LPR servers
+#	ns -- IEN-116 name servers
+#	ra -- reply address
+#	rl -- resource location protocol servers
+#	rp -- root path
+#	sa -- boot server address
+#	sm -- subnet mask
+#	sw -- swap server
+#	tc -- template host (points to similar host entry)
+#	td -- TFTP directory
+#	to -- time offset (seconds)
+#	ts -- time servers
+#	vm -- vendor magic number
+#	Tn -- generic option tag n
+#
+# Be careful about including backslashes where they're needed.  Weird (bad)
+# things can happen when a backslash is omitted where one is intended.
+# Also, note that generic option data must be either a string or a
+# sequence of bytes where each byte is a two-digit hex value.
+#
+mypet:ht=ether:ha=0000CA066166:bf=mypet.md5:ip=10.27.27.27:lg=0.0.0.0:sm=255.0.0.0:to=3600:sa=10.66.66.66

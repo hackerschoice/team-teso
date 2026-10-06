@@ -1,0 +1,69 @@
+EXTERNAL LANCITY LCN Unix Reference Implementation V3.00 RELEASE NOTE
+     
+Product:   LANcity LCN Unix Reference Implementation
+Date:    October 10, 1997
+Distribution:  External
+Software Version: V4.00
+     
+To Order this and Related Software Products:
+     
+        Mfg. Stock Number       Description
+     
+        2995-0135-00            "LANCITY LCN Unix Reference Implementation" 
+        
+     
+Software Release Date: September 18, 1996
+     
+Related Documentation:
+     
+	560-0069            	"LCp Configuration Interface Specification""
+     
+SUMMARY OF CHANGES:
+     
+	First Release.
+     
+NEW FEATURES:
+	NA     
+     
+SOFTWARE REQUIREMENTS:
+     
+	Unix.  Product delivered as source code, will require 
+	compilation for target platform.
+     
+HARDWARE REQUIREMENTS:
+     
+	N/A
+     
+RESTRICTIONS:
+     
+	This product is provided on an "as is" basis as an aid to
+	developers writing to the LANcity open provisioning server
+	interface.  
+	It is not a supported LANcity product.
+	If this implementation and the interface document should 
+	differ the interface document is be considered to be the 
+	definive version.
+
+	Output md5 file must not be larger than 16384 bytes.  Any
+	file over 4096 bytes is not backwards compatible with 
+	previous software releases.
+
+COMPATABILITY:
+     
+	The product is delivered as portable "C" code.  A README file, 
+	"readme.txt", describes the file structure and s/w architecture 
+	and identifies the mechanism to add new parameter types.
+
+OTHER NOTES:
+     
+	N/A
+     
+BUGS FIXED:
+     
+	N/A
+     
+OPEN BUGS:
+     
+	None.
+     
+     

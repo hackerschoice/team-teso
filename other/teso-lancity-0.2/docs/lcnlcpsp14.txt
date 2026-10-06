@@ -1,0 +1,663 @@
+
+
+
+
+
+
+LANcity UniLINK Network 
+LCp Configuration Interface Specification
+
+
+
+
+
+Version 1.4
+
+
+
+
+
+
+
+
+
+
+Prepared By
+
+LANcity Corp.
+200 Bulfinch Drive
+Andover, MA 01810
+(508) 682-1600
+
+
+28 August 1997
+
+Information and Disclaimers
+
+
+1	This specification includes subject matter relating to patent(s) of LANcity Incorporated.  No license under such patent(s) is granted by implication, estoppel or otherwise as a result of publication of this specification.  Applicable licenses may be obtained from LANcity.
+
+
+
+
+2	This specification is furnished for informational purposes only.  LANcity does not warrant or represent that this specification or any products made in conformance with it will work in the intended manner , nor have any liabilities or obligations for consequential damages arising out of or in connection with the use of this specification in any way.  This specification shall not necessarily apply to any product that may be developed by LANcity.  No intellectual property licenses whatsoever are granted with this document.
+
+
+
+
+3	LANcity reserves the right to make modifications and enhancements to the LCp configuration interface as required to provide support for additional features and services over time.  Such modifications will be documented in revisions of this document.
+
+
+
+Ordering Information
+Copies of this specification can be ordered from LANcity at the following address.
+Request document number 560-0069.
+
+
+LANcity Corp.
+200 Bulfinch Drive
+Andover, MA 01810
+(508) 682-1600
+
+Document History
+release	date		author	description
+1.0	04/04/96		gw	initial release
+1.1	06/10/96		gw	add explicit instructions on creating file with MD5 digest
+				+ LCp version / required option matrix
+1.2	07/08/96		gw	add encryption options
+1.3  	07/23/96		gw	add V3.0 features
+1.4 	08/28/97 	pb	add filter provisioning options, LCn-Less option, and 
+16 IP and MAC address provisioning
+   	10/10/97              	pb	updated for REV # Change
+
+ 
+BOOTP Fields Used by LCp
+
+The following fields are required in the Bootp response returned to an LCp and thus must be present in the bootp table used by the server.
+
+The hardware address of the LCp -used in the bootp request as the key to identify the LCp during the BOOTP process.
+
+The IP address to be used by the LCp.
+The subnet mask to be used by the LCp.
+The hardware type should be set to ethernet.
+
+If the Bootp server is on a different network (requiring  a relay agent) then the relay agent must set the gateway address field of the bootp response.
+
+The log server should be set (this may be defaulted to 0.0.0.0 if required.
+If an authorization problem is detected a trap will be generated to this address.
+
+The name of  the LCp configuration file to be read from the TFTP server by the LCp.
+
+The time offset of the LCp from GMT. -used to calculate the local time for use in filed support log.
+
+
+
+LCp Binary Configuration File Format
+
+The LCp specific configuration data is contained in a file which is downloaded to the LCp via TFTP.  This is a binary file in the same format defined for bootp vendor extension data (RFC 1533).
+It consists of a number of options (1 per parameter) each of the form
+code:	length:	value
+where code is a single octet identifier which defines the parameter
+length is a single octet containing the length of the value field (not including code and length fields)
+value is from one to 254 octets containing the specific value for the parameter
+
+The options follow each other directly in the file which is a stream of octets (no record markers).
+
+To avoid a bug in the Netmanage TFTP server the binary file is converted to hexadecimal data and the ascii representation of this (in the range 0x30 to 0x46, 0 through f) transferred to the LCp.  This doubles the size of the file unfortunately. The maximum size of the MD5 file is 16384 bytes.  Note that this is the last step in the file creation process, after the MD5 digest has been calculated.  
+
+e.g.	binary		hex		asciihex transferred to LCp
+	01001001	49		3439
+
+
+Not all options need to be present in a given file.
+
+The following options are supported:
+
+end option
+This is a special marker for end of data.
+It has no length or value fields.
+
+	code	
+	255
+
+pad option.
+This has no length or value fields and is only used following the end of data option to pad the file to an integral number of 32 bit words.
+
+	code	
+	0
+
+transmit frequency option
+The transmit frequency to be used by the LCp.  This is the center frequency of the Unilink Channel in kHz stored as a 32 bin binary number where tx1 is the most significant byte, tx4 is least.
+
+	code	length		tx frequency
+	1	4		tx1 tx2 tx3 tx4
+
+Valid Range
+The transmit frequency must be in the range 8000 to 39000.  It must be a multiple of 250kHz.
+
+receive frequency option
+The receive frequency to be used by the LCp. This is the center frequency of the Unilink Channel in kHz stored as a 32 bit binary number where rx1 is the most significant byte, rx4 is least.
+
+
+	code	length		rx frequency
+	2	4		rx1 rx2 rx3 rx4
+Valid Range
+The receive frequency must be in the range 57000 to 747000.  It must be a multiple of 250kHz.
+
+reference node option
+If the value field is a 1 this node is a head end reference node.  If a 0 it is not.
+
+	code	length		on / off
+	3	1		1 or 0
+
+max loop delay option
+The maximum loop delay of the network in bytes stored as a 32 bit binary number where max1 is the most significant byte, max4 is least. It is only used by a head end reference node.
+
+
+	code	length		mask
+	4	4		max1 max2 max3 max4
+Valid Range
+The maximum loop delay must be selected from the values in the following list:
+96, 128, 192, 256, 288, 384, 512, 576, 768, 928, 1152, 1536, 1568, 1600
+Default Value
+512
+Digest Option
+The value field contains the 16 byte MD5 authorization digest calculated using the current authorization key
+
+	code	length		new key
+	5	16		d1 d2 ....... d16
+
+Change Key Option
+Modify the authorization key to the new value
+The value field contains the XOR of the new key with the current authorization key
+	code	length		new key
+	6	64		k1 k2 ....... k64
+
+Key Id Option
+This field is included when a change key option is used.
+The value field contains the name of the new key (up to 16 bytes max.)
+	code	length				new key name
+	7	length of key name		k1 k2 ....... k16
+
+network access option
+If the value field is a 1 this node is allowed access to the network.  If a 0 it is not.
+
+	code	length		on / off
+	8	1		1 or 0
+network management read only option
+If the value field is a 1 this node is read only to the SNMP network manager.  If a 0 it is read write.
+
+	code	length		on / off
+	9	1		1 or 0
+reserved
+Codes 10 and 11 are reserved.
+max. ethernet nodes supported option
+The value of the field specifies the number of ethernet nodes which the LCw will support.
+This field is only used for LCw,  it is ignored by LCps.  
+This will be in the range 1 to 4.
+
+	code	length		value
+	12	1		1 through 4
+Default Value
+1
+
+reserved
+Codes 13 and 14 are reserved.
+max. number of CDMs option
+The value of the field specifies the maximum number of cable data modems which may be attached to the broadband network.
+
+	code	length		value
+	15	4	
+Valid Range
+512 - 4096
+Default Value
+512
+	
+Default Gateway IP address option
+The value of the field specifies the IP address of the default gateway to be used to reach remote IP networks.  This will be added to the LCp static routing table as a route to 0.0.0.0 with next hop as specified in the value field.  The metric (hop count) will be set to 1 (default router is single Unilink hop away).
+Each address is specified as a 4 byte number in network order (ip1 is most significant).
+
+	code	length		value
+	16	4		ip1 ip2 ip3 ip4
+SNMP Read Community option
+The value of the field specifies the SNMP read community string to be used by the LCp.   A string length of up to 32 characters is supported
+
+	code	length		value
+	17	32	
+SNMP Write Community option
+The value of the field specifies the SNMP write community string to be used by the LCp.   A string length of up to 32 characters is supported
+
+	code	length		value
+	18	32	
+SNMP Trap Community option
+The value of the field specifies the SNMP trap community string to be used by the LCp.   A string length of up to 32 characters is supported
+
+	code	length		value
+	19	32	
+
+Max Concatenation option
+The value of the field specifies
+
+	code	length		value
+	20	1	
+Valid Range
+The maximum concatenation must be selected from the values in the following table:
+bytes	pkts	encoding used
+1518	1	0
+1518	21	1
+3036	43	2
+4554	65	3
+6112	87	4
+Default
+4554	65	3
+
+
+Access Priority option
+The value of the field specifies
+
+	code	length		value
+	21	1	
+Valid Range
+The access priority must be selected from the values in the following table:
+priority	encoding used
+high	1
+normal	2
+low	3
+Default
+normal	2
+Max. forward rate option
+The value of the field specifies the maximum data rate in bps allowed from this unit in the forward path.
+
+	code	length		value
+	22	4	
+Valid Range
+10,000 -> 10,000,000
+Default
+10,000,000
+Max. return rate option
+The value of the field specifies the maximum data rate in bps allowed from this unit in the return path
+
+	code	length		value
+	23	4	
+Valid Range
+10,000 -> 10,000,000
+Default
+10,000,000
+
+
+Minimum Contention Mode option
+The value of the field specifies the minimum contention access (as a % of bandwidth) which will reserved during the bandwidth allocation process for the network.
+It is specified as a single byte number representing the %.
+
+	code	length		value
+	24	1	
+Valid Range
+The minimum contention must be in the range 5 to 80.
+Default
+15%
+authorized network manager IP address option
+The value of the field specifies the IP address of up to 5 authorized network managers.  SNMP packets must originate from one of these addresses or they will be discarded. .  
+Each address s specified as a 4 byte number in network order (ip1 is most significant).
+If less than 5 addresses are specified the unspecified addresses are represented as 0 0 0 0.
+
+If all addresses are specified as 0 0 0 0 then SNMP access will be allowed from any network manager.
+
+	code	length		value
+	25	20		ip1 ip2 ip3 ip4
+authorized network manager MAC address option
+The value of the field specifies the MAC addresses of up to 5 authorized network managers.  SNMP ôsetö packets must originate from one of these addresses or they will be discarded.  
+Each address is specified as a 6 byte number in network order (byte 0 as the most significant).
+If less than 5 addresses are specified the unspecified addresses are represented as 00 00 00 00 00 00.
+
+If all addresses are specified as  00 00 00 00 00 00 then SNMP access will be allowed from any MAC address.
+
+	code	length		value
+	26	30		
+LCw Supported MAC address option
+The value of the field specifies the MAC addresses of up to 4 nodes which will be supported by the LCw..  Ethernet packets must originate from or be addressed to one of these addresses in order to be forwarded by the LCp.
+Each address is specified as a 6 byte number in network order (byte 0 as the most significant).
+If less than 4 addresses are specified the unspecified addresses are represented as 00 00 00 00 00 00.
+
+If all addresses are specified as  00 00 00 00 00 00 then the LCw will learn the first 4 MAC addresses from the ethernet and allow forwarding to and from these nodes.
+
+This option is ignored by LCp and LCb products.
+
+	code	length		value
+	27	24	
+Encryption Code Options
+The following options are only valid for the encryption version of code under test at TCI / @Home.
+encryption option
+If the value field is a 1 this node will encrypt and decrypt data.  If a 0 it will not.
+
+	code	length		on / off
+	28	1		1 or 0
+off network gateway option
+If the value field is a 1 (and the encryption option is also set to 1) this node will act as an off network encryption gateway.  That is it will encrypt and decrypt data intended for IP addresses which are not in the encrypted network.  If a 0 it will not.
+
+	code	length		on / off
+	29	1		1 or 0
+key server IP address option
+The value of this field specifies the IP address of the system which will act as the key server for the network.
+
+	code	length		value
+	30	20		ip1 ip2 ip3 ip4
+encrypted network option
+The value of this field specifies those networks which are considered local to the encryption code.  The off network gateway will not encrypt / decrypt messages addressed to hosts within these networks.
+Each network is defined as an address field followed by a mask field.
+Each address is specified as a 4 byte number in network order (ip1 is most significant).
+Each mask is specified as a 4 byte number in network order (mask1 is most significant).
+If less than 5 address mask pairs are specified the unspecified pairs are represented as 0 0 0 0.0 0 0 0
+
+
+	code	length		value
+	31	40		ip1 ip2 ip3 ip4 mask1 mask2 mask3 mask4
+
+Version 3.0 Code Options
+Supported client IP address option
+The value of the field specifies the IP address of up to 4 nodes which will be supported by the LCp or LCw. IP packets must originate from or be addressed to one of these addresses in order to be forwarded by the LCp.
+Each address is specified as a 4 byte number in network order (ip1 is most significant).
+If less than 4 addresses are specified the unspecified addresses are represented as 0 0 0 0.
+
+If all addresses are specified as 0 0 0 0 then SNMP access will be allowed from any network manager.
+
+	code	length		value
+	32	16		ip1 ip2 ip3 ip4
+Software Revision Option
+The value of this field specifies the revision id of the current software which is resident on the TFTP file server.  If this option is present the modem will check its current s/w revision and if the code on the server is a later revision the modem will perform a s/w upgrade.  The revision is passed as an integer number which is calculated by multiplying the s/w revision (given to two decimal places) by 100.
+Thus s/w revision 3.21 would be encoded as 321.
+
+	code	length		value
+	33	4		s/w revision * 100
+
+Software Upgrade Filename Option
+The value of this field specifies the filename of the current software which is resident on the TFTP file server.  Only a simple filename not a full path name is used -the file must be resident in the default TFTP directory on the server.  If the s/w revision option is not present this option is not used. The maximum length of the filename is dependent on the TFTP server operating system but may not be longer than 64 bytes.
+
+	code	length		value
+	34	variable		ônewfile.exeö
+
+TFTP server IP address option
+The value of this field specifies the IP address of the system which will act as the TFTP server for the software upgrade.
+
+	code	length		value
+	35	20		ip1 ip2 ip3 ip4
+
+
+Reserved
+Codes 36 and 37 are reserved.
+Version 4.00 Code Options
+Filter Provisioning Option
+The value of this field specifies the SNMP encoded VarBind which uses the object id of the filter variable being provisioned.  A SNMP VarBind is an ASN.1 encoded  packet which contains a header, object id, and data.  The BER encoding method is used.  A list of the object ids will be listed below.
+
+	code	length		value
+	38	variable		encoded VarBind
+
+The table which follows contains a list of supported filter variables as seen using SNMP along with their associated object id.  The object id and the data values are assembled using ASN.1 BER encoding to produce the encoded VarBind element listed above.   Each filter parameter must be provisioned separately. 
+
+SNMP Variable Name           	SNMP Object Id   		Data Type       	Data Range
+
+IP Address Filter Control
+LcLcpAddrFiltControl  		1,3,6,1,4,1,482,50,2,27,1		Integer		1=on  ,2=off
+lcLcpAddrFiltSendDu   		1,3,6,1,4,1,482,50,2,27,2		Integer		1=on  ,2=off
+lcLcpAddrActionOnNoMatch	1,3,6,1,4,1,482,50,2,27,3		Integer		1=pass ,2=block
+
+Ip Address Filter Table 
+lcLcpIpAdrFiltStatus		1,3,6,1,4,1,482,50,2,27,4,1,2	Integer		1=valid,
+2=invalid
+lcLcpIpAdrFiltInterface		1,3,6,1,4,1,482,50,2,27,4,1,3	Integer		1=fromEnet,
+										2=fromCatv,
+										3=fromEither
+lcLcpAddr1orDa			1,3,6,1,4,1,482,50,2,27,4,1,4	IP Address
+lcLcpAddr1orDaMask		1,3,6,1,4,1,482,50,2,27,4,1,5	IP Address
+lcLcpAddr1orSa			1,3,6,1,4,1,482,50,2,27,4,1,6	IP Address
+lcLcpAddr1orSaMask		1,3,6,1,4,1,482,50,2,27,4,1,7	IP Address
+lcLcpAdrFiltAction		1,3,6,1,4,1,482,50,2,27,4,1,8	Integer		1=pass ,2=block
+lcLcpAdrFiltMatchResetCount	1,3,6,1,4,1,482,50,2,27,4,1,10	Integer    	Any Value
+ 
+IP Protocol Control 
+lcLcpProtoFiltControl		1,3,6,1,4,1,482,50,2,28,1		Integer		1=on  ,2=off
+lcLcpProtoFiltSendDu		1,3,6,1,4,1,482,50,2,28,2		Integer		1=on  ,2=off
+lcLcpProtoActionOnNoMatch	1,3,6,1,4,1,482,50,2,28,3		Integer		1=pass ,2=block
+
+IP Protocol Filter Table 
+lcLcpIpProtoFiltStatus		1,3,6,1,4,1,482,50,2,28,4,1,2	Integer		1=valid,
+2=invalid 
+lcLcpStartProto			1,3,6,1,4,1,482,50,2,28,4,1,3	Integer		Protocol Id
+lcLcpEndProto			1,3,6,1,4,1,482,50,2,28,4,1,4	Integer		Protocol Id
+lcLcpProtoFilterAction		1,3,6,1,4,1,482,50,2,28,4,1,5	Integer		1=pass ,2=block
+lcLcpProtoMatchResetCount	1,3,6,1,4,1,482,50,2,28,4,1,7	Integer		Any Value
+  
+IP Port Filter Control
+lcLcpPortFiltControl		1,3,6,1,4,1,482,50,2,29,1		Integer		1=on  ,2=off
+lcLcpPortFiltSendDu		1,3,6,1,4,1,482,50,2,29,2		Integer		1=on  ,2=off
+lcLcpPortActionOnNoMatch	1,3,6,1,4,1,482,50,2,29,3		Integer		1=pass ,2=block
+  
+IP Port Filter Table
+cLcpIpPortFiltStatus		1,3,6,1,4,1,482,50,2,29,4,1,2	Integer		1=valid,
+2=invalid
+lcLcpStartPort			1,3,6,1,4,1,482,50,2,29,4,1,3	Integer		Protocol Port Id
+lcLcpEndPort			1,3,6,1,4,1,482,50,2,29,4,1,4	Integer		Protocol Port Id
+lcLcpPortFilterAction		1,3,6,1,4,1,482,50,2,29,4,1,5	Integer		1=pass ,2=block
+lcLcpPortMatchResetCount	1,3,6,1,4,1,482,50,2,29,4,1,7	Integer		Any Value
+lcLcpPortFiltInterface		1,3,6,1,4,1,482,50,2,29,4,1,8	Integer		1=fromEnet,
+										2=fromCatv,
+										3=fromEither
+lcLcpPortFiltType		1,3,6,1,4,1,482,50,2,29,4,1,9	Integer		1=SourcePort,
+										2=DestinationPort,
+										3=EitherPort
+IP Options Filter Control 
+lcLcpOptionFiltControl		1,3,6,1,4,1,482,50,2,30,1		Integer		1=on  ,2=off
+lcLcpOptionFiltResetCount	1,3,6,1,4,1,482,50,2,30,3		Integer		Any Value
+lcLcpOptionFiltSendDu		1,3,6,1,4,1,482,50,2,30,4		Integer 		1=on  ,2=off
+
+IGMP Filter Control	
+lcLcpIGMPReportFiltControl	1,3,6,1,4,1,482,50,2,32,1		Integer		1=on  ,2=off
+lcLcpIGMPFiltResetCount	1,3,6,1,4,1,482,50,2,32,3		Integer		Any Value
+lcLcpIGMPFiltSendDu		1,3,6,1,4,1,482,50,2,32,4		Integer		1=on  ,2=off
+lcLcpIGMPFiltTrap		1,3,6,1,4,1,482,50,2,32,5		Integer		1=on  ,2=off
+
+Type Filter Control
+lcLcpEtypeFiltControl		1,3,6,1,4,1,482,50,2,31,1		Integer		1=on  ,2=off
+lcLcpEtypeFiltIpOnly		1,3,6,1,4,1,482,50,2,31,2		Integer		1=on  ,2=off
+lcLcpEtypeFiltNovell		1,3,6,1,4,1,482,50,2,31,3		Integer		1=pass ,2=block
+lcLcpEtypeActionOnNoMatch	1,3,6,1,4,1,482,50,2,31,4		Integer		1=pass ,2=block
+
+Type Filter Table
+lcLcpEtypeFiltStatus		1,3,6,1,4,1,482,50,2,31,5,1,2	Integer		1=valid,
+2=invalid
+lcLcpEtypeFiltType		1,3,6,1,4,1,482,50,2,31,5,1,3	Integer		1=ethertype, 
+2=dsap,
+3=ssap
+lcLcpEtypeFiltValue		1,3,6,1,4,1,482,50,2,31,5,1,4	String 		HexString 
+(ex.  0x0000)
+lcLcpEtypeFilterAction		1,3,6,1,4,1,482,50,2,31,5,1,5	Integer		1=pass ,2=block
+lcLcpEtypeMatchResetCount	1,3,6,1,4,1,482,50,2,31,5,1,7	Integer		Any Value
+  
+Security Group/Broadcast/Multicast
+lcLcpSecGroupFilter		1,3,6,1,4,1,482,50,2,9,1		Integer		1=on  ,2=off
+lcLcpSecGrpType	 	1,3,6,1,4,1,482,50,2,9,3		Integer		1=simple, 
+2=shared
+lcLcpSecurityGrp			1,3,6,1,4,1,482,50,2,9,4		String		Integer or Hex
+String
+lcLcpBcastFilter			1,3,6,1,4,1,482,50,2,9,13		Integer		1=on  ,2=off
+lcLcpMcastFilter			1,3,6,1,4,1,482,50,2,9,14		Integer		1=on  ,2=off
+lcLcpSecGrpSpanTree		1,3,6,1,4,1,482,50,2,9,15		Integer		1=on  ,2=off
+
+Any single instance variables (not part of a table) will need a 0 appended to the end of the object Id specified above.  Any tabular element will need the table index appended to the end of the object Id.  These indices have values from 1 to 10. 
+Note:  When provisioning filters via a configuration file all community strings are bypassed.  The rules of setting the filter statuses have been relaxed for provisioning uses only.  The filter status does not need to be set from valid to invalid before altering the filter content during provisioning.  However, the filter status parameter must be the last configured variable when defining a particular filter.  For example, if an IP filter with a valid status was to be changed or configured through provisioning, the parameter list could have the following order:
+	provision the IP DA
+	provision the IP SA 
+	provision the DA Mask 
+	provision the Filter Direction
+	provision the Action
+	provision the Status                   - This MUST be last configured element for the filter.
+
+The SNMP interface will remain the same with all restrictions.  
+
+LCn-Less Enabled 
+The value of this field specifies whether  the Lcn-Less mode is to be enabled.  The ôonö state enables this feature which allows the modem to complete itÆs boot sequence without requiring a configuration file.  The modem will still request a configuration file, but if a TFTP server does not respond to the request, the modem will log LCn Unreachable as an ôinformö and all configuration parameters will be those stored in memory.  The default configuration is off.
+
+	code	length		on / off
+	39	1		1 or 0
+
+LCP 16 Supported MAC address option
+The value of the field specifies the MAC addresses of up to 16 nodes which will be supported by the LCP.  Ethernet packets must originate from or be addressed to one of these addresses in order to be forwarded by the LCp.
+Each address is specified as a 6 byte number in network order (byte 0 as the most significant).
+If less than 16 addresses are specified the unspecified addresses are represented as 00 00 00 00 00 00.
+
+If all addresses are specified as  00 00 00 00 00 00 then the LCP will learn the first 16 MAC addresses from the ethernet and allow forwarding to and from these nodes.
+
+This option is ignored by the LCb product.
+
+	code	length		value
+	40	96		mac1 mac2 mac3 mac4 mac5 mac6 mac7 mac8 mac9 mac10 mac11 
+mac12 mac13 mac14 mac15 mac16
+LCP 16 Supported client IP address option
+The value of the field specifies the IP address of up to 16 nodes which will be supported by the LCp. IP packets must originate from or be addressed to one of these addresses in order to be forwarded by the LCp.
+Each address is specified as a 4 byte number in network order (ip1 is most significant).
+If less than 16 addresses are specified the unspecified addresses are represented as 0 0 0 0.
+
+If all addresses are specified as 0 0 0 0 then SNMP access will be allowed from any network manager.
+
+	code	length		value
+	41	64		ip1 ip2 ip3 ip4 ip5 ip6 ip7 ip8 ip9 ip10 ip11 ip12 ip13 ip14 ip15 ip16
+
+
+Explicit Steps During File Creation
+
+The sequence of operations required to create the configuration file are as shown below.
+
+1.
+Create the type length value entries for all the parameters required by the LCp
+
+
+
+
+
+1A.
+Create the type length encoded VarBind entries for all the filter parameters in the configuration file.  These are optional parameters which can be provisioned.
+
+
+
+
+
+
+1B.
+Create the encoded VarBind entries for each of the parameters entered in the configuration file.   This requires building the ASN.1 Object Identifier and then building the ASN.1 data field based on the type of data being encoded.  After the object and data fields are built, an ASN.1 sequence must be built.  This sequence contains a header with an id and length specified.  The encoded VarBinds become the standard data field in the format code, length, data file entries.
+
+
+
+                   
+
+
+2. 
+Calculate the MD5 digest by pre-pending the 64 byte authentication key data to the parameter data and calculating the digest over the combined key and parameter values.
+
+
+
+
+
+
+
+3.
+Remove the authentication data and add the 16 byte MD5 digest following the last parameter using code and length values defined for this field.
+
+
+
+
+
+
+
+4.
+Add the end of data marker.
+
+
+
+
+
+
+5.
+Convert the file into hexadecimal data.
+
+
+Required LCN Options
+
+The following table shows which options must be present in the configuration file for different products.
+
+Note:
+These parameters are those which are required to create an operation unit from one received directly from the factory.  A unit which is operational will have stored some parameters locally and may reboot successfully with less than the minimum set.  Reliance on this local storage is not recommended as it may be removed in future revisions.
+
+Configuration Option Vs Product Matrix (Rev. 2.0 s/w)
+
+Option	LCp	LCw	LCh	LCb
+				
+end	mandatory	mandatory	mandatory	mandatory
+pad	option	option	option	option
+transmit frequency	option	option	mandatory	option
+receive frequency	mandatory	mandatory	mandatory	mandatory
+reference node	mandatory	mandatory	mandatory	mandatory
+max. loop delay	mandatory	mandatory	mandatory	mandatory
+digest	mandatory	mandatory	mandatory	mandatory
+change key	option	option	option	option
+key id	option	option	option	option
+network access	mandatory	mandatory	mandatory	mandatory
+network management read only	option	option	option	option
+max. Ethernet nodes	N/A	mandatory	N/A	N/A
+max. CDMs	mandatory	mandatory	mandatory	mandatory
+default gateway	option	option	option	option
+SNMP read community	option	option	option	option
+SNMP write community	option	option	option	option
+SNMP trap community	option	option	option	option
+max. concatenation	option	option	option	option
+access priority	option	option	option	option
+max. forward rate	option	option	option	option
+max. return rate	option	option	option	option
+min. contention mode	option	option	option	option
+authorized net. Mgr. IP	option	option	option	option
+authorized net. Mgr. MAC	option	option	option	option
+supported MAC addresses	N/A	option	N/A	N/A
+
+
+N/A -not applicable
+
+
+Configuration Option Vs Product Matrix (Rev. 4.00 s/w)
+
+Option	LCp	LCh	LCb
+			
+end	mandatory	mandatory	mandatory
+pad	option	option	option
+transmit frequency	option	mandatory	option
+receive frequency	mandatory	mandatory	mandatory
+reference node	mandatory	mandatory	mandatory
+max. loop delay	mandatory	mandatory	mandatory
+digest	mandatory	mandatory	mandatory
+change key	option	option	option
+key id	option	option	option
+network access	mandatory	mandatory	mandatory
+network management read only	option	option	option
+max. Ethernet nodes	optional*	N/A	N/A
+max. CDMs	mandatory	mandatory	mandatory
+default gateway	option	option	option
+SNMP read community	option	option	option
+SNMP write community	option	option	option
+SNMP trap community	option	option	option
+max. concatenation	option	option	option
+access priority	option	option	option
+max. forward rate	option	option	option
+max. return rate	option	option	option
+min. contention mode	option	option	option
+authorized net. Mgr. IP	option	option	option
+authorized net. Mgr. MAC	option	option	option
+supported MAC addresses	option	N/A	N/A
+Supported client IP address option	option	option	option
+Software Revision Option	option	option	option
+Software Upgrade Filename Option	option	option	option
+TFTP server IP address option	option	option	option
+Filter Provisioning Option	option 	option	option
+LCn-Less Enabled	option	option	option
+LCP 16 Supported MAC address option	option	N/A	N/A
+LCP 16 Supported client IP address option	option	N/A	N/A
+
+*If the max. Ethernet nodes parameter is not specified, the modem will default to support only 1 node.  The LCp is now capable of supporting up to 16 Ethernet devices. 
+
+N/A -not applicable

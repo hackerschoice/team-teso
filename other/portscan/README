@@ -1,0 +1,53 @@
+Portscan - Coded By Smiler
+
+Note u need libnet and libpcap - you can get them from 
+http://www.packetfactory.net/libnet and ftp://ftp.ee.lbl.gov/libpcap 
+respectively.
+
+Please note that this is based on old code so the style is not completely
+how I would have wished ideally, but I think its pretty easy to follow,
+and, well, it works.
+
+Note also that the '-f[ragmentation]' option does fuck all at the moment.
+(It used to work but I changed the ip interface so.....now it doesnt).
+
+There are two main modes of operation.
+
+Sequential mode: Portscan one host at a time. Portscan supports SYN,XMAS,
+  FIN standard TCP port scans. It also supports RPC style. All this does
+  is "ping" lots of ports over UDP and wait for the responses. This is
+  a must if you're paranoid and don't want to query the portmapper
+  directly. Note you can use netmasks or input files with this mode.
+
+Parallel mode: Send one packet to many different hosts and wait for
+  responses. This is very useful for finding boxes on a subnet and also
+  for searching for linux boxes with open ports. Note if you choose -sT or
+  -sL or -sK you can only use one port at a time. -sP is used to test
+  whether hosts are alive (by icmp_echo).
+
+
+Here are the possible options:
+
+# My personal favourite:
+# To scan www.host.com ports 1-200 with XMAS style and fragmentation
+portscan www.host.com -p 1-200 -sX -f
+
+# To scan www.host.com, ports in /etc/services and simple SYN style
+portscan www.host.com 
+
+# To scan the entire subnet, ports 1-100, FIN style and fragmentation
+portscan www.host.com/24 -sF -p 1-100 -f
+
+# Ping the hosts on the subnet and log the outcome
+portscan www.host.com/24 -P -o logfile
+
+# Scan for port 143 open on Linux boxes on that subnet
+portscan www.host.com/24 -sL -p 143 -o logfile
+
+# Scan for port 53 open on all boxes from an ipfile
+portscan -i ipfile -sT -p 53 -o logfile
+
+# Scan for RPC program 100005 (mountd) on a www.host.com ports 600-1000
+# over udp with fragmentation. ph33r.
+portscan www.host.com -sR -R 100005 -p 600-1000 -f
+
